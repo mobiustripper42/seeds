@@ -97,6 +97,17 @@ Unresolved estimate disagreements. Revisit when the task starts.
 
 ---
 
+## Phase Boundary Checklist
+
+At the end of every phase:
+1. All pgTAP tests green (`supabase test db`)
+2. All Playwright tests green (`npx playwright test`)
+3. @pm phase retrospective — velocity check, timeline update
+4. Write retrospective entry in `docs/RETROSPECTIVES.md` (velocity, scope changes, process notes, forecast update)
+5. Return to primary planning chat — review docs against intent
+
+---
+
 ## Cuttable Tasks (if behind)
 
 Tasks that can be deferred to V2 without breaking core functionality. Reference before any scope cut conversation.

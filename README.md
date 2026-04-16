@@ -28,6 +28,7 @@ Personal Claude Code configuration, templates, and workflow tooling. Copy what y
   - `USER_STORIES.md` — user story template
   - `BRAND.md` — brand and visual direction template
   - `PROJECT_PLAN.md` — project plan with Phase 0 pre-filled
+  - `RETROSPECTIVES.md` — phase-end retrospective template (velocity, scope, forecast)
   - `VELOCITY_AND_POKER_GUIDE.md` — estimation method and velocity tracking
 
 ## Setup (new project)
