@@ -1,27 +1,27 @@
 ---
 name: sync-config
-description: Syncs workflow improvements from the active project back to the domain-seeds template repo (~/.claude/skills/ and .claude/agents/ vs ~/domain-seeds). Diffs live files against templates, classifies changes as structural improvements vs project-name substitutions, and propagates the structural ones. Run when a skill or agent has been meaningfully improved mid-project.
+description: Syncs workflow improvements from the active project back to the seeds template repo (~/.claude/skills/ and .claude/agents/ vs ~/seeds). Diffs live files against templates, classifies changes as structural improvements vs project-name substitutions, and propagates the structural ones. Run when a skill or agent has been meaningfully improved mid-project.
 tools: Read, Edit, Write, Bash, Glob, Grep
 ---
 
 ## Purpose
 
-Sync workflow improvements (new steps, revised logic, bug fixes) from the active project back to `~/domain-seeds`. Do NOT sync project-specific content — project names, deadlines, schema references, domain-specific file paths. Only structural improvements to the workflow itself.
+Sync workflow improvements (new steps, revised logic, bug fixes) from the active project back to `~/seeds`. Do NOT sync project-specific content — project names, deadlines, schema references, domain-specific file paths. Only structural improvements to the workflow itself.
 
 ## Paths
 
 - Live skills: `~/.claude/skills/`
 - Live agents: `.claude/agents/` (current project root)
-- Dev-config skills: `~/domain-seeds/claude/skills/`
-- Dev-config agents: `~/domain-seeds/claude/agents/`
+- Dev-config skills: `~/seeds/dev/claude/skills/`
+- Dev-config agents: `~/seeds/dev/claude/agents/`
 
-Adjust `~/domain-seeds` to match the actual path of the domain-seeds repo on this machine.
+Adjust `~/seeds` to match the actual path of the seeds repo on this machine.
 
 ## Step 1 — Diff skills
 
 For each skill directory in `~/.claude/skills/`, run:
 ```
-diff ~/.claude/skills/<name>/SKILL.md ~/domain-seeds/claude/skills/<name>/SKILL.md
+diff ~/.claude/skills/<name>/SKILL.md ~/seeds/dev/claude/skills/<name>/SKILL.md
 ```
 
 Collect all diffs. Skip `sync-config` itself.
@@ -30,7 +30,7 @@ Collect all diffs. Skip `sync-config` itself.
 
 For each `.md` file in `.claude/agents/`, run:
 ```
-diff .claude/agents/<name>.md ~/domain-seeds/claude/agents/<name>.md
+diff .claude/agents/<name>.md ~/seeds/dev/claude/agents/<name>.md
 ```
 
 Collect all diffs.
@@ -59,7 +59,7 @@ Output a summary table:
 | File | Change summary | Classification | Action |
 |------|----------------|----------------|--------|
 
-For each **structural improvement**, show the full diff hunk and ask: **"Backport this to domain-seeds? (y/n)"**
+For each **structural improvement**, show the full diff hunk and ask: **"Backport this to seeds? (y/n)"**
 
 Wait for user response on each one before proceeding.
 
@@ -67,7 +67,7 @@ Wait for user response on each one before proceeding.
 
 For each approved change:
 
-1. Read the target domain-seeds file
+1. Read the target seeds file
 2. Apply the structural change
 3. Replace any project-specific strings with generic equivalents:
    - Project name → `[Project]`
@@ -77,16 +77,16 @@ For each approved change:
 
 ## Step 6 — Flag live bugs
 
-If any diff shows domain-seeds is more correct than the live version (e.g., correct file marker, right variable name), flag it:
+If any diff shows seeds is more correct than the live version (e.g., correct file marker, right variable name), flag it:
 
-> **Live version bug:** `<file>` — domain-seeds says X, live says Y. Fix live version? (y/n)
+> **Live version bug:** `<file>` — seeds says X, live says Y. Fix live version? (y/n)
 
 Apply if approved.
 
 ## Step 7 — Report
 
 List:
-- Files updated in domain-seeds
+- Files updated in seeds
 - Live bugs fixed (if any)
 - Changes skipped (project-specific, not backported)
 
