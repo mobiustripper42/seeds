@@ -1,4 +1,4 @@
-# dev-config
+# domain-seeds
 
 Personal Claude Code configuration, templates, and workflow tooling. Copy what you need into a new project.
 
