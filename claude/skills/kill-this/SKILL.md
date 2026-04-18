@@ -6,11 +6,22 @@ tools: Read, Edit, Write, Bash, Glob, Grep
 
 You are executing the first half of the end-of-session shutdown.
 
-## Step 1 — Build check
+## Step 1 — Full suite check
+
+Ask the user: **"Did you run the full test suite this session?"**
+
+Wait for their answer.
+
+- If yes: continue.
+- If no: ask separately: **"Do you want to run it now before committing?"**
+  - If yes: run the full suite and fix any failures before proceeding.
+  - If no: continue.
+
+## Step 2 — Build check
 
 Run `npm run build`. Fix any errors before proceeding. Do not commit broken code.
 
-## Step 2 — Commit code
+## Step 3 — Commit code
 
 Stage and commit all uncommitted changes with `git add -A`. Write a commit message that:
 - Starts with the phase/task (e.g. "Phase 5.5 —")
@@ -19,11 +30,11 @@ Stage and commit all uncommitted changes with `git add -A`. Write a commit messa
 
 If there is nothing to commit, skip and say so.
 
-## Step 3 — Code review
+## Step 4 — Code review
 
 Run the @code-review agent against HEAD (`git diff HEAD~1`). Wait for it to complete. Include a **Code Review** section in the draft log entry with either the findings or "Clean Bill of Health."
 
-## Step 4 — Draft session log entry
+## Step 5 — Draft session log entry
 
 Compose the full session log entry but DO NOT write it yet. Duration and points are not yet known — use `[TBD]` placeholders:
 
