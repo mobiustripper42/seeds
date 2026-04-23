@@ -29,8 +29,11 @@ No phases — flat task list. Tests baked into each estimate.
 | 7 | Build `/pull-seeds` downstream skill — manual trigger inside a project, uses `@sync-config` in reverse direction | 5 | [ ] | Depends on 1 (clean skill templates needed). |
 | 8 | Decide fate of `scripts/nightly-sync.sh` — supersede with remote Routine, keep as local-only alternative, or retire | 3 | [ ] | Depends on 6 being working. |
 | 9 | Migrate personal projects to project-level skills — install de-hardcoded skills into each active project's `<project>/.claude/skills/`, verify | 5 | [ ] | Depends on 1. Covers laptop, headless Ubuntu, and at least one repo to test on Android. |
+| 10 | Discuss + decide: how the auto-created `claude/<task-slug>` feature branches affect the seeds workflow. Should sessions develop on main, on the auto branch, or on a user-named branch? When/how does merge-to-main happen? | 3 | [ ] | **Priority for next session start.** Affects how /its-alive, /kill-this, /its-dead behave wrt branching. |
 
-**Total: 35 pts**
+**Total: 38 pts**
+
+**Next session priority:** Task 10 first (workflow decision), then Helm extraction → tasks 1, 3, 2.
 
 ---
 
