@@ -5,7 +5,57 @@ Format: prepend newest entry at the top.
 
 ---
 
-## Session — 2026-04-22 (Wed)
+## Session 3 — 2026-04-23 (Thu)
+**Duration:** N/A (setup session, no /its-alive stamp) | **Points:** 0 (no plan tasks completed — this session *created* the plan)
+
+**Task:** Cross-device skill sync design + promotion of seeds to a real project using its own workflow.
+
+**Completed:**
+- Mobile-test probe skill (`.claude/skills/mobile-test/SKILL.md`) — created, pushed, merged to main. Verified on Android that project-level skill discovery works on mobile (no plugin needed).
+- Confirmed mobile slash UX: no autocomplete dropdown, but typing `/skillname` as text works.
+- Promoted seeds to real project — added `docs/` (PROJECT_PLAN, SPEC, DECISIONS, AGENTS, RETROSPECTIVES, VELOCITY guide), `.claude/agents/` (5 agents), `.claude/skills/` (6 skills) at root.
+- Captured 4 architectural decisions (DEC-001..004) + 3 DEC-TBDs.
+- Added "Future Direction" north star to `docs/SPEC.md` — seeds as personal project hub (long-term).
+- Added task 10 to PROJECT_PLAN — CC branch workflow discussion, priority for next session.
+- Retroactively numbered prior session-log entries (Session 1 = 04-20, Session 2 = 04-22) so `/its-alive` can compute the next N.
+- Commits: 53ecdc3, 75c66dc, 684d0b9, 61207a9 on `claude/cross-device-skill-sync-D3KMg`.
+
+**In Progress:** None.
+
+**Blocked:**
+- Anthropic Routines GitHub access model (DEC-TBD) — research task 4
+- Repo list format for Routine (DEC-TBD)
+- Fate of `scripts/nightly-sync.sh` (DEC-TBD)
+
+**Next Steps (cold start):**
+1. Merge `claude/cross-device-skill-sync-D3KMg` to main (user requested).
+2. **Task 10 first** — discuss CC branch impact on workflow before any other work. Affects how `/its-alive`, `/kill-this`, `/its-dead` behave wrt branching.
+3. Apply Helm extraction (queued this session, not applied) — 6 files, 3 skills × {dev/ template + seeds .claude/ copy}:
+   - `kill-this`: replace test-suite y/n prompt with verification recap (advisory, lands in draft log); make `npm run build` conditional on `package.json` + build script existing
+   - `pause-this`: same conditional build check
+   - `its-alive`: unconditional `git pull --rebase --autostash` before reading session state (prevents stale log on second machine); re-read session-log.md after pull; surface `git status --porcelain` in briefing
+4. Code-review fixes (from @code-review in this session):
+   - Fill `[Project]` → `seeds` in architect.md, code-review.md, pm.md, ui-reviewer.md frontmatter
+   - Seeds-ify the 4 dev-family agents (remove Next.js/Supabase/RLS/shadcn assumptions)
+   - `sync-config.md:16` — update `~/.claude/skills/` reference to `<project>/.claude/skills/` per DEC-002
+   - `AGENTS.md` — replace "spec → build → test → mobile screenshot" loop with seeds' actual loop
+   - `its-alive/SKILL.md:38` — remove "current phase" assumption (PROJECT_PLAN has no phases)
+   - `PROJECT_PLAN.md:11` — add `docs/` prefix to VELOCITY_AND_POKER_GUIDE.md reference
+5. Task 3 — delete mobile-test probe.
+6. Remainder of task 1 (other 3 skills' de-hardcoding), task 2 (setup instructions + per-tool selection guide).
+
+**Context:**
+- Project-level skill discovery **confirmed** on desktop + Android. Plan is viable end-to-end.
+- Workflow philosophy: seeds = full library; per-project = subset chosen at seed time via conversation. No fixed profiles.
+- Long-term: seeds becomes personal project hub (cross-project status view) — captured in SPEC Future Direction, not actionable yet.
+- This session's `/kill-this` ran with adapted Steps 1+2 (no test suite, no build step) — exactly what Helm extraction fixes for next time.
+- `@code-review` flagged that seeds dropped `dev/` family templates into its own `.claude/` without seeds-ifying — all findings logged under Next Steps item 4.
+
+**Code Review:** 10 findings from @code-review against branch vs main, all non-blocking, queued into Next Steps item 4.
+
+---
+
+## Session 2 — 2026-04-22 (Wed)
 
 **Topic:** Cross-device skill sync design. No code written — design conversation only.
 
@@ -39,7 +89,7 @@ Does Claude Code on Android auto-discover `<project>/.claude/skills/` from a clo
 
 ---
 
-## Session — 2026-04-20 (Sun/Mon)
+## Session 1 — 2026-04-20 (Sun/Mon)
 
 **Built:** Nightly auto-sync automation (skeleton).
 
