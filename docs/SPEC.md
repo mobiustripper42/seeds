@@ -44,3 +44,9 @@ Sync-config end-to-end:
 - Auto-merge of backport PRs (always user-reviewed)
 - Downstream auto-pull on session start (user explicitly doesn't want interruption mid-flow)
 - Domain family templates beyond whatever's minimally needed to test
+
+## Future Direction (north star, not committed)
+
+Seeds positioned as the user's personal project hub — not just a template library. New skills get developed here (with full workflow applied), workflow decisions get debated here, and eventually a high-level cross-project status view aggregates state from sailbook, helm, future projects, etc. Sync-config tooling is the foundation; the hub view is the long-term payoff.
+
+Implications if pursued: project setup becomes a guided conversation in seeds (pick which tools this project needs), skill development happens in seeds first then deploys to projects, and a future "@portfolio" agent or `/all-projects` skill summarizes status across the whole estate. Not actionable yet — flagged so it doesn't get lost.
