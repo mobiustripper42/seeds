@@ -1,0 +1,60 @@
+# seeds — Project Plan
+
+**Start date:** 2026-04-22
+**Focus:** Cross-device skill sync via sync-config tooling.
+**Critical path:** Upstream Routine + downstream `/pull-seeds` both functional across laptop, headless Ubuntu, and Android.
+
+---
+
+## Estimation Method
+
+Fibonacci scale (2, 3, 5, 8, 13). See `VELOCITY_AND_POKER_GUIDE.md`.
+All estimates from planning poker between user and Claude.
+No phases — flat task list. Tests baked into each estimate.
+
+**Velocity baseline:** Not yet established.
+
+---
+
+## Tasks
+
+| # | Task | Effort | Status | Notes |
+|---|------|--------|--------|-------|
+| 1 | De-hardcode skill templates in `dev/claude/skills/` — rewrite the 6 skills (its-alive, pause-this, restart-this, kill-this, its-dead, sync-config) to delegate project-specific commands to `CLAUDE.md §Commands` instead of assuming `npm run build` etc. | 5 | [ ] | |
+| 2 | Update seeds root `CLAUDE.md` setup instructions — step 5 switches from `~/.claude/skills/` (global) to `<project>/.claude/skills/` (project-level). Add Key Docs table pointing at `docs/`. | 2 | [ ] | |
+| 3 | Delete `mobile-test` probe skill from seeds `.claude/skills/` | 2 | [ ] | Test served its purpose — discovery confirmed on desktop + mobile. |
+| 4 | Research: verify Anthropic Routines can (a) access N private GitHub repos and (b) open a PR to one of them. | 3 | [ ] | Blocks task 6. |
+| 5 | Define fixed repo list format for the Routine to scan — where it lives in seeds, what format (JSON / YAML / plain text) | 2 | [ ] | Depends on 4 (Routine may dictate format). |
+| 6 | Build remote Routine for nightly upstream sync — invokes `@sync-config` classifier per repo, opens one stacked PR to seeds | 8 | [ ] | Depends on 4, 5. |
+| 7 | Build `/pull-seeds` downstream skill — manual trigger inside a project, uses `@sync-config` in reverse direction | 5 | [ ] | Depends on 1 (clean skill templates needed). |
+| 8 | Decide fate of `scripts/nightly-sync.sh` — supersede with remote Routine, keep as local-only alternative, or retire | 3 | [ ] | Depends on 6 being working. |
+| 9 | Migrate personal projects to project-level skills — install de-hardcoded skills into each active project's `<project>/.claude/skills/`, verify | 5 | [ ] | Depends on 1. Covers laptop, headless Ubuntu, and at least one repo to test on Android. |
+
+**Total: 35 pts**
+
+---
+
+## Velocity Table
+
+| Work batch | Actual Hours | Effort Points | Hrs/Pt | Notes |
+|-----------|-------------|---------------|--------|-------|
+| — | — | — | — | |
+
+**Lifetime velocity:** — hrs/pt
+
+---
+
+## Estimation Poker — Standing Disagreements
+
+| Task | Claude says | You say | Question |
+|------|------------|---------|----------|
+| — | — | — | — |
+
+---
+
+## Cuttable Tasks (if behind)
+
+| Task | Why it's cuttable | Defer to |
+|------|------------------|----------|
+| 8 | Keeping both local script + Routine is fine short-term | Later |
+| 9 | Can migrate projects opportunistically as they're touched | Rolling |
