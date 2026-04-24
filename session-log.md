@@ -5,7 +5,26 @@ Format: prepend newest entry at the top.
 
 ---
 
-## Session 4 — 2026-04-24 19:53 [open]
+## Session 4 — 2026-04-24 19:53 (N/A)
+**Duration:** N/A (no work performed) | **Points:** 0
+
+**Task:** Session start ritual test — invoked `/its-alive`, presented briefing, closed without doing the recommended task.
+
+**Completed:**
+- Opened Session 4 entry in `session-log.md` (commit `fdad37e`)
+- Presented briefing recommending task 10 + parallel task 4 research
+
+**In Progress:** None.
+
+**Blocked:** Same as Session 3 — three DEC-TBDs gating tasks 5/6.
+
+**Next Steps (cold start):** Identical to Session 3's Next Steps — task 10 first (CC branch workflow discussion), then task 4 research in parallel, then Helm extraction, code-review fixes, task 3, rest of task 1, task 2.
+
+**Context:**
+- Real workflow signal surfaced: `/its-alive` opened Session 4 on the `claude/cross-device-skill-sync-D3KMg` feature branch (still checked out from Session 3) rather than main. Live example of the task 10 problem — sessions land on whatever branch was last checked out, not on a deliberate branch chosen by the workflow.
+- This near-empty session itself is data: starting `/its-alive` without intent to work creates orphan session entries. Worth deciding whether `/its-alive` should require a stated task, or whether a "session abandoned" close path should exist.
+
+**Code Review:** Skipped — no substantive changes (only the open-session marker commit `fdad37e`).
 
 ---
 
