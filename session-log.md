@@ -5,6 +5,10 @@ Format: prepend newest entry at the top.
 
 ---
 
+## Session 5 — 2026-04-24 20:00 [open]
+
+---
+
 ## Session 4 — 2026-04-24 19:53 (N/A)
 **Duration:** N/A (no work performed) | **Points:** 0
 
