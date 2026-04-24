@@ -5,6 +5,10 @@ Format: prepend newest entry at the top.
 
 ---
 
+## Session 4 — 2026-04-24 19:53 [open]
+
+---
+
 ## Session 3 — 2026-04-23 (Thu)
 **Duration:** N/A (setup session, no /its-alive stamp) | **Points:** 0 (no plan tasks completed — this session *created* the plan)
 
