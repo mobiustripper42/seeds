@@ -5,6 +5,10 @@ Format: prepend newest entry at the top.
 
 ---
 
+## Session 6 — 2026-04-25 13:41 [open]
+
+---
+
 ## Session 5 — 2026-04-24 20:00–21:15 (~1.25 hrs)
 **Duration:** ~1.25 hrs (0.75 focused + 0.5 recovery — see addendum) | **Points:** 6 (task 10: 3, task 11: 3)
 
