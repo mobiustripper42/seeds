@@ -31,9 +31,9 @@ No phases — flat task list. Tests baked into each estimate.
 | 9 | Migrate personal projects to project-level skills — install de-hardcoded skills into each active project's `<project>/.claude/skills/`, verify | 5 | [ ] | Depends on 1. Covers laptop, headless Ubuntu, and at least one repo to test on Android. |
 | 10 | Discuss + decide: how the auto-created `claude/<task-slug>` feature branches affect the seeds workflow. | 3 | [x] | <!-- completed 2026-04-24 --> Decided DEC-005: always on main while solo, per-session branches when team grows. |
 | 11 | Implement DEC-005 in skills — `/its-alive` Step 0: switch to main + pull before opening session entry. `/its-dead` Step 5: merge non-main working branch into main, delete, push. Touches both `dev/claude/skills/` templates and seeds' own `.claude/skills/` copies (4 files). | 3 | [x] | <!-- completed 2026-04-24 --> Step 0 added to its-alive (4 files), Step 5 added to its-dead (4 files). Takes effect next session — /its-dead Step 5 will auto-clean the current feature branch when Session 5 closes. |
-| 12 | Fix DEC-005 implementation bugs surfaced by code review (Session 5) — 4 issues across `/its-alive` Step 0 and `/its-dead` Step 5: (1) missing-local-main guard, (2) diverged-main remediation, (3) Step 5 ordering vs commit/push, (4) Step 5 dirty-tree guard. | 3 | [ ] | High priority — without these fixes, Step 5 misfires on cross-device sessions. |
+| 12 | Fix DEC-005 implementation bugs surfaced by code review + Session 5 live failure — 5 issues across `/its-alive` Step 0 and `/its-dead` Step 5: (1) missing-local-main guard, (2) diverged-main remediation, (3) Step 5 ordering vs commit/push, (4) Step 5 dirty-tree guard, (5) Step 5 remote-delete failure should leave orphan-branch TODO note. | 5 | [ ] | **HIGH PRIORITY.** Bug #3 hit live in Session 5 — required manual rebase recovery. Re-estimated 3→5 pts after live failure; finding #5 added based on actual recovery experience. |
 
-**Total: 44 pts**
+**Total: 46 pts**
 
 **Next session priority:** Verify Step 5 self-test from Session 5 worked, then task 12 (DEC-005 bug fixes), then task 4 research → Helm extraction → Session 3 code-review fixes → task 3 → rest of task 1 → task 2.
 

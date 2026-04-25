@@ -5,8 +5,8 @@ Format: prepend newest entry at the top.
 
 ---
 
-## Session 5 — 2026-04-24 20:00–20:45 (~0.75 hrs focused)
-**Duration:** ~0.75 hrs (calendar elapsed 8.5 hrs — most was away from desk) | **Points:** 6 (task 10: 3, task 11: 3)
+## Session 5 — 2026-04-24 20:00–21:15 (~1.25 hrs)
+**Duration:** ~1.25 hrs (0.75 focused + 0.5 recovery — see addendum) | **Points:** 6 (task 10: 3, task 11: 3)
 
 **Task:** Task 10 — CC branch workflow decision; Task 11 — implement DEC-005 in skills.
 
@@ -41,6 +41,22 @@ Format: prepend newest entry at the top.
 2. **Step 0 diverged-main case** — `git pull --ff-only` failure on first DEC-005 adoption needs remediation guidance (rebase / reset / abort), not just "surface and stop."
 3. **Step 5 ordering** — Step 5 runs after Step 3's commit + push to feature branch. If `origin/main` advanced externally during the session, Step 5's FF merge fails and leaves the session "closed" but branch un-cleaned. Move cleanup before Step 3 (or remove Step 3's push since Step 5 will push from main anyway).
 4. **Step 5 missing dirty-tree guard** — Mirrors Step 0's `git status --porcelain` check; without it, `git checkout main` from a dirty non-main branch will misbehave.
+
+**Addendum — Step 5 self-test failed live (added at session close):**
+Code-review finding #3 manifested in real-time during this very session's `/its-dead` Step 5. Sequence:
+1. While Session 5 was active, GitHub auto-merged stale **PR #1** (which only contained `fdad37e`, the original Session 4 open marker) into `main`. This created merge commit `cfc6690` on origin/main with content unrelated to Session 5 work.
+2. `/its-dead` Step 5 ran `git checkout main && git pull --ff-only` (succeeded, fast-forwarded to `cfc6690`), then `git merge --ff-only <feature-branch>` — **failed**. The branches had diverged: feature's history didn't include `cfc6690`.
+3. Recovery (manual, user authorized rebase strategy):
+   - `git checkout <feature> && git rebase main` — replayed 5 commits cleanly on top of `cfc6690`. New hashes: `2d92404`, `0312611`, `7502680`, `da58da5`, `46eb671`.
+   - `git checkout main && git merge --ff-only <feature>` → `git push origin main` ✅
+   - `git branch -D <feature>` (local force-delete after rebase made `-d` impossible)
+   - `git push origin --delete <feature>` → **HTTP 403** (auth scope limitation; orphan remote branch left for manual GitHub-UI cleanup)
+4. Final main HEAD: `46eb671`. All Session 5 work present on main.
+
+**New finding for task 12:**
+5. **Step 5 remote-delete error handling** — the "best-effort" instruction (don't fail the skill on remote-delete error) worked as intended; recovery continued. But there's no record/log of the failure — user needs to know there's an orphan remote branch to clean up. Step 5 should surface a "TODO: orphan remote branch X" note when remote-delete fails.
+
+Updated duration estimate: ~1.25 hrs (0.75 focused work + ~0.5 hr recovery).
 
 ---
 
