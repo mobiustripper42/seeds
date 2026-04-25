@@ -6,6 +6,19 @@ tools: Read, Edit, Write, Bash, Glob, Grep, Agent
 
 You are executing the session start ritual.
 
+## Step 0 — Ensure on main branch (DEC-005)
+
+Before opening a session entry, ensure work happens on `main`:
+
+1. Run `git fetch origin main` to refresh remote state.
+2. Run `git branch --show-current` to identify the current branch.
+3. If on `main`: run `git pull --ff-only origin main`. If the pull fails (e.g. local commits not on remote), stop and surface — do not force.
+4. If not on `main`:
+   - Run `git status --porcelain`. If non-empty (dirty tree): stop. Surface the dirty files and ask the user to commit or stash before re-running `/its-alive`.
+   - If clean: run `git checkout main && git pull --ff-only origin main`.
+
+Per `docs/DECISIONS.md` DEC-005, all work happens on main while solo. Auto-created `claude/<slug>` feature branches from Claude Code are tolerated mid-session but cleaned up by `/its-dead` Step 5.
+
 ## Step 1 — Stamp the time
 
 Run `date` to get the current local time. Record it — this is the session start time.

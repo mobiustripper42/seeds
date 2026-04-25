@@ -41,3 +41,18 @@ git push
 Run the `pm` subagent to assess current project status and recommend the best next task — highest-value unblocked task given timeline, dependencies, and remaining scope. Not just the first unchecked box.
 
 Report the recommendation to the user.
+
+## Step 5 — Branch cleanup (DEC-005)
+
+After PM, clean up any non-main working branch:
+
+1. Run `git branch --show-current`. Capture the branch name.
+2. If on `main`: skip — already where we should be.
+3. If on a non-main branch (e.g. CC auto-created `claude/<slug>`):
+   - `git checkout main && git pull --ff-only origin main`
+   - `git merge --ff-only <branch>` — fast-forward only. If it can't FF, stop and surface; do not auto-resolve.
+   - `git push origin main`
+   - `git branch -d <branch>` (local delete)
+   - `git push origin --delete <branch>` (remote delete — best-effort; don't fail the skill if remote delete errors)
+
+Per `docs/DECISIONS.md` DEC-005, solo dev with no PR review surface — auto-branches don't earn their keep.

@@ -30,7 +30,7 @@ No phases — flat task list. Tests baked into each estimate.
 | 8 | Decide fate of `scripts/nightly-sync.sh` — supersede with remote Routine, keep as local-only alternative, or retire | 3 | [ ] | Depends on 6 being working. |
 | 9 | Migrate personal projects to project-level skills — install de-hardcoded skills into each active project's `<project>/.claude/skills/`, verify | 5 | [ ] | Depends on 1. Covers laptop, headless Ubuntu, and at least one repo to test on Android. |
 | 10 | Discuss + decide: how the auto-created `claude/<task-slug>` feature branches affect the seeds workflow. | 3 | [x] | <!-- completed 2026-04-24 --> Decided DEC-005: always on main while solo, per-session branches when team grows. |
-| 11 | Implement DEC-005 in skills — `/its-alive` Step 0: switch to main + pull before opening session entry. `/its-dead` Step 5: merge non-main working branch into main, delete, push. Touches both `dev/claude/skills/` templates and seeds' own `.claude/skills/` copies (4 files). | 3 | [ ] | Depends on DEC-005 (done). Should land before any further session work to stop the orphan-branch drift. |
+| 11 | Implement DEC-005 in skills — `/its-alive` Step 0: switch to main + pull before opening session entry. `/its-dead` Step 5: merge non-main working branch into main, delete, push. Touches both `dev/claude/skills/` templates and seeds' own `.claude/skills/` copies (4 files). | 3 | [x] | <!-- completed 2026-04-24 --> Step 0 added to its-alive (4 files), Step 5 added to its-dead (4 files). Takes effect next session — /its-dead Step 5 will auto-clean the current feature branch when Session 5 closes. |
 
 **Total: 41 pts**
 
