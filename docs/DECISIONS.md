@@ -26,6 +26,12 @@ Decisions are numbered DEC-NNN. "DEC-TBD" means the decision is flagged but unre
 **Tradeoff:** Two different invocation mechanisms to maintain. Offset by them sharing the classifier (DEC-003).
 **Revisit if:** User ends up never running `/pull-seeds` manually — means downstream needs a gentler reminder mechanism, or the update frequency doesn't justify downstream sync at all.
 
+## DEC-005: Branch model — always on main (solo); per-session when team grows
+**Decision:** All work happens on `main`. CC auto-created `claude/<slug>` branches get merged back and deleted at `/its-dead`. Skills enforce: `/its-alive` ensures `main` is checked out (after pull) before opening the session entry; `/its-dead` merges any non-main working branch into main, deletes it, then pushes.
+**Why:** Solo development. Branches add ceremony with no PR review benefit since there's no second reviewer. The CC auto-branches were causing orphaned-branch drift across sessions (Sessions 3, 4, 5 all landed on a leftover feature branch by accident).
+**Tradeoff:** No PR-per-task review surface. Acceptable while solo.
+**Revisit if:** A second team member joins. Switch to **per-session branches** (`claude/session-N-YYYYMMDD`, created off main at `/its-alive`, merged + deleted at `/its-dead`) — gives each session a clean PR diff for review.
+
 ---
 
 ## DEC-TBD: Anthropic Routines GitHub access model
