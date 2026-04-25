@@ -5,7 +5,42 @@ Format: prepend newest entry at the top.
 
 ---
 
-## Session 5 — 2026-04-24 20:00 [open]
+## Session 5 — 2026-04-24 20:00–20:45 (~0.75 hrs focused)
+**Duration:** ~0.75 hrs (calendar elapsed 8.5 hrs — most was away from desk) | **Points:** 6 (task 10: 3, task 11: 3)
+
+**Task:** Task 10 — CC branch workflow decision; Task 11 — implement DEC-005 in skills.
+
+**Completed:**
+- **Task 10** — Decided DEC-005: always on main while solo; switch to per-session branches when a team member joins. Captured in `docs/DECISIONS.md`. Commit `acbbb16`.
+- **Task 11** — Implemented DEC-005:
+  - `/its-alive` Step 0 (new): fetch + check branch + ensure on main with `--ff-only` pull. Stops with surface on dirty tree.
+  - `/its-dead` Step 5 (new): merge non-main branch into main with `--ff-only`, push, delete locally + remote.
+  - Applied to all 4 files: `dev/claude/skills/{its-alive,its-dead}/SKILL.md` + `.claude/skills/{its-alive,its-dead}/SKILL.md`. Templates and seeds copies verified byte-identical.
+  - Commit `491ea62`.
+
+**In Progress:** None.
+
+**Blocked:** Same as prior sessions — three DEC-TBDs gating tasks 5/6.
+
+**Next Steps (cold start):**
+1. **Verify Step 5 self-test outcome** — this session's `/its-dead` should auto-clean `claude/cross-device-skill-sync-D3KMg`. Confirm in next session's `/its-alive` that we land on main with the branch deleted.
+2. **Fix code-review bugs** in Step 0 / Step 5 (see Code Review below) — 4 issues, ~3 pts new task.
+3. Task 4 research — Anthropic Routines GitHub access (3 pts, async, unblocks task 6).
+4. Helm extraction (queued from Session 3).
+5. Code-review fixes from Session 3 (`[Project]` placeholders, seeds-ify dev-family agents, etc.).
+6. Task 3 — delete mobile-test probe.
+7. Remainder of task 1, task 2.
+
+**Context:**
+- DEC-005 enforcement starts with this session's `/its-dead`. First real-world test of Step 5.
+- Code-review identified 4 logic bugs in the new steps — none affect *this* session's Step 5 run (FF merge will work, main exists locally, no concurrent main movement) but they will misfire on cross-device scenarios. Fix before relying on Step 5 for actual cross-device sessions.
+- Velocity datapoint: 6 pts in ~0.75 hrs = 0.125 hrs/pt. First real session with both real time + real points; n=1.
+
+**Code Review:** 4 findings — all queued, none blocking this session:
+1. **Step 0 missing-local-main guard** — `git checkout main` fails on fresh clones where only the auto-branch exists. Add `git rev-parse --verify main` check; fall back to `git checkout -b main origin/main`.
+2. **Step 0 diverged-main case** — `git pull --ff-only` failure on first DEC-005 adoption needs remediation guidance (rebase / reset / abort), not just "surface and stop."
+3. **Step 5 ordering** — Step 5 runs after Step 3's commit + push to feature branch. If `origin/main` advanced externally during the session, Step 5's FF merge fails and leaves the session "closed" but branch un-cleaned. Move cleanup before Step 3 (or remove Step 3's push since Step 5 will push from main anyway).
+4. **Step 5 missing dirty-tree guard** — Mirrors Step 0's `git status --porcelain` check; without it, `git checkout main` from a dirty non-main branch will misbehave.
 
 ---
 
