@@ -5,7 +5,49 @@ Format: prepend newest entry at the top.
 
 ---
 
-## Session 6 — 2026-04-25 13:41 [open]
+## Session 6 — 2026-04-25 13:41–14:41 (~1 hr focused)
+**Duration:** ~1 hr (calendar 12h, mostly away from desk) | **Points:** 7 (task 12: 5, task 3: 2)
+
+**Task:** Task 12 (DEC-005 implementation bug fixes) + task 12 polish from code review + task 3 (delete mobile-test probe).
+
+**Completed:**
+- **Task 12** — Fixed 6 DEC-005 enforcement bugs across 4 skill files:
+  - `/its-alive` Step 0: `git rev-parse --verify main` guard with `checkout -b main origin/main` fallback for fresh clones; diverged-main now asks user (a) rebase / (b) reset / (c) abort instead of just stopping.
+  - `/its-alive` Step 3: auto-commits + pushes the session-open marker (`git push origin main`) so the stop hook stops firing every session start.
+  - `/its-dead` Step 3: dropped the push (single-push-per-session rule).
+  - `/its-dead` Step 5: dirty-tree guard with recovery guidance, missing-local-main guard, FF-only merge with surface-and-stop on can't-FF, single push at end, orphan-branch note via `git commit --amend` when remote delete fails.
+  - All 4 files (`{.claude,dev/claude}/skills/{its-alive,its-dead}/SKILL.md`) verified byte-identical.
+  - Commits `8e17ec7` (main impl) + `4c8ab0d` (polish + task 3, amended).
+- **Task 12 polish** (from `@code-review` of `8e17ec7`):
+  - Bare `git push` → `git push origin main` in /its-alive Step 3 for fresh-clone safety.
+  - Dirty-tree guard message in /its-dead Step 5a now tells the user what to do.
+- **Task 3** — Removed `.claude/skills/mobile-test/` directory; cleaned `docs/AGENTS.md` (dropped Overview parenthetical, full subsection, and summary-table row referencing mobile-test). Historical references in PROJECT_PLAN task 3 row + DECISIONS.md DEC-002 left intact (reviewer judged optional).
+- **Branch model self-test passed** — `/its-alive` Step 0 ran cleanly at session start (already on main, FF pull). First session that didn't get sidetracked by branch confusion. Stop hook fired once at the open-marker stage (before task 12 fix landed); silent thereafter until /kill-this surfaced task 13.
+- **Task 13 added** — `/kill-this` push behavior follow-up (2 pts), surfaced live when stop hook fired between /kill-this commit and /its-dead.
+
+**In Progress:** None.
+
+**Blocked:**
+- Anthropic Routines GitHub access model (DEC-TBD) — research task 4
+- Repo list format for Routine (DEC-TBD)
+- Fate of `scripts/nightly-sync.sh` (DEC-TBD)
+
+**Next Steps (cold start):**
+1. Task 13 — decide `/kill-this` push behavior (2 pts, decision + 1-line edit). Quick win.
+2. Task 4 — research Anthropic Routines GitHub access (3 pts, async; unblocks task 6).
+3. Apply Helm extraction (queued from Session 3) — 6 files. NB: its-alive Step 0 already does --ff-only pull (task 12), so the Helm extraction's pull change should be folded into Step 0 rather than added separately.
+4. Session 3 code-review fixes — `[Project]` placeholders in agents, seeds-ify dev-family agents, `sync-config.md` skill-location ref, etc.
+5. Task 1 (rest of de-hardcoding) — kill-this, pause-this, restart-this, sync-config skills.
+6. Task 2 — setup instructions update + per-tool selection guide.
+7. Task 5/6 (Routine build) once task 4 is unblocked.
+
+**Context:**
+- DEC-005 enforcement is now hardened against the 6 known failure modes. /its-alive Step 0 self-tested live this session — passed.
+- /its-dead Step 5 hasn't been live-tested with the new logic on a feature branch yet — this session is on main, so Step 5 hits the on-main fast path. Real test of the FF merge + orphan-note flow will come when a future session starts on a feature branch.
+- AGENTS.md cleanup folded into the same commit as task 3 deletion via `git commit --amend` — first amend in this project; works clean.
+- Velocity datapoint: 7 pts in ~1 hr = 0.14 hrs/pt. Consistent with Session 5 (0.125 hrs/pt). n=2 now, but both sessions were skill-edit / decision work — heavy build/debug tasks (task 6, 8 pts) likely run higher.
+
+**Code Review:** Two passes ran. (1) `8e17ec7` review surfaced 1 real bug + 1 polish — both addressed in `4c8ab0d`. (2) `4c8ab0d` review surfaced 4 stale `mobile-test` refs in `docs/AGENTS.md` — addressed via `git commit --amend`. Final state: Clean Bill of Health.
 
 ---
 
