@@ -36,7 +36,7 @@ No phases — flat task list. Tests baked into each estimate.
 
 **Total: 48 pts**
 
-**Next session priority:** Task 2 (CLAUDE.md setup instructions, 2 pts) → Session 3 code-review fixes → Task 7 (/pull-seeds skill, 5 pts) → Task 6 (Routine build, 8 pts).
+**Next session priority:** Task 2 (CLAUDE.md setup instructions, 2 pts) → Task 7 (/pull-seeds skill, 5 pts) → Task 6 (Routine build, 8 pts). Task 5 (repo list format) likely N/A — reassess at task 6 start.
 
 ---
 
@@ -44,9 +44,11 @@ No phases — flat task list. Tests baked into each estimate.
 
 | Work batch | Actual Hours | Effort Points | Hrs/Pt | Notes |
 |-----------|-------------|---------------|--------|-------|
-| — | — | — | — | |
+| Session 5 (tasks 10, 11) | 0.75 | 6 | 0.125 | Focused work only; 0.5h recovery excluded |
+| Session 6 (tasks 12, 3) | 1.00 | 7 | 0.143 | ~1 hr focused |
+| Session 7 (tasks 13, 1, 4) | — | 10 | — | Wall clock 8h20m idle-heavy; not representative |
 
-**Lifetime velocity:** — hrs/pt
+**Lifetime velocity (clean sessions 5+6):** ~0.13 hrs/pt (edit/decision tasks; build tasks likely run higher)
 
 ---
 
