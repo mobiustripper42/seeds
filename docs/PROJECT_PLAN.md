@@ -22,7 +22,7 @@ No phases — flat task list. Tests baked into each estimate.
 |---|------|--------|--------|-------|
 | 1 | De-hardcode skill templates in `dev/claude/skills/` — rewrite the 6 skills (its-alive, pause-this, restart-this, kill-this, its-dead, sync-config) to delegate project-specific commands to `CLAUDE.md §Commands` instead of assuming `npm run build` etc. | 5 | [ ] | |
 | 2 | Update seeds root `CLAUDE.md` setup instructions — step 5 switches from `~/.claude/skills/` (global) to `<project>/.claude/skills/` (project-level). Add Key Docs table pointing at `docs/`. | 2 | [ ] | |
-| 3 | Delete `mobile-test` probe skill from seeds `.claude/skills/` | 2 | [ ] | Test served its purpose — discovery confirmed on desktop + mobile. |
+| 3 | Delete `mobile-test` probe skill from seeds `.claude/skills/` | 2 | [x] | <!-- completed 2026-04-25 --> Removed `.claude/skills/mobile-test/` directory. Probe served its purpose. |
 | 4 | Research: verify Anthropic Routines can (a) access N private GitHub repos and (b) open a PR to one of them. | 3 | [ ] | Blocks task 6. |
 | 5 | Define fixed repo list format for the Routine to scan — where it lives in seeds, what format (JSON / YAML / plain text) | 2 | [ ] | Depends on 4 (Routine may dictate format). |
 | 6 | Build remote Routine for nightly upstream sync — invokes `@sync-config` classifier per repo, opens one stacked PR to seeds | 8 | [ ] | Depends on 4, 5. |

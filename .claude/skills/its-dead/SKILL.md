@@ -51,7 +51,7 @@ After PM, clean up any non-main working branch and do the single push for this s
 2. If on `main`:
    - Single push: `git push origin main`. Done.
 3. If on a non-main branch (e.g. CC auto-created `claude/<slug>`):
-   a. **Dirty-tree guard:** run `git status --porcelain`. If non-empty, stop and surface — Step 3's commit should have left the tree clean; investigate before continuing.
+   a. **Dirty-tree guard:** run `git status --porcelain`. If non-empty, stop and surface — Step 3's commit should have left the tree clean. Ask the user to commit or stash, then re-run `/its-dead` from Step 5.
    b. **Switch to main:** `git checkout main`. If checkout fails because local `main` doesn't exist yet, run `git checkout -b main origin/main`. Then `git pull --ff-only origin main`. If the pull diverges, apply the (a)/(b)/(c) prompt from `/its-alive` Step 0.
    c. **FF merge:** `git merge --ff-only $BRANCH`. If it can't FF (origin/main advanced externally during the session), stop and surface — recovery options: rebase $BRANCH onto main and retry, or merge --no-ff. Ask the user.
    d. **Delete local branch:** `git branch -d $BRANCH`.

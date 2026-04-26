@@ -44,7 +44,7 @@ Then immediately commit and push so the stop hook doesn't fire mid-briefing:
 ```
 git add session-log.md
 git commit -m "Open Session N entry"
-git push
+git push origin main
 ```
 
 Do not fill in any other fields — this is just the timestamp anchor + a clean commit boundary.

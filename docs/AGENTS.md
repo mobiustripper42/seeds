@@ -1,7 +1,7 @@
 # seeds — Claude Code Agents & Skills
 
 ## Overview
-Five agents and six session skills (plus `mobile-test` probe, to be removed) drive seeds' own workflow. All run as Claude Code subagents or slash commands. Skills live project-level in `.claude/skills/`; agents in `.claude/agents/`.
+Five agents and six session skills drive seeds' own workflow. All run as Claude Code subagents or slash commands. Skills live project-level in `.claude/skills/`; agents in `.claude/agents/`.
 
 ---
 
@@ -61,10 +61,6 @@ Calculate duration + points, write session log entry, update `docs/PROJECT_PLAN.
 Invokes `@sync-config` agent to diff live project files against seeds templates. One run, one commit per repo.
 **Spec:** `.claude/skills/sync-config/SKILL.md`
 
-### /mobile-test — (temporary probe)
-Confirmed project-level skill discovery works on mobile CC. Scheduled for deletion — task 3 in `PROJECT_PLAN.md`.
-**Spec:** `.claude/skills/mobile-test/SKILL.md`
-
 ---
 
 ## Session Workflow
@@ -92,4 +88,3 @@ Confirmed project-level skill discovery works on mobile CC. Scheduled for deleti
 | /kill-this | — | Session end (part 1) | Draft log entry |
 | /its-dead | — | Session end (part 2) | Finalize + push |
 | /sync-config | — | After workflow tweaks | Backport to seeds |
-| /mobile-test | — | One-time probe | Removed per task 3 |
