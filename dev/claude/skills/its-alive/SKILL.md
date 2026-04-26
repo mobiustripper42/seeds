@@ -60,9 +60,9 @@ From the most recent completed session entry, extract:
 ## Step 5 — Read project state
 
 Read `docs/PROJECT_PLAN.md`. Identify:
-- Current phase and which tasks are unchecked
+- Unchecked tasks and which are next (or in scope soon)
 - Any tasks marked `[~]` (deferred) or flagged as blocked
-- Velocity baseline for rough timeline awareness
+- Velocity baseline for rough timeline awareness (if established)
 
 ## Step 6 — Present briefing
 

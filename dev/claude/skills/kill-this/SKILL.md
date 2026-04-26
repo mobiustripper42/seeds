@@ -6,20 +6,19 @@ tools: Read, Edit, Write, Bash, Glob, Grep
 
 You are executing the first half of the end-of-session shutdown.
 
-## Step 1 — Full suite check
+## Step 1 — Verification recap
 
-Ask the user: **"Did you run the full test suite this session?"**
+Ask the user: **"How was this session's work verified? (live run / test message + log inspection / doc re-read / suite run / nothing — list what applies)"**
 
-Wait for their answer.
+The answer is **advisory, non-blocking** — capture it for the draft session log entry's Completed or Context section. Decision-only sessions where "nothing to verify" is the honest answer are fine; do not require a specific verification mode.
 
-- If yes: continue.
-- If no: ask separately: **"Do you want to run it now before committing?"**
-  - If yes: run the full suite and fix any failures before proceeding.
-  - If no: continue.
+## Step 2 — Build check (conditional)
 
-## Step 2 — Build check
+Look up the project's build check in `CLAUDE.md §Commands`. Run whatever is defined there (e.g. `npm run build`, `cargo build`, `make`, `supabase db reset`, etc. — whatever the project considers a build verification).
 
-Run `npm run build`. Fix any errors before proceeding. Do not commit broken code.
+If `CLAUDE.md §Commands` defines no build step (e.g. a markdown-only repo, a domain project with no software build), skip this step silently — no noise.
+
+If the build fails, fix errors before proceeding. Do not commit broken code.
 
 ## Step 3 — Commit and push code
 
