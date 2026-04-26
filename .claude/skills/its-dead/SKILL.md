@@ -28,13 +28,14 @@ Write the approved session entry (with real duration and points) into `session-l
 
 Mark any tasks completed this session that aren't already checked `[x]`. Add `<!-- completed YYYY-MM-DD -->`.
 
-## Step 3 — Commit and push the log
+## Step 3 — Commit the log (no push yet)
 
 ```
 git add session-log.md docs/PROJECT_PLAN.md
 git commit -m "Update session log and plan for session N"
-git push
 ```
+
+Do NOT push yet — Step 5 handles the single push for this session after branch cleanup, so any orphan-branch note from Step 5 can be amended into this commit before it leaves local.
 
 ## Step 4 — PM agent
 
@@ -42,17 +43,20 @@ Run the `pm` subagent to assess current project status and recommend the best ne
 
 Report the recommendation to the user.
 
-## Step 5 — Branch cleanup (DEC-005)
+## Step 5 — Branch cleanup + final push (DEC-005)
 
-After PM, clean up any non-main working branch:
+After PM, clean up any non-main working branch and do the single push for this session:
 
-1. Run `git branch --show-current`. Capture the branch name.
-2. If on `main`: skip — already where we should be.
+1. Run `git branch --show-current`. Capture as `BRANCH`.
+2. If on `main`:
+   - Single push: `git push origin main`. Done.
 3. If on a non-main branch (e.g. CC auto-created `claude/<slug>`):
-   - `git checkout main && git pull --ff-only origin main`
-   - `git merge --ff-only <branch>` — fast-forward only. If it can't FF, stop and surface; do not auto-resolve.
-   - `git push origin main`
-   - `git branch -d <branch>` (local delete)
-   - `git push origin --delete <branch>` (remote delete — best-effort; don't fail the skill if remote delete errors)
+   a. **Dirty-tree guard:** run `git status --porcelain`. If non-empty, stop and surface — Step 3's commit should have left the tree clean; investigate before continuing.
+   b. **Switch to main:** `git checkout main`. If checkout fails because local `main` doesn't exist yet, run `git checkout -b main origin/main`. Then `git pull --ff-only origin main`. If the pull diverges, apply the (a)/(b)/(c) prompt from `/its-alive` Step 0.
+   c. **FF merge:** `git merge --ff-only $BRANCH`. If it can't FF (origin/main advanced externally during the session), stop and surface — recovery options: rebase $BRANCH onto main and retry, or merge --no-ff. Ask the user.
+   d. **Delete local branch:** `git branch -d $BRANCH`.
+   e. **Try remote delete:** `git push origin --delete $BRANCH`. Capture success/failure as `REMOTE_DELETE_OK`.
+   f. **Orphan note (if remote delete failed):** edit `session-log.md` to append a line under the just-written session's `**Context:**` section: `- **Orphan branch:** \`$BRANCH\` could not be deleted on origin (best-effort failure). Manual cleanup via GitHub UI required.` Then `git add session-log.md && git commit --amend --no-edit` to fold the note into Step 3's commit.
+   g. **Single push:** `git push origin main`. This pushes the merged work + any amended orphan note in one operation.
 
 Per `docs/DECISIONS.md` DEC-005, solo dev with no PR review surface — auto-branches don't earn their keep.
