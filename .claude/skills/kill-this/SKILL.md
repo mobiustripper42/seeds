@@ -21,14 +21,16 @@ Wait for their answer.
 
 Run `npm run build`. Fix any errors before proceeding. Do not commit broken code.
 
-## Step 3 — Commit code
+## Step 3 — Commit and push code
 
 Stage and commit all uncommitted changes with `git add -A`. Write a commit message that:
 - Starts with the phase/task (e.g. "Phase 5.5 —")
 - Summarizes what was done in plain English
 - Ends with `Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>`
 
-If there is nothing to commit, skip and say so.
+If there is nothing to commit, skip the commit and say so.
+
+Then push: `git push origin main`. Push unconditionally — even with no new commit, this catches any unpushed commits from earlier in the session (work-product, amends) so the stop hook stays quiet through `/kill-this` → `/its-dead`. Per DEC-005 + task 13.
 
 ## Step 4 — Code review
 
@@ -52,4 +54,4 @@ Compose the full session log entry but DO NOT write it yet. Duration and points 
 
 Show the draft to the user and ask: **"Does this look right? Any edits before I lock it in? Run /its-dead when ready — pass any time adjustments as args (e.g. /its-dead subtract 30 minutes for time away from desk)."**
 
-Stop here. Do not write anything to session-log.md yet. Do not push.
+Stop here. Do not write anything to session-log.md yet. (Step 3 already pushed work-product; the log push happens in `/its-dead` Step 5.)
