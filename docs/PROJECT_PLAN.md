@@ -23,7 +23,7 @@ No phases — flat task list. Tests baked into each estimate.
 | 1 | De-hardcode skill templates in `dev/claude/skills/` — rewrite the 6 skills (its-alive, pause-this, restart-this, kill-this, its-dead, sync-config) to delegate project-specific commands to `CLAUDE.md §Commands` instead of assuming `npm run build` etc. | 5 | [x] | <!-- completed 2026-04-26 --> Audited all 6 skills. Real changes: kill-this Step 1 (test-suite y/n → verification recap, advisory + non-blocking), kill-this Step 2 + pause-this Step 1 (npm run build → CLAUDE.md §Commands lookup, skip silently if none), its-alive Step 5 ("current phase" → "unchecked tasks"). its-dead, restart-this, sync-config already project-agnostic — no changes needed. 6 file edits across 3 skills × 2 locations. |
 | 2 | Update seeds root `CLAUDE.md` setup instructions — step 5 switches from `~/.claude/skills/` (global) to `<project>/.claude/skills/` (project-level). Add Key Docs table pointing at `docs/`. | 2 | [ ] | |
 | 3 | Delete `mobile-test` probe skill from seeds `.claude/skills/` | 2 | [x] | <!-- completed 2026-04-25 --> Removed `.claude/skills/mobile-test/` directory. Probe served its purpose. |
-| 4 | Research: verify Anthropic Routines can (a) access N private GitHub repos and (b) open a PR to one of them. | 3 | [ ] | Blocks task 6. |
+| 4 | Research: verify Anthropic Routines can (a) access N private GitHub repos and (b) open a PR to one of them. | 3 | [x] | <!-- completed 2026-04-26 --> Confirmed viable: multi-repo OAuth via /web-setup, PRs to claude/<slug> branches, Pro=5 runs/day. DEC-006 captured. |
 | 5 | Define fixed repo list format for the Routine to scan — where it lives in seeds, what format (JSON / YAML / plain text) | 2 | [ ] | Depends on 4 (Routine may dictate format). |
 | 6 | Build remote Routine for nightly upstream sync — invokes `@sync-config` classifier per repo, opens one stacked PR to seeds | 8 | [ ] | Depends on 4, 5. |
 | 7 | Build `/pull-seeds` downstream skill — manual trigger inside a project, uses `@sync-config` in reverse direction | 5 | [ ] | Depends on 1 (clean skill templates needed). |
@@ -36,7 +36,7 @@ No phases — flat task list. Tests baked into each estimate.
 
 **Total: 48 pts**
 
-**Next session priority:** Verify Step 5 self-test from Session 5 worked, then task 12 (DEC-005 bug fixes), then task 4 research → Helm extraction → Session 3 code-review fixes → task 3 → rest of task 1 → task 2.
+**Next session priority:** Task 2 (CLAUDE.md setup instructions, 2 pts) → Session 3 code-review fixes → Task 7 (/pull-seeds skill, 5 pts) → Task 6 (Routine build, 8 pts).
 
 ---
 

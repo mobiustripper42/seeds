@@ -5,7 +5,44 @@ Format: prepend newest entry at the top.
 
 ---
 
-## Session 7 — 2026-04-26 03:08 [open]
+## Session 7 — 2026-04-26 03:08–11:27 (~8h 20m wall clock)
+**Duration:** ~8h 20m wall clock (idle-heavy — context compaction mid-session) | **Points:** 10 (task 13: 2, task 1: 5, task 4: 3)
+**Task:** Tasks 13 + 1 + 4 — kill-this push behavior, skill de-hardcoding, Routines research
+
+**Completed:**
+- **Task 13** — `/kill-this` Step 3 now pushes unconditionally after commit (`git push origin main`).
+  Stops the stop hook firing between /kill-this and /its-dead. Applied to both `{.claude,dev/claude}/skills/kill-this/SKILL.md`; verified byte-identical. Commit `116de2b`.
+- **Task 1** — De-hardcoded 6 skills across 3 affected files × 2 locations:
+  - `kill-this` Step 1: test-suite y/n → advisory verification recap (non-blocking)
+  - `kill-this` Step 2: `npm run build` → CLAUDE.md §Commands lookup, skip silently if none
+  - `pause-this` Step 1: same CLAUDE.md §Commands delegation + silent skip
+  - `its-alive` Step 5: "current phase" → "unchecked tasks and which are next"
+  - `its-dead`, `restart-this`, `sync-config`: already project-agnostic, no changes needed
+  - All 6 skill pairs verified byte-identical. Commit `964d53a`.
+- **Task 4** — Researched Anthropic Routines (research preview): multi-repo OAuth via `/web-setup`, creates PRs to `claude/<slug>` branches by default, Pro=5 runs/day up to 45 min each. Verdict: viable for nightly upstream sync. Captured as DEC-006 in `docs/DECISIONS.md`.
+
+**In Progress:** None.
+
+**Blocked:** Nothing new. Task 5 (fixed repo list format) may be N/A — Routines stores its own OAuth config; reassess when starting task 6.
+
+**Next Steps (cold start):**
+1. Task 2 — update seeds CLAUDE.md setup instructions: step 5 → project-level skills, add Key Docs table (2 pts, quick win)
+2. Session 3 code-review fixes — `[Project]` placeholders in agents, seeds-ify dev-family agents, `sync-config.md` skill-location ref, PROJECT_PLAN velocity guide path prefix
+3. Task 7 — build `/pull-seeds` downstream skill (5 pts, unblocked by task 1)
+4. Task 6 — build remote Routine for nightly upstream sync (8 pts, unblocked by task 4)
+5. Task 9 — migrate personal projects to project-level skills (5 pts)
+
+**Context:**
+- `§Commands` notation in skill files is informal shorthand for `## Commands` — code review flagged as ambiguous for agent lookup. Consider tightening wording in task 2 pass.
+- Routines creates PRs to `claude/`-prefixed branches; seeds workflow (DEC-005) expects main. May need a merge step in the Routine or a post-Routine manual merge. Assess when designing task 6.
+- Velocity this session: 8h20m / 10 pts = 0.83 hrs/pt (wall-clock, idle-inflated — not representative).
+
+**Code Review:** 4 findings on `964d53a`:
+1. `§Commands` notation is informal — agent doing literal lookup might miss `## Commands`. Actionable.
+2. Example lists differ between kill-this and pause-this (`supabase db reset` in kill-this only). Minor divergence.
+3. "Domain project" skip example in kill-this is self-referential for seeds; could confuse agents in real dev projects. Borderline.
+4. Unconditional push doesn't explicitly say "Everything up-to-date is fine, proceed." Easy one-phrase fix.
+All pairs byte-identical (primary invariant preserved). No blockers.
 
 ---
 
