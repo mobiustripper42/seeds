@@ -47,7 +47,8 @@ things → sub_things → line_items
 4. **Write the test** — Playwright integration test + pgTAP if RLS-touching
 5. **Run targeted tests** — `npx playwright test tests/foo.spec.ts --project=desktop` (and mobile if relevant). `supabase test db` if RLS-touching. Do NOT run the full suite — that's the user's call.
 6. **Mobile screenshot** — confirm 375px viewport passes
-7. **Close out** — `/kill-this` → `/its-dead` → push
+7. **Open PR** — `/kill-this` commits, pushes branch, opens PR. Preview URL lands in the PR description.
+8. **Review & ship** — tap the preview URL, address any `@code-review` findings, run full suite if RLS-touching, then `/ship-it` to merge.
 
 **No test, no push.**
 
@@ -63,6 +64,7 @@ things → sub_things → line_items
 - Never edit schema through the Supabase dashboard on any environment
 - `supabase/seed.sql` runs automatically on `db reset` — use for test data
 - After schema changes: regenerate types with `npx supabase gen types typescript --local > src/lib/supabase/types.ts`
+- **Before creating a migration:** run `gh pr list` to check for open PRs touching the same tables. If overlap exists, merge the in-flight PR first (or rename the new migration to a later timestamp to keep ledger order clean).
 
 ## Commands
 ```bash
@@ -153,8 +155,9 @@ npx supabase gen types typescript --local > src/lib/supabase/types.ts
 | `/its-alive` | Session start | Stamp time, read context, recommend task |
 | `/pause-this` | Mid-session break | Build check, commit WIP, note pause |
 | `/restart-this` | Resume from pause | Reload context, continue same session |
-| `/kill-this` | Session end (part 1) | Build check, commit, code review, draft log |
-| `/its-dead` | Session end (part 2) | Calc time + points, write log, update plan, push, PM recommendation |
+| `/kill-this` | Session end (part 1) | Build check, commit, push branch, open PR, code review, draft log |
+| `/ship-it` | After PR review passes | Merge PR, push migration if any, record ship time + wall clock |
+| `/its-dead` | Session end (part 2) | Calc time + points, write log, update plan, PM recommendation |
 
 ## Agent Workflow
 
@@ -164,6 +167,31 @@ npx supabase gen types typescript --local > src/lib/supabase/types.ts
 | @code-review | Sonnet | After every commit (wired into `/kill-this`) | Catch issues early |
 | @pm | Sonnet | Start/end of sessions (via skills) | Track progress, flag risks |
 | @ui-reviewer | Sonnet | After UI work, phase boundaries | Design quality |
+
+## Model Selection
+
+- **Main CC session:** Sonnet by default. Escalate to Opus for 8+ point tasks or when you're genuinely stuck on something hard.
+- **Effort → model heuristic:** 2–5 pts → Sonnet. 8+ pts → consider Opus. 13s shouldn't exist — break them down first.
+- **Agents:** model is set in each agent's frontmatter. Don't override unless the task clearly warrants it.
+- **New agents:** default to Sonnet. Add `model: opus` frontmatter only for architecture-level agents.
+
+## PR Workflow
+
+- Each task gets a branch (`git checkout -b task/X.Y-short-description`).
+- `/kill-this` opens the PR. `/ship-it` merges it.
+- Keep no more than 3 open PRs at once. Prefer 1.
+- Never have two open PRs with migrations touching the same table — merge one first.
+- Self-approve unless a stakeholder review is explicitly needed.
+
+### PR Review on Mobile (developer notes)
+
+Doing PR reviews from your phone is tolerable if you structure for it:
+- **GitHub mobile app, not web.** The native app's diff + approve + merge flow is usable. The mobile web is not.
+- **Tap the preview URL first.** Vercel posts it as a comment. 60 seconds of clicking the actual feature catches more than reading the diff would.
+- **Enable auto-merge.** Repo Settings → enable auto-merge, then "Enable auto-merge" on each PR. Checks pass → it merges itself. One less thing to remember to do.
+- **Branch protection:** require CI green (Vercel build + Playwright). Skip reviewer count requirements for solo dev — they add friction with no benefit.
+- **Checklist PR descriptions.** `/kill-this` should populate: does this PR have a migration? RLS change? UI change at 375px? A checkbox list is fast to scan on a small screen.
+- **`gh` CLI on your dev server** is faster than any UI when you're at a keyboard: `gh pr list`, `gh pr view 42 --web`, `gh pr merge 42 --auto`.
 
 ## Workflow Notes
 - **Diagnostic commands** (build, lint, type check, test): run directly — see errors, fix them, don't bother the user.
