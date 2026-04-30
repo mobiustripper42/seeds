@@ -170,9 +170,8 @@ npx supabase gen types typescript --local > src/lib/supabase/types.ts
 
 ## Model Selection
 
-- **Main CC session:** Sonnet by default. Escalate to Opus for 8+ point tasks or when you're genuinely stuck on something hard.
-- **Effort → model heuristic:** 2–5 pts → Sonnet. 8+ pts → consider Opus. 13s shouldn't exist — break them down first.
-- **Agents:** model is set in each agent's frontmatter. Don't override unless the task clearly warrants it.
+- **Main CC session:** Sonnet by default. Switch to Opus manually when you're stuck on something hard.
+- **Agents:** model is set in each agent's frontmatter. Don't override unless the task warrants it.
 - **New agents:** default to Sonnet. Add `model: opus` frontmatter only for architecture-level agents.
 
 ## PR Workflow
