@@ -13,7 +13,7 @@ Keep the seeds templates (`dev/` and `domain/`) aligned with improvements discov
 
 - `~/seeds/dev/` — template for dev projects (Next.js + Supabase shape)
 - `~/seeds/domain/` — template for non-dev domains (bread, tomatoes, ops, etc.)
-- The active project's `.claude/agents/`, `~/.claude/skills/`, `CLAUDE.md`, and `docs/` — the live versions being worked against
+- The active project's `.claude/agents/`, `.claude/skills/`, `CLAUDE.md`, and `docs/` — the live versions being worked against
 - `~/seeds/dev/claude/skills/sync-config/SKILL.md` — the invocation wrapper that calls you
 
 ## When You Run
@@ -28,7 +28,7 @@ Keep the seeds templates (`dev/` and `domain/`) aligned with improvements discov
 
 For each relevant file in the live project, diff against the corresponding seeds template:
 
-- Skills: `~/.claude/skills/<name>/SKILL.md` vs `~/seeds/dev/claude/skills/<name>/SKILL.md`
+- Skills: `.claude/skills/<name>/SKILL.md` vs `~/seeds/dev/claude/skills/<name>/SKILL.md`
 - Agents: `.claude/agents/<name>.md` vs `~/seeds/dev/claude/agents/<name>.md`
 - Project docs: `docs/<name>.md` vs `~/seeds/dev/claude/docs/<name>.md` (or `domain/` for non-dev projects)
 

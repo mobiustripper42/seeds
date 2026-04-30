@@ -19,7 +19,7 @@ Personal templates and workflow tooling for Claude Code projects. Two families:
   - `pm.md` — project manager / velocity tracker
   - `ui-reviewer.md` — visual design reviewer (fill in your design system details)
   - `sync-config.md` — template maintenance agent; classifies diffs, proposes backports, flags cross-family patterns
-- `skills/` — session lifecycle slash commands (copy to `~/.claude/skills/`)
+- `skills/` — session lifecycle slash commands (copy to `.claude/skills/` in your project)
   - `its-alive/` — session start ritual
   - `kill-this/` — session end part 1 (build, commit, draft log)
   - `its-dead/` — session end part 2 (finalize log, push, PM check)
@@ -46,7 +46,7 @@ Non-dev domain templates. Nothing here yet — populated as domains get scaffold
 2. **Session log** — copy `dev/claude/session-log.md` to your project root. Update the header.
 3. **CLAUDE.md** — copy `dev/claude/CLAUDE.md` to your project root. Fill in all project-specific sections.
 4. **Agents** — copy `dev/claude/agents/` to `.claude/agents/` in your project root. Update `description:` frontmatter with your project name.
-5. **Skills** — copy `dev/claude/skills/` directories to `~/.claude/skills/` (one-time, global install — skip if already installed).
+5. **Skills** — copy `dev/claude/skills/` directories to `.claude/skills/` in the project root (project-level install, not global).
 6. **Shell alias** — source `dev/bash/aliases.sh` from `~/.bashrc` and add a project-specific alias (see comments in the file).
 
 After setup, run `/its-alive` in the new project to start your first session.

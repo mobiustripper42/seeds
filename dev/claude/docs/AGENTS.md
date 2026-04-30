@@ -85,7 +85,7 @@ Five slash commands manage session lifecycle. Time tracking is automatic.
 5. Presents briefing with recommended task
 6. Waits for confirmation before proceeding
 
-**Spec:** `~/.claude/skills/its-alive/SKILL.md`
+**Spec:** `.claude/skills/its-alive/SKILL.md`
 
 ---
 
@@ -98,7 +98,7 @@ Five slash commands manage session lifecycle. Time tracking is automatic.
 2. Commits WIP with descriptive message
 3. Notes pause point in session-log.md (but doesn't close the entry)
 
-**Spec:** `~/.claude/skills/pause-this/SKILL.md`
+**Spec:** `.claude/skills/pause-this/SKILL.md`
 
 ---
 
@@ -111,7 +111,7 @@ Five slash commands manage session lifecycle. Time tracking is automatic.
 2. Reloads context from session-log.md and PROJECT_PLAN.md
 3. No new session number, no new timestamp — resuming same session
 
-**Spec:** `~/.claude/skills/restart-this/SKILL.md`
+**Spec:** `.claude/skills/restart-this/SKILL.md`
 
 ---
 
@@ -126,7 +126,7 @@ Five slash commands manage session lifecycle. Time tracking is automatic.
 4. Drafts session log entry (does NOT write yet)
 5. Shows draft and asks for review
 
-**Spec:** `~/.claude/skills/kill-this/SKILL.md`
+**Spec:** `.claude/skills/kill-this/SKILL.md`
 
 ---
 
@@ -143,7 +143,7 @@ Five slash commands manage session lifecycle. Time tracking is automatic.
 6. Commits log + plan changes and pushes to remote
 7. Runs @pm for status assessment and next task recommendation
 
-**Spec:** `~/.claude/skills/its-dead/SKILL.md`
+**Spec:** `.claude/skills/its-dead/SKILL.md`
 
 ---
 
