@@ -5,7 +5,39 @@ Format: prepend newest entry at the top.
 
 ---
 
-## Session 10 — 2026-04-30 16:34 [open]
+## Session 10 — 2026-04-30 16:34–16:49 (15m)
+**Duration:** 15m | **Points:** 0 (cleanup — stale-ref sweep not a tracked task)
+**Task:** Stale-ref sweep — propagate skills install path change to all files
+
+**Completed:**
+- Fixed `~/.claude/skills/` → `.claude/skills/` in 4 files (10 occurrences):
+  `README.md` ×2, `dev/claude/docs/AGENTS.md` ×5,
+  `dev/claude/agents/sync-config.md` ×2, `dev/claude/docs/PROJECT_PLAN.md` ×1
+- Opened and merged seeds PR #4
+
+**In Progress:** Nothing.
+
+**Blocked:** Nothing.
+
+**Next Steps:**
+1. Fix 2 remaining stale refs code review caught:
+   - `.claude/agents/sync-config.md` lines 16, 31 (installed copy — missed in template sweep)
+   - `scripts/nightly-sync.sh` line 92
+2. Run `/sync-config` in sailbook to push all path changes over
+3. Fix hardcoded `~/seeds/` paths in `dev/claude/agents/sync-config.md` (lines 14, 17, 31)
+4. Task 7 — build `/pull-seeds` skill (5 pts)
+
+**Context:**
+- seeds has two copies of sync-config.md: template (`dev/claude/agents/sync-config.md`)
+  and installed copy (`.claude/agents/sync-config.md`). Both need to stay in sync —
+  easy to miss. Check both whenever the template changes.
+- `scripts/nightly-sync.sh` is outside the markdown sweep scope; check for stale refs
+  whenever CLAUDE.md conventions change.
+- Sonnet 200k context vs Opus 4.7 1M — relevant for long agentic sessions.
+
+**Code Review:** 2 findings — installed `.claude/agents/sync-config.md` and
+`scripts/nightly-sync.sh` both missed the path sweep. Fix before running
+`/sync-config` or automation will diff against the wrong path.
 
 ---
 
