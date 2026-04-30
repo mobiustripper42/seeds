@@ -5,6 +5,10 @@ Format: prepend newest entry at the top.
 
 ---
 
+## Session 11 — 2026-04-30 17:01 [open]
+
+---
+
 ## Session 10 — 2026-04-30 16:34–16:49 (15m)
 **Duration:** 15m | **Points:** 0 (cleanup — stale-ref sweep not a tracked task)
 **Task:** Stale-ref sweep — propagate skills install path change to all files
