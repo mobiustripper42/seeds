@@ -5,6 +5,31 @@ Format: prepend newest entry at the top.
 
 ---
 
+## Session 8 — 2026-04-30 (design session, no /its-alive)
+**Duration:** N/A (discussion only — no code) | **Points:** 0
+**Task:** Vercel CI/PR workflow design, model selection strategy, async summer schedule planning
+
+**Decisions made:**
+- **Vercel preview PR workflow** — adopt branch-per-task + PR-per-task after sailbook V2 ships (target May 4+). Partial switch (branch+PR, immediate self-merge) is safe before then; concurrent PRs wait until post-V2.
+- **Concurrent PRs** — explicitly supported for async summer schedule. Prefer 1 open, max ~3. Never two open PRs with migrations on the same table.
+- **`/ship-it` skill** — new skill needed: merges approved PR, runs `supabase db push` if migration present, records ship time and wall clock. Not built yet.
+- **Timing metrics** — dev time = `/its-alive` → `/kill-this`. Review time = `/kill-this` → `/ship-it`. Wall clock = `/its-alive` → `/ship-it`. Velocity uses dev time for estimation; weekly throughput (pts/week) is the headline for async schedules.
+- **Model selection** — Sonnet as main CC session default (confirmed via `/model`). Opus for 8+ pt tasks or genuine blocks. Agents keep their frontmatter models. New agents default to Sonnet.
+- **@pm open PR check** — added to pm.md: run `gh pr list` at session start, flag migration conflicts across open PRs, surface open PRs before recommending new work.
+- **GitHub mobile** — tips captured in CLAUDE.md template under "PR Review on Mobile": use the native app, tap preview URL first, enable auto-merge, checklist PR descriptions.
+
+**Template files updated:**
+- `dev/claude/CLAUDE.md` — Micro Workflow (steps 7–8), Migration Protocol (conflict check), Session Skills table (`/ship-it` added), new Model Selection section, new PR Workflow section with mobile notes
+- `dev/claude/agents/pm.md` — Responsibility 6 (open PR check), Status Format (Open PRs + dual velocity), Behavior (session-start PR scan), Velocity (dev time vs wall clock, weekly throughput)
+
+**Next Steps (cold start):**
+1. Build `/ship-it` skill — merge PR, optional migration push, record dev/wall clock times
+2. Apply PR workflow to sailbook after May 4 — `/kill-this` pushes branch + opens PR
+3. Task 2 — seeds CLAUDE.md setup instructions update (still pending from session 7)
+4. Session 7 code-review fixes — `[Project]` placeholders in agents, `§Commands` notation tightening
+
+---
+
 ## Session 7 — 2026-04-26 03:08–11:27 (~8h 20m wall clock)
 **Duration:** ~8h 20m wall clock (idle-heavy — context compaction mid-session) | **Points:** 10 (task 13: 2, task 1: 5, task 4: 3)
 **Task:** Tasks 13 + 1 + 4 — kill-this push behavior, skill de-hardcoding, Routines research
