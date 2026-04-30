@@ -2,6 +2,17 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Key Docs
+
+| File | Purpose |
+|------|---------|
+| `docs/PROJECT_PLAN.md` | Task list, velocity table, priorities |
+| `docs/SPEC.md` | Scope boundaries — what's in and out |
+| `docs/DECISIONS.md` | Architectural decisions (DEC-NNN IDs) |
+| `docs/AGENTS.md` | Agent and skill specs |
+| `docs/VELOCITY_AND_POKER_GUIDE.md` | Estimation methodology |
+| `session-log.md` | Session continuity log |
+
 ## What This Repo Is
 
 A personal template library: Claude Code workflow templates, agent definitions, session skills, and shell aliases intended to be copied into new projects. Nothing here runs — it's all source material.
@@ -21,7 +32,7 @@ dev/
     session-log.md         # Blank session log (copy to project root)
     agents/                # Agent definition files — copy to .claude/agents/ in your project
       sync-config.md       # Template maintenance agent (see "Syncing improvements" below)
-    skills/                # Session lifecycle skills — copy to ~/.claude/skills/
+    skills/                # Session lifecycle skills — copy to .claude/skills/ in your project
       sync-config/         # Invokes @sync-config agent
     docs/
       AGENTS.md            # Reference doc explaining the full agent + skill workflow
@@ -35,7 +46,7 @@ domain/
 
 This repo encodes a specific development workflow for solo Claude-assisted projects. The key pieces:
 
-### Session Skills (copy to `~/.claude/skills/`)
+### Session Skills (copy to `.claude/skills/` in your project)
 
 Five slash commands manage the session lifecycle:
 
@@ -78,7 +89,7 @@ Effort uses Fibonacci points: 2, 3, 5, 8, 13. No 1s (just do it), no 13s if avoi
 2. **Session log** — copy `dev/claude/session-log.md` to the project root. Update the header.
 3. **CLAUDE.md** — copy `dev/claude/CLAUDE.md` to the project root. Fill in stack, data model, roles, and doc table.
 4. **Agents** — copy `dev/claude/agents/` to `.claude/agents/` in the project root. Update `description:` frontmatter with the project name.
-5. **Skills** — copy `dev/claude/skills/` directories to `~/.claude/skills/` (global install, not per-project — skip if already installed).
+5. **Skills** — copy `dev/claude/skills/` directories to `.claude/skills/` in the project root (project-level install, not global).
 6. **Shell alias** — source `dev/bash/aliases.sh` from `~/.bashrc` and add a project-specific alias.
 
 After setup, run `/its-alive` in the new project to start the first session.
