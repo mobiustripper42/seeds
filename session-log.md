@@ -5,6 +5,10 @@ Format: prepend newest entry at the top.
 
 ---
 
+## Session 9 — 2026-04-30 15:15 [open]
+
+---
+
 ## Session 8 — 2026-04-30 (design session, no /its-alive)
 **Duration:** N/A (discussion only — no code) | **Points:** 0
 **Task:** Vercel CI/PR workflow design, model selection strategy, async summer schedule planning
