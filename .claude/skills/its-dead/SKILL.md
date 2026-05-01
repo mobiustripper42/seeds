@@ -55,7 +55,8 @@ After PM, finalize git state and push. The behavior depends on the current branc
 3. **On a non-main branch — check for open PR first:**
    - Run `gh pr view $BRANCH --json state -q '.state' 2>/dev/null` to check.
    - If output is `OPEN`: **PR flow** — the PR is the merge gate, not us. Push the log commit so it lands on the PR: `git push origin $BRANCH`. Surface the PR URL (`gh pr view $BRANCH --json url -q '.url'`) and remind the user to review/merge it (or run `/ship-it` once that skill exists). **Do NOT FF-merge or delete the branch.** Stop here.
-   - If output is `MERGED` or `CLOSED`: PR is done — proceed to legacy DEC-005 cleanup below to merge the branch state into main and clean up.
+   - If output is `MERGED`: PR was merged via the GitHub UI — main already has the work. Proceed to legacy DEC-005 cleanup to delete the now-defunct local + remote branch.
+   - If output is `CLOSED` (closed without merge): the user deliberately discarded this work. **STOP.** Surface the closed PR URL and ask: **"PR was closed without merging — discard this branch (delete local + remote) or keep for archeology?"** Wait for an explicit answer. Do NOT FF-merge under any circumstance — closing is the canonical "throw this away" gesture.
    - If no PR exists (or `gh` is unavailable): proceed to legacy DEC-005 cleanup.
 
 4. **Legacy DEC-005 cleanup** (no open PR — fallback for orphan auto-branches like CC's `claude/<slug>`):
