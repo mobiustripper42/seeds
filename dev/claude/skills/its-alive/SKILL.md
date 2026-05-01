@@ -79,6 +79,8 @@ Blocked: [anything waiting]
 Next Steps from last session: [verbatim or paraphrased]
 
 Recommended task: [specific task ID + name + why it's the right next thing]
+
+⚠ First move after confirming: cut the branch — `git checkout -b task/X.Y-description`
 ```
 
 Then ask: **"Ready to go? Confirm the task or redirect me."**
