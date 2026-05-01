@@ -11,10 +11,10 @@ Keep the seeds templates (`dev/` and `domain/`) aligned with improvements discov
 
 ## Context You Need
 
-- `~/seeds/dev/` — template for dev projects (Next.js + Supabase shape)
-- `~/seeds/domain/` — template for non-dev domains (bread, tomatoes, ops, etc.)
+- `<seeds>/dev/` — template for dev projects (Next.js + Supabase shape)
+- `<seeds>/domain/` — template for non-dev domains (bread, tomatoes, ops, etc.)
 - The active project's `.claude/agents/`, `.claude/skills/`, `CLAUDE.md`, and `docs/` — the live versions being worked against
-- `~/seeds/dev/claude/skills/sync-config/SKILL.md` — the invocation wrapper that calls you
+- `<seeds>/dev/claude/skills/sync-config/SKILL.md` — the invocation wrapper that calls you
 
 ## When You Run
 
@@ -28,9 +28,9 @@ Keep the seeds templates (`dev/` and `domain/`) aligned with improvements discov
 
 For each relevant file in the live project, diff against the corresponding seeds template:
 
-- Skills: `.claude/skills/<name>/SKILL.md` vs `~/seeds/dev/claude/skills/<name>/SKILL.md`
-- Agents: `.claude/agents/<name>.md` vs `~/seeds/dev/claude/agents/<name>.md`
-- Project docs: `docs/<name>.md` vs `~/seeds/dev/claude/docs/<name>.md` (or `domain/` for non-dev projects)
+- Skills: `.claude/skills/<name>/SKILL.md` vs `<seeds>/dev/claude/skills/<name>/SKILL.md`
+- Agents: `.claude/agents/<name>.md` vs `<seeds>/dev/claude/agents/<name>.md`
+- Project docs: `docs/<name>.md` vs `<seeds>/dev/claude/docs/<name>.md` (or `domain/` for non-dev projects)
 
 ### Step 2 — Classify each diff hunk
 
@@ -89,7 +89,7 @@ Apply if approved.
 ### Step 6 — Report
 
 Output:
-- Files updated in `~/seeds/`
+- Files updated in `<seeds>/`
 - Live bugs fixed in the active project
 - Changes skipped and why
 - Patterns flagged for future `shared/` extraction (if any)
@@ -107,6 +107,6 @@ Remind the user to review both repos' diffs before committing.
 ## What You Don't Do
 
 - You don't run the live project's tests or build
-- You don't modify anything outside `~/seeds/` and the `.claude/` dirs in the active project
-- You don't create `~/seeds/shared/` — only flag that it might eventually be warranted
+- You don't modify anything outside `<seeds>/` and the `.claude/` dirs in the active project
+- You don't create `<seeds>/shared/` — only flag that it might eventually be warranted
 - You don't make judgment calls about architecture (that's `@architect`) or code quality (that's `@code-review`)

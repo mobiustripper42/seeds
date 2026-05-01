@@ -89,7 +89,7 @@ You are acting as the @sync-config agent in non-interactive automation mode.
 Working directory is the seeds repo ($SEEDS_DIR). You are on branch $BRANCH.
 
 For each active repo below, diff its live Claude workflow files (.claude/agents,
-~/.claude/skills, CLAUDE.md, docs/) against the corresponding templates in this
+.claude/skills, CLAUDE.md, docs/) against the corresponding templates in this
 seeds repo. Classify every hunk per the sync-config agent's rules:
 
 - SKIP project-specific substitutions (project names, deadlines, client-specific paths, stack picks)
