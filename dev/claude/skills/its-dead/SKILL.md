@@ -28,14 +28,9 @@ Write the approved session entry (with real duration and points) into `session-l
 
 Mark any tasks completed this session that aren't already checked `[x]`. Add `<!-- completed YYYY-MM-DD -->`.
 
-## Step 3 — Commit the log (no push yet)
+## Step 3 — Commit and push the log
 
-```
-git add session-log.md docs/PROJECT_PLAN.md
-git commit -m "Update session log and plan for session N"
-```
-
-Do NOT push yet — Step 4 handles the single push for this session after branch cleanup, so any orphan-branch note from Step 4 can be amended into this commit before it leaves local.
+**Do not commit yet.** First determine the target in Step 4, then commit to the right place. Committing on a task branch before checking PR state causes a cherry-pick tangle when the PR is already merged.
 
 ## Step 4 — Branch cleanup + final push
 
@@ -46,34 +41,56 @@ Do NOT push yet — Step 4 handles the single push for this session after branch
 **Worktree path:**
 Run `git branch --show-current` to get `BRANCH`. Run `git rev-parse --show-toplevel` to get `WORKTREE_PATH`.
 1. Run `gh pr view $BRANCH --json state -q '.state' 2>/dev/null` to check PR state.
-2. If `OPEN`: push the log commit — `git push origin $BRANCH`. Remind the user to review/merge the PR. Stop here — worktree stays until the PR is merged.
-3. If `MERGED`: push log commit (`git push origin $BRANCH` — no-op if already synced). Tell the user: "Worktree cleanup — from your main repo run: `git worktree remove $WORKTREE_PATH`"
+2. If `OPEN`: commit + push the log on this branch — `git add session-log.md docs/PROJECT_PLAN.md && git commit -m "Update session log and plan for session N" && git push origin $BRANCH`. Remind the user to review/merge the PR. Stop here — worktree stays until the PR is merged.
+3. If `MERGED`: commit + push the log on this branch (same as OPEN — log travels with the branch). Tell the user: "Worktree cleanup — from your main repo run: `git worktree remove $WORKTREE_PATH`"
 4. If `CLOSED`: **STOP.** Ask: "PR was closed without merging — discard this worktree (`git worktree remove $WORKTREE_PATH` from main repo) or keep for archeology?" Wait for answer.
-5. If no PR: push the branch (`git push origin $BRANCH`). Remind the user to open a PR or merge manually.
+5. If no PR: commit + push — `git add session-log.md docs/PROJECT_PLAN.md && git commit -m "Update session log and plan for session N" && git push origin $BRANCH`. Remind the user to open a PR or merge manually.
 
 **Normal (single-session) path:**
 
-Finalize git state and push. The behavior depends on the current branch and whether an open PR exists.
+Run `git branch --show-current`. Capture as `BRANCH`.
 
-1. Run `git branch --show-current`. Capture as `BRANCH`.
+**On `main`:**
+- Commit + push: `git add session-log.md docs/PROJECT_PLAN.md && git commit -m "Update session log and plan for session N" && git push origin main`. Done.
 
-2. **On `main`:**
-   - Single push: `git push origin main`. Done.
+**On a non-main branch — check PR state first:**
+Run `gh pr view $BRANCH --json state -q '.state' 2>/dev/null`.
 
-3. **On a non-main branch — check for open PR first:**
-   - Run `gh pr view $BRANCH --json state -q '.state' 2>/dev/null` to check.
-   - If output is `OPEN`: **PR flow** — the PR is the merge gate, not us. Push the log commit so it lands on the PR: `git push origin $BRANCH`. Surface the PR URL (`gh pr view $BRANCH --json url -q '.url'`) and remind the user to review/merge it (or run `/ship-it` once that skill exists). **Do NOT FF-merge or delete the branch.** Stop here.
-   - If output is `MERGED`: PR was merged via the GitHub UI — main already has the work. Proceed to legacy DEC-005 cleanup to delete the now-defunct local + remote branch.
-   - If output is `CLOSED` (closed without merge): the user deliberately discarded this work. **STOP.** Surface the closed PR URL and ask: **"PR was closed without merging — discard this branch (delete local + remote) or keep for archeology?"** Wait for an explicit answer. Do NOT FF-merge under any circumstance — closing is the canonical "throw this away" gesture.
-   - If no PR exists (or `gh` is unavailable): proceed to legacy DEC-005 cleanup.
+- If `OPEN`: **PR is the merge gate.** Commit + push the log on the task branch so it lands in the PR:
+  ```
+  git add session-log.md docs/PROJECT_PLAN.md
+  git commit -m "Update session log and plan for session N"
+  git push origin $BRANCH
+  ```
+  Surface the PR URL and remind the user to review/merge it. **Do NOT FF-merge or delete the branch.** Stop here.
 
-4. **Legacy DEC-005 cleanup** (no open PR — fallback for orphan auto-branches like CC's `claude/<slug>`):
-   a. **Dirty-tree guard:** run `git status --porcelain`. If non-empty, stop and surface — Step 3's commit should have left the tree clean. Ask the user to commit or stash, then re-run `/its-dead` from Step 5.
-   b. **Switch to main:** `git checkout main`. If checkout fails because local `main` doesn't exist yet, run `git checkout -b main origin/main`. Then `git pull --ff-only origin main`. If the pull diverges, apply the (a)/(b)/(c) prompt from `/its-alive` Step 0.
-   c. **FF merge:** `git merge --ff-only $BRANCH`. If it can't FF (origin/main advanced externally during the session), stop and surface — recovery options: rebase $BRANCH onto main and retry, or merge --no-ff. Ask the user.
-   d. **Delete local branch:** `git branch -d $BRANCH` (lowercase `-d` only — safe delete, never `-D`). If this is denied or fails, tell the user and provide the manual command — do not retry with `-D`.
-   e. **Try remote delete:** `git push origin --delete $BRANCH`. Capture success/failure as `REMOTE_DELETE_OK`.
-   f. **Orphan note (if remote delete failed):** edit `session-log.md` to append a line under the just-written session's `**Context:**` section: `- **Orphan branch:** \`$BRANCH\` could not be deleted on origin (best-effort failure). Manual cleanup via GitHub UI required.` Then `git add session-log.md && git commit --amend --no-edit` to fold the note into Step 3's commit.
-   g. **Single push:** `git push origin main`. This pushes the merged work + any amended orphan note in one operation.
+- If `MERGED`: **Commit the log directly to main — do NOT commit on the task branch.** Doing so would require a cherry-pick later and prevent clean `-d` deletion.
+  ```
+  git checkout main
+  git pull --ff-only origin main        # gets the merged PR work
+  git add session-log.md docs/PROJECT_PLAN.md
+  git commit -m "Update session log and plan for session N"
+  git push origin main
+  git branch -d $BRANCH                 # safe — task branch's commits are now in main
+  git push origin --delete $BRANCH      # no-op if GitHub already deleted on merge
+  ```
+  If `git branch -d` fails (unexpected): tell the user and provide `git branch -D $BRANCH` to run manually. Do not retry with `-D`.
 
-Per `docs/DECISIONS.md` DEC-005, solo dev with no PR review surface — auto-branches don't earn their keep. Projects using a PR workflow (e.g. Vercel preview reviews) take the step 3 path and let the PR handle merge.
+- If `CLOSED` (closed without merge): the user deliberately discarded this work. **STOP.** Surface the closed PR URL and ask: **"PR was closed without merging — discard this branch (delete local + remote) or keep for archeology?"** Wait for an explicit answer. Do NOT commit or FF-merge.
+
+- If no PR exists (or `gh` is unavailable): proceed to legacy DEC-005 cleanup below.
+
+**Legacy DEC-005 cleanup** (no open PR — fallback for orphan auto-branches like CC's `claude/<slug>`):
+a. **Commit the log on the current branch:**
+   ```
+   git add session-log.md docs/PROJECT_PLAN.md
+   git commit -m "Update session log and plan for session N"
+   ```
+b. **Switch to main:** `git checkout main`. If checkout fails because local `main` doesn't exist yet, run `git checkout -b main origin/main`. Then `git pull --ff-only origin main`. If the pull diverges, apply the (a)/(b)/(c) prompt from `/its-alive` Step 0.
+c. **FF merge:** `git merge --ff-only $BRANCH`. If it can't FF (origin/main advanced externally during the session), stop and surface — recovery options: rebase $BRANCH onto main and retry, or merge --no-ff. Ask the user.
+d. **Delete local branch:** `git branch -d $BRANCH` (lowercase `-d` only — safe delete, never `-D`). If this is denied or fails, tell the user and provide the manual command — do not retry with `-D`.
+e. **Try remote delete:** `git push origin --delete $BRANCH`. Capture success/failure as `REMOTE_DELETE_OK`.
+f. **Orphan note (if remote delete failed):** edit `session-log.md` to append a line under the just-written session's `**Context:**` section: `- **Orphan branch:** \`$BRANCH\` could not be deleted on origin (best-effort failure). Manual cleanup via GitHub UI required.` Then `git add session-log.md && git commit --amend --no-edit` to fold the note into the log commit.
+g. **Single push:** `git push origin main`.
+
+Per `docs/DECISIONS.md` DEC-005, seeds/solo projects work on `main` directly. PR-flow projects (like sailbook) use task/* branches — the MERGED path above handles clean log commit + branch deletion without cherry-pick.
