@@ -54,11 +54,14 @@ Bulleted list from `git diff --name-only main..HEAD`.
 Paste the findings from Step 4 here. If clean, say "Clean bill of health."
 
 **## Test plan**
-Checkbox list tailored to what actually changed — never skip this. Projects should customize; example for a Next.js + Supabase project:
-- [ ] Playwright tests run for changed files?
-- [ ] Migration needed? → `supabase db push` on remote
-- [ ] RLS change? → `supabase test db` passes
-- [ ] UI change? → verified at 375px
+Generate this yourself by inspecting `git diff --name-only main..HEAD`. Do NOT copy from the code review findings — this section is for the human reviewer. Check each category and add a checkbox if it applies:
+- Any `supabase/migrations/*.sql`? → `- [ ] Migration applied to remote: \`supabase db push\``
+- Any RLS policy or `supabase/tests/` file? → `- [ ] RLS tests pass: \`supabase test db\``
+- Any file under `src/app/`, `src/components/`, or other UI paths? → `- [ ] UI verified at 375px mobile viewport`
+- Any new user-facing flow or feature? → `- [ ] [Feature name] tested end-to-end in the browser`
+- Any `tests/*.spec.ts` Playwright file? → `- [ ] Playwright tests pass for changed spec`
+
+Always include at least one human action item. Never leave this section empty, generic, or as a copy of the code review.
 
 Capture the returned PR URL. Surface it in your response and note it in the draft session log entry's `Context` section.
 
