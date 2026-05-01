@@ -5,6 +5,42 @@ Format: prepend newest entry at the top.
 
 ---
 
+## Session 12 — 2026-05-01 (~3h 00m)
+**Duration:** 3h 00m | **Points:** 0 (workflow improvements — no tracked tasks)
+**Task:** Skill polish — PM strip, worktree support, kill-this restructure, misc bug fixes
+
+**Completed:**
+- Stripped PM step from `/its-dead` (seeds + sailbook) — run `/pm` manually when wanted
+- Added branch-cut reminder to `/its-alive` Step 6 briefing (seeds + sailbook)
+- Fixed `/its-alive` Step 2 — scan for highest session N to handle concurrent sessions correctly
+- Added worktree support to `/its-alive` Step 0 + `/its-dead` Step 4 — detects `/worktrees/` in git-dir, skips main-enforcement and FF-merge in linked worktrees; provides `git worktree remove` cleanup command
+- Fixed `/its-dead` Step 4d — `git branch -d` only (never `-D`), surface denial instead of retrying
+- Required test plan section in `/kill-this` PR body (all 3 copies)
+- Restructured `/kill-this` — new order: commit → push branch → code review → open PR with findings in body → draft log. Added `Agent` to tools frontmatter.
+- Removed PostToolUse code-review hook from sailbook `settings.json` — was firing 16-min agent on every commit; hook + kill-this = double review
+- Synced all changes to sailbook installed copies throughout session; pushed to both remotes
+
+**In Progress:** Nothing.
+
+**Blocked:** Task 7 (`/pull-seeds`) — pinned pending user writing up thoughts on the diff direction problem.
+
+**Next Steps:**
+1. Pull on sailbook server — gets all today's skill updates
+2. Worktree smoke test: `git worktree add ../sailbook-wt-test -b task/wt-test`, open CC there, run `/its-alive` (confirm "Linked worktree"), `/kill-this`, `/its-dead`, clean up
+3. Task 7 (`/pull-seeds`, 5 pts) — when user has written up thoughts
+4. `/sync-config` from sailbook — pull all today's changes into sailbook's installed copies formally
+
+**Context:**
+- Worktree setup: `git worktree add ../sailbook-task-N -b task/N.M-description` before opening second CC session. Open CC in that directory. `git worktree list` shows all active worktrees.
+- Worktree cleanup after merged PR: `git worktree remove <path>` from main repo
+- Sailbook `settings.json` has `Bash(grep *)` + `Bash(git commit *)` added server-side — not yet in Windows local copy, comes in on next pull
+- seeds has no build step — markdown-only repo, no PR needed (always on main)
+- Session 12 had no /its-alive open marker — continued directly from session 11 compacted context
+
+**Code Review:** Skipped — seeds is docs/templates only.
+
+---
+
 ## Session 11 — 2026-04-30 17:01–20:07 (3h 05m)
 **Duration:** 3h 05m | **Points:** 3 (Task 14)
 **Task:** Stale-ref cleanup, permission prompt fix, sailbook sync, PR-flow implementation
