@@ -5,7 +5,47 @@ Format: prepend newest entry at the top.
 
 ---
 
-## Session 11 — 2026-04-30 17:01 [open]
+## Session 11 — 2026-04-30 17:01–20:07 (3h 05m)
+**Duration:** 3h 05m | **Points:** 3 (Task 14)
+**Task:** Stale-ref cleanup, permission prompt fix, sailbook sync, PR-flow implementation
+
+**Completed:**
+- Fixed remaining stale-ref items from Session 10 next steps:
+  - `.claude/agents/sync-config.md` (installed copy): `~/.claude/skills/` → `.claude/skills/` (lines 16, 31), `~/seeds/` → `<seeds>/` throughout
+  - `dev/claude/agents/sync-config.md`: `~/seeds/` → `<seeds>/` (8 occurrences)
+  - `scripts/nightly-sync.sh:92`: `~/.claude/skills,` → `.claude/skills,`
+- Created `.claude/settings.json` with full permissions allowlist — stops CC from prompting for Read/Edit/Write/Glob/Grep/Bash(git *)/Bash(gh *) etc. Includes deny list for destructive git commands. Root cause was empty `{}` project settings overriding global allowlist.
+- Synced sailbook to current seeds templates (3 commits pushed to sailbook origin main):
+  - All 5 session skills updated (its-alive, pause-this, restart-this, kill-this, its-dead)
+  - Added sync-config agent + skill (new files)
+  - Updated `docs/AGENTS.md` (spec-pointer style, 5 stale path fixes, sync-config entry)
+  - Un-hardcoded pm.md "Today's Date" section
+  - Fixed `docs/PROJECT_PLAN.md:45` stale path
+  - Added permissions block to sailbook's `.claude/settings.json`
+- Implemented Task 14 — PR-flow in `/kill-this` and `/its-dead` (4 files):
+  - `/kill-this` Step 3: branch detection — on `main` push unconditionally (DEC-005); on `task/*`/`claude/<slug>` branch push + `gh pr create`; captures PR URL for log; handles `gh` failure gracefully (push-only, tell user to open PR manually)
+  - `/its-dead` Step 5: PR state detection via `gh pr view --json state` — OPEN → push log commit to branch + stop (PR is merge gate); MERGED → DEC-005 FF-merge cleanup; CLOSED → STOP, ask user (never FF-merge); no PR → DEC-005 FF-merge cleanup
+  - Applied to both template (`dev/claude/skills/`) and installed (`.claude/skills/`) copies
+- Fixed 2 code review bugs caught in same session:
+  - `its-dead` Step 5: CLOSED state was falling through to MERGED path (would FF-merge deliberately-discarded work) — fixed with explicit STOP + user prompt
+  - `kill-this` Step 3: used literal `<branch>` and `<commit subject>` placeholders instead of shell variable capture instructions — fixed with explicit `BRANCH=` and `SUBJECT=` capture lines
+
+**In Progress:** Sailbook's installed `/kill-this` and `/its-dead` are the pre-PR-flow versions (commit 203d930). Needs `/sync-config` in sailbook.
+
+**Blocked:** Nothing.
+
+**Next Steps:**
+1. In sailbook session: `git pull` then run `/sync-config` to pull PR-flow kill-this + its-dead into sailbook's installed copies
+2. Test PR-flow on sailbook: make a change on `task/X-test`, run `/kill-this` (confirm `gh pr create` fires), run `/its-dead` (confirm pushes log commit to branch + stops without merging)
+3. Task 7 — build `/pull-seeds` skill (5 pts) — next seeds task
+4. Consider `/ship-it` skill — referenced in its-dead Step 3 but not built (handles PR merge + post-merge migration push)
+
+**Context:**
+- Sailbook has an orphaned local branch `task/gitignore-settings-local` — remote deleted, local couldn't be deleted (deny rule). Run `git branch -d task/gitignore-settings-local` manually in sailbook.
+- The `.claude/settings.json` permissions allowlist is now in both seeds and sailbook. Empty `{}` project settings was overriding global allowlist — that was the root cause of permission prompt spam.
+- CLOSED PR state must NEVER trigger FF-merge — it's the "discard this work" gesture. Always STOP and ask.
+
+**Code Review:** 2 bugs found and fixed in-session (its-dead CLOSED fall-through, kill-this literal placeholders). Clean after fixes.
 
 ---
 
