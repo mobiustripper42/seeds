@@ -8,6 +8,10 @@ You are executing the session start ritual.
 
 ## Step 0 — Ensure on main branch (DEC-005)
 
+**Worktree check first:** run `git rev-parse --git-dir`.
+- If the output contains `/worktrees/`: this is a **linked worktree session** (concurrent with another session). Skip the rest of Step 0 entirely — the branch here is intentional. Note "Linked worktree" in the briefing output and continue to Step 1.
+- Otherwise: you are in the main worktree. Continue with the checks below.
+
 Before opening a session entry, ensure work happens on `main`:
 
 1. Run `git fetch origin main` to refresh remote state.

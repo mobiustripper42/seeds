@@ -39,6 +39,20 @@ Do NOT push yet — Step 4 handles the single push for this session after branch
 
 ## Step 4 — Branch cleanup + final push
 
+**Worktree check first:** run `git rev-parse --git-dir`.
+- If the output contains `/worktrees/`: this is a **linked worktree session**. Take the worktree path below — do NOT attempt `git checkout main` or FF-merge.
+- Otherwise: skip to the normal path.
+
+**Worktree path:**
+Run `git branch --show-current` to get `BRANCH`. Run `git rev-parse --show-toplevel` to get `WORKTREE_PATH`.
+1. Run `gh pr view $BRANCH --json state -q '.state' 2>/dev/null` to check PR state.
+2. If `OPEN`: push the log commit — `git push origin $BRANCH`. Remind the user to review/merge the PR. Stop here — worktree stays until the PR is merged.
+3. If `MERGED`: push log commit (`git push origin $BRANCH` — no-op if already synced). Tell the user: "Worktree cleanup — from your main repo run: `git worktree remove $WORKTREE_PATH`"
+4. If `CLOSED`: **STOP.** Ask: "PR was closed without merging — discard this worktree (`git worktree remove $WORKTREE_PATH` from main repo) or keep for archeology?" Wait for answer.
+5. If no PR: push the branch (`git push origin $BRANCH`). Remind the user to open a PR or merge manually.
+
+**Normal (single-session) path:**
+
 Finalize git state and push. The behavior depends on the current branch and whether an open PR exists.
 
 1. Run `git branch --show-current`. Capture as `BRANCH`.
