@@ -12,7 +12,18 @@ You are executing the session start ritual.
 - If the output contains `/worktrees/`: this is a **linked worktree session** (concurrent with another session). Skip the rest of Step 0 entirely — the branch here is intentional. Note "Linked worktree" in the briefing output and continue to Step 1.
 - Otherwise: you are in the main worktree. Continue with the checks below.
 
-Run `git fetch origin` to refresh remote state. Run `git branch --show-current` to identify the current branch. Capture as `BRANCH`.
+Run `git fetch origin` to refresh remote state. Capture `BRANCH=$(git branch --show-current)`.
+
+**Concurrent session check:** scan `session-log.md` for any heading containing `[open]`. If found:
+- Show the user: "Session N is already open (started YYYY-MM-DD HH:MM). Is this: **(a)** a currently running concurrent session → I'll create a worktree for this new task, or **(b)** a stale/crashed entry → I'll close it and continue here?"
+- Wait for the user's answer.
+- If **(b)** (stale): close the open entry by replacing `[open]` in that heading with a note like `[abandoned]`, then continue below.
+- If **(a)** (concurrent): ask **"What branch name for this new task? (e.g., `task/6.22-description`)"** Wait for the answer. Capture as `NEW_BRANCH`.
+  - Get the repo name: `REPO=$(basename $(git rev-parse --show-toplevel))`
+  - Derive a slug from the branch: strip the `task/` prefix if present (e.g., `task/6.22-other` → `6.22-other`). Capture as `SLUG`.
+  - Create the worktree: `git worktree add ../${REPO}-wt-${SLUG} -b ${NEW_BRANCH}`
+  - Tell the user: **"Worktree created at `../${REPO}-wt-${SLUG}`. Open a new CC window pointed at that directory and run /its-alive there. You can close this window."**
+  - **Stop here** — do not open a session entry in the main worktree.
 
 **If `BRANCH` matches `task/*` or any intentional feature branch (not `main`, not a CC auto-branch like `claude/*`):**
 - This is intentional PR-flow work. Do NOT attempt to switch to main.
