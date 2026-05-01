@@ -57,7 +57,7 @@ Finalize git state and push. The behavior depends on the current branch and whet
    a. **Dirty-tree guard:** run `git status --porcelain`. If non-empty, stop and surface — Step 3's commit should have left the tree clean. Ask the user to commit or stash, then re-run `/its-dead` from Step 5.
    b. **Switch to main:** `git checkout main`. If checkout fails because local `main` doesn't exist yet, run `git checkout -b main origin/main`. Then `git pull --ff-only origin main`. If the pull diverges, apply the (a)/(b)/(c) prompt from `/its-alive` Step 0.
    c. **FF merge:** `git merge --ff-only $BRANCH`. If it can't FF (origin/main advanced externally during the session), stop and surface — recovery options: rebase $BRANCH onto main and retry, or merge --no-ff. Ask the user.
-   d. **Delete local branch:** `git branch -d $BRANCH`.
+   d. **Delete local branch:** `git branch -d $BRANCH` (lowercase `-d` only — safe delete, never `-D`). If this is denied or fails, tell the user and provide the manual command — do not retry with `-D`.
    e. **Try remote delete:** `git push origin --delete $BRANCH`. Capture success/failure as `REMOTE_DELETE_OK`.
    f. **Orphan note (if remote delete failed):** edit `session-log.md` to append a line under the just-written session's `**Context:**` section: `- **Orphan branch:** \`$BRANCH\` could not be deleted on origin (best-effort failure). Manual cleanup via GitHub UI required.` Then `git add session-log.md && git commit --amend --no-edit` to fold the note into Step 3's commit.
    g. **Single push:** `git push origin main`. This pushes the merged work + any amended orphan note in one operation.
