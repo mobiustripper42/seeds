@@ -6,26 +6,30 @@ tools: Read, Edit, Write, Bash, Glob, Grep, Agent
 
 You are executing the session start ritual.
 
-## Step 0 — Ensure on main branch (DEC-005)
+## Step 0 — Branch check
 
 **Worktree check first:** run `git rev-parse --git-dir`.
 - If the output contains `/worktrees/`: this is a **linked worktree session** (concurrent with another session). Skip the rest of Step 0 entirely — the branch here is intentional. Note "Linked worktree" in the briefing output and continue to Step 1.
 - Otherwise: you are in the main worktree. Continue with the checks below.
 
-Before opening a session entry, ensure work happens on `main`:
+Run `git fetch origin` to refresh remote state. Run `git branch --show-current` to identify the current branch. Capture as `BRANCH`.
 
-1. Run `git fetch origin main` to refresh remote state.
-2. Run `git branch --show-current` to identify the current branch.
-3. If on `main`:
-   - Run `git pull --ff-only origin main`. If it succeeds, continue to Step 1.
-   - If it fails due to divergence: show the user the divergence with `git log --oneline origin/main..HEAD` (local-ahead) and `git log --oneline HEAD..origin/main` (remote-ahead), then ask: **"Main has diverged. How to reconcile? (a) rebase local onto origin/main, (b) reset local to origin/main (loses local commits), (c) abort /its-alive."** Wait for the user's choice and execute it. Do NOT pick a default.
-4. If not on `main`:
-   - Run `git status --porcelain`. If non-empty (dirty tree): stop. Surface the dirty files and ask the user to commit or stash before re-running `/its-alive`.
-   - If clean:
-     - Check whether local `main` exists: `git rev-parse --verify main` (silently). If it fails (no local main yet), run `git checkout -b main origin/main` to create the tracking branch, then continue.
-     - Otherwise run `git checkout main && git pull --ff-only origin main`. If the pull diverges, apply the same (a)/(b)/(c) prompt from Step 3.
+**If `BRANCH` matches `task/*` or any intentional feature branch (not `main`, not a CC auto-branch like `claude/*`):**
+- This is intentional PR-flow work. Do NOT attempt to switch to main.
+- Run `git status --porcelain` and note any WIP files — they're in-progress work, not an error.
+- Continue to Step 1. (The session log commit in Step 3 will push to this branch, not main.)
 
-Per `docs/DECISIONS.md` DEC-005, all work happens on main while solo. Auto-created `claude/<slug>` feature branches from Claude Code are tolerated mid-session but cleaned up by `/its-dead` Step 5.
+**If `BRANCH` is `main`:**
+- Run `git pull --ff-only origin main`. If it succeeds, continue to Step 1.
+- If it fails due to divergence: show the user the divergence with `git log --oneline origin/main..HEAD` (local-ahead) and `git log --oneline HEAD..origin/main` (remote-ahead), then ask: **"Main has diverged. How to reconcile? (a) rebase local onto origin/main, (b) reset local to origin/main (loses local commits), (c) abort /its-alive."** Wait for the user's choice and execute it. Do NOT pick a default.
+
+**If `BRANCH` is anything else** (e.g., `claude/<slug>` CC auto-branches):
+- Run `git status --porcelain`. If non-empty (dirty tree): stop. Surface the dirty files and ask the user to commit or stash before re-running `/its-alive`.
+- If clean:
+  - Check whether local `main` exists: `git rev-parse --verify main` (silently). If it fails (no local main yet), run `git checkout -b main origin/main` to create the tracking branch, then continue.
+  - Otherwise run `git checkout main && git pull --ff-only origin main`. If the pull diverges, apply the same (a)/(b)/(c) prompt above.
+
+Per `docs/DECISIONS.md` DEC-005, seeds/solo projects work on `main`. PR-flow projects (like sailbook) work on `task/*` branches — landing there at session start is correct and expected.
 
 ## Step 1 — Stamp the time
 
@@ -48,7 +52,7 @@ Then immediately commit and push so the stop hook doesn't fire mid-briefing:
 ```
 git add session-log.md
 git commit -m "Open Session N entry"
-git push origin main
+git push origin <BRANCH>   # push to whatever branch you're on (main or task/*)
 ```
 
 Do not fill in any other fields — this is just the timestamp anchor + a clean commit boundary.
@@ -84,7 +88,9 @@ Next Steps from last session: [verbatim or paraphrased]
 
 Recommended task: [specific task ID + name + why it's the right next thing]
 
-⚠ First move after confirming: cut the branch — `git checkout -b task/X.Y-description`
+[If on `main`:] ⚠ First move after confirming: cut the branch — `git checkout -b task/X.Y-description`
+[If on `task/*`:] Branch already cut: `<BRANCH>` — good to go.
+[If linked worktree:] Linked worktree on `<BRANCH>` — concurrent session, good to go.
 ```
 
 Then ask: **"Ready to go? Confirm the task or redirect me."**
