@@ -1,6 +1,6 @@
 ---
 name: its-dead
-description: Second half of the end-of-session shutdown. Calculates session time and effort points, writes the approved session log entry, updates the project plan, commits the log, and runs the PM agent for next task recommendation. Run after /kill-this once the draft looks good. Optional args: natural-language time adjustments, e.g. "/its-dead subtract 30 minutes for time away from desk".
+description: Second half of the end-of-session shutdown. Calculates session time and effort points, writes the approved session log entry, updates the project plan, commits the log, and cleans up branches. Run after /kill-this once the draft looks good. Optional args: natural-language time adjustments, e.g. "/its-dead subtract 30 minutes for time away from desk".
 tools: Read, Edit, Write, Bash, Glob, Grep, Agent
 ---
 
@@ -35,17 +35,11 @@ git add session-log.md docs/PROJECT_PLAN.md
 git commit -m "Update session log and plan for session N"
 ```
 
-Do NOT push yet — Step 5 handles the single push for this session after branch cleanup, so any orphan-branch note from Step 5 can be amended into this commit before it leaves local.
+Do NOT push yet — Step 4 handles the single push for this session after branch cleanup, so any orphan-branch note from Step 4 can be amended into this commit before it leaves local.
 
-## Step 4 — PM agent
+## Step 4 — Branch cleanup + final push
 
-Run the `pm` subagent to assess current project status and recommend the best next task — highest-value unblocked task given timeline, dependencies, and remaining scope. Not just the first unchecked box.
-
-Report the recommendation to the user.
-
-## Step 5 — Branch cleanup + final push
-
-After PM, finalize git state and push. The behavior depends on the current branch and whether an open PR exists.
+Finalize git state and push. The behavior depends on the current branch and whether an open PR exists.
 
 1. Run `git branch --show-current`. Capture as `BRANCH`.
 
