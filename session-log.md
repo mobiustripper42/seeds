@@ -5,6 +5,10 @@ Format: prepend newest entry at the top.
 
 ---
 
+## Session 13 — 2026-05-01 20:58 [open]
+
+---
+
 ## Session 12 — 2026-05-01 (~3h 00m)
 **Duration:** 3h 00m | **Points:** 0 (workflow improvements — no tracked tasks)
 **Task:** Skill polish — PM strip, worktree support, kill-this restructure, misc bug fixes
