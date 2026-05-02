@@ -25,7 +25,7 @@ Personal templates and workflow tooling for Claude Code projects. Two families:
   - `its-dead/` — session end part 2 (finalize log, push, PM check)
   - `pause-this/` — mid-session pause with WIP commit
   - `restart-this/` — resume from pause
-  - `sync-config/` — invokes @sync-config agent to sync improvements back to seeds
+  - `push-seeds/` — invokes @sync-config agent to push improvements back to seeds
 - `docs/` — project document templates (copy to `docs/` in your project)
   - `AGENTS.md` — agent and skill reference (adapt project name/details)
   - `SPEC.md` — product specification template
@@ -53,4 +53,4 @@ After setup, run `/its-alive` in the new project to start your first session.
 
 ## Syncing improvements back
 
-Run `/sync-config` in any active project to invoke @sync-config, which classifies diffs between live files and these templates, proposes backports, and flags patterns that might eventually warrant a `shared/` extraction.
+Run `/push-seeds` in any active project to invoke @sync-config, which classifies diffs between live files and these templates, proposes backports, and flags patterns that might eventually warrant a `shared/` extraction.

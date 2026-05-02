@@ -33,7 +33,7 @@ dev/
     agents/                # Agent definition files — copy to .claude/agents/ in your project
       sync-config.md       # Template maintenance agent (see "Syncing improvements" below)
     skills/                # Session lifecycle skills — copy to .claude/skills/ in your project
-      sync-config/         # Invokes @sync-config agent
+      push-seeds/          # Invokes @sync-config agent to push improvements to seeds
     docs/
       AGENTS.md            # Reference doc explaining the full agent + skill workflow
       VELOCITY_AND_POKER_GUIDE.md  # Estimation and velocity tracking methodology
@@ -57,7 +57,7 @@ Five slash commands manage the session lifecycle:
 | `/restart-this` | Resume from pause | Reloads context from session log and plan — no new session number |
 | `/kill-this` | Session end (part 1) | Build check, commit, runs @code-review, drafts session log entry for review |
 | `/its-dead` | Session end (part 2) | Finalizes session log, tallies effort points, updates PROJECT_PLAN.md, commits + pushes, runs @pm |
-| `/sync-config` | After workflow improvements | Invokes @sync-config to classify diffs and propose backports to seeds |
+| `/push-seeds` | After workflow improvements | Invokes @sync-config to classify diffs and propose backports to seeds |
 
 ### Agents (copy to `.claude/agents/` in your project)
 
@@ -67,7 +67,7 @@ Five slash commands manage the session lifecycle:
 | @code-review | Sonnet | After commits (wired into `/kill-this`) | Catch issues early |
 | @pm | Sonnet | Start/end of sessions via skills | Track progress, flag risks, update PROJECT_PLAN.md |
 | @ui-reviewer | Sonnet | After UI work, phase boundaries | Design quality review |
-| @sync-config | Sonnet | Via `/sync-config` skill, or ad-hoc | Classify diffs, propose backports, flag cross-family patterns |
+| @sync-config | Sonnet | Via `/push-seeds` skill, or ad-hoc | Classify diffs, propose backports, flag cross-family patterns |
 
 ### Files a target project needs
 
@@ -96,7 +96,7 @@ After setup, run `/its-alive` in the new project to start the first session.
 
 ## Syncing Improvements Back
 
-When the workflow evolves in an active project, run `/sync-config` there. The @sync-config agent will:
+When the workflow evolves in an active project, run `/push-seeds` there. The @sync-config agent will:
 - Diff live files against these templates
 - Classify each change as a structural improvement (backport candidate) or project-specific substitution (skip)
 - Flag patterns appearing in both `dev/` and `domain/` contexts that might eventually warrant a `shared/` extraction — but never extract automatically

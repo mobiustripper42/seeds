@@ -37,7 +37,7 @@ No phases — flat task list. Tests baked into each estimate.
 
 **Total: 51 pts**
 
-**Next session priority:** Sailbook sync (run /sync-config in sailbook to pull PR-flow kill-this + its-dead) → Task 7 (/pull-seeds skill, 5 pts) → Task 6 (Routine build, 8 pts). Task 5 (repo list format) likely N/A — reassess at task 6 start.
+**Next session priority:** Task 7 (/pull-seeds skill, 5 pts) → Task 6 (Routine build, 8 pts). Task 5 (repo list format) likely N/A — reassess at task 6 start.
 
 ---
 

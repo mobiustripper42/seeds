@@ -30,7 +30,7 @@ Five agents and six session skills drive seeds' own workflow. All run as Claude 
 
 ### @sync-config
 **Purpose:** Classifies diffs between seeds and active projects — "generic improvement" (backport) vs. "project-specific tweak" (skip). Used in both directions (upstream PR automation + downstream `/pull-seeds`).
-**When:** Via `/sync-config` skill, the nightly Routine, or manually.
+**When:** Via `/push-seeds` skill, the nightly Routine, or manually.
 **Spec:** `.claude/agents/sync-config.md`
 
 ---
@@ -57,9 +57,9 @@ Build check, commit, run `@code-review`, draft session log entry. Does not write
 Calculate duration + points, write session log entry, update `docs/PROJECT_PLAN.md`, push, run `@pm` for next-task recommendation.
 **Spec:** `.claude/skills/its-dead/SKILL.md`
 
-### /sync-config — Backport workflow changes
+### /push-seeds — Push workflow changes back to seeds
 Invokes `@sync-config` agent to diff live project files against seeds templates. One run, one commit per repo.
-**Spec:** `.claude/skills/sync-config/SKILL.md`
+**Spec:** `.claude/skills/push-seeds/SKILL.md`
 
 ---
 
@@ -69,7 +69,7 @@ Invokes `@sync-config` agent to diff live project files against seeds templates.
 **During:** spec → build → test → mobile screenshot (N/A for seeds)
 **Pause:** `/pause-this` → break → `/restart-this`
 **End:** `/kill-this` → review draft → `/its-dead` → finalize + push
-**After workflow tweaks:** `/sync-config` → propose backports
+**After workflow tweaks:** `/push-seeds` → propose backports
 
 ---
 
@@ -87,4 +87,4 @@ Invokes `@sync-config` agent to diff live project files against seeds templates.
 | /restart-this | — | Resume from pause | Reload context |
 | /kill-this | — | Session end (part 1) | Draft log entry |
 | /its-dead | — | Session end (part 2) | Finalize + push |
-| /sync-config | — | After workflow tweaks | Backport to seeds |
+| /push-seeds | — | After workflow tweaks | Backport to seeds |
