@@ -6,6 +6,10 @@ tools: Read, Edit, Write, Bash, Glob, Grep, Agent
 
 You are executing the first half of the end-of-session shutdown.
 
+## Step 0 — Capture branch
+
+Run `git branch --show-current` and hold the result as `BRANCH` for all steps below. All file reads below are fresh reads — do not rely on any version of `CLAUDE.md` or `PROJECT_PLAN.md` read earlier in the session (branch switches since session start make those stale).
+
 ## Step 1 — Build check (conditional)
 
 Look up the project's build check in `CLAUDE.md §Commands`. Run whatever is defined there (e.g. `npm run build`, `cargo build`, `make`, `supabase db reset`, etc. — whatever the project considers a build verification).
@@ -38,6 +42,8 @@ Run the @code-review agent against HEAD (`git diff HEAD~1`). Wait for it to comp
 
 ## Step 4 — Open PR (feature branches only)
 
+**Merge-order check:** Run `git diff --name-only main..HEAD` to get changed files. Then run `gh pr list --state open --json number,title,headRefName` and for each open PR whose branch is not `$BRANCH`, run `gh pr diff <number> --name-only`. If any file appears in both lists, warn: "⚠ PR #N also touches `<file>` — consider merge order." Advisory only; do not block.
+
 Now open the PR with code review findings included in the body.
 
 Check for an existing open PR first: `gh pr view $BRANCH --json url,state -q '.state' 2>/dev/null`. If output is `OPEN`, capture the URL with `gh pr view $BRANCH --json url -q '.url'` and skip to surfacing the URL — don't open a duplicate.
@@ -54,14 +60,16 @@ Bulleted list from `git diff --name-only main..HEAD`.
 Paste the findings from Step 4 here. If clean, say "Clean bill of health."
 
 **## Test plan**
-Generate this yourself by inspecting `git diff --name-only main..HEAD`. Do NOT copy from the code review findings — this section is for the human reviewer. Check each category and add a checkbox if it applies:
-- Any `supabase/migrations/*.sql`? → `- [ ] Migration applied to remote: \`supabase db push\``
-- Any RLS policy or `supabase/tests/` file? → `- [ ] RLS tests pass: \`supabase test db\``
-- Any file under `src/app/`, `src/components/`, or other UI paths? → `- [ ] UI verified at 375px mobile viewport`
-- Any new user-facing flow or feature? → `- [ ] [Feature name] tested end-to-end in the browser`
-- Any `tests/*.spec.ts` Playwright file? → `- [ ] Playwright tests pass for changed spec`
+Generate this yourself by inspecting `git diff --name-only main..HEAD`. Do NOT copy from the code review findings. Each item must be a step-by-step scenario: navigate to URL → take action → verify result. No vague outcome checklists.
 
-Always include at least one human action item. Never leave this section empty, generic, or as a copy of the code review.
+Check each category:
+- Any `supabase/migrations/*.sql`? → `- [ ] Run \`supabase db push\`, confirm migration applied without error`
+- Any RLS policy or `supabase/tests/` file? → `- [ ] Run \`supabase test db\`, confirm all tests pass`
+- Any file under `src/app/`, `src/components/`, or other UI paths? → write a specific scenario per screen: `- [ ] Navigate to [URL] → [action] → verify [expected result]`
+- Any new user-facing flow or feature? → write the full end-to-end flow as numbered steps
+- Any `tests/*.spec.ts` Playwright file? → `- [ ] Run \`npx playwright test tests/[file] --project=desktop\`, confirm [N] tests pass`
+
+Always include at least one step-by-step scenario. Never leave this section empty, generic ("verify it works"), or as a copy of the code review.
 
 Capture the returned PR URL. Surface it in your response and note it in the draft session log entry's `Context` section.
 

@@ -16,7 +16,7 @@ Subtract start from end. Apply any time adjustment from args (e.g. "subtract 30 
 If the duration cannot be confidently determined, ask the user before proceeding.
 
 **Points:**
-Read `docs/PROJECT_PLAN.md`. For each task completed this session (tasks you checked off or that the user confirmed done), note its effort point value from the plan table. Sum them.
+For each task completed this session, grep its row from `docs/PROJECT_PLAN.md` to get its effort value — do not read the whole file. Use the task ID or a unique substring: `grep "| taskID " docs/PROJECT_PLAN.md`. Sum all effort points.
 
 Fill the calculated duration and points into the draft, replacing the `[TBD]` placeholders.
 

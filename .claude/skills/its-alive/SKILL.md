@@ -78,7 +78,13 @@ From the most recent completed session entry, extract:
 
 ## Step 5 — Read project state
 
-Read `docs/PROJECT_PLAN.md`. Identify:
+Grep `docs/PROJECT_PLAN.md` — do not read the whole file:
+- Unchecked tasks: `grep "\[ \]" docs/PROJECT_PLAN.md`
+- Deferred tasks: `grep "\[~\]" docs/PROJECT_PLAN.md`
+- Priority note: `grep "Next session priority" docs/PROJECT_PLAN.md -A 2`
+- Velocity: `grep "Velocity baseline" docs/PROJECT_PLAN.md -A 1`
+
+Identify:
 - Unchecked tasks and which are next (or in scope soon)
 - Any tasks marked `[~]` (deferred) or flagged as blocked
 - Velocity baseline for rough timeline awareness (if established)
