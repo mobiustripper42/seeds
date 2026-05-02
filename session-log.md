@@ -5,7 +5,39 @@ Format: prepend newest entry at the top.
 
 ---
 
-## Session 13 — 2026-05-01 20:58 [open]
+## Session 13 — 2026-05-01 20:58–23:07 (2h 10m)
+**Duration:** 2h 10m | **Points:** 0 (no tracked tasks — workflow analysis)
+**Task:** Session JSONL transfer + workflow analysis; session capture tooling
+
+**Completed:**
+- Analyzed sailbook Session 118 JSONL for efficiency and workflow correctness
+- Identified 5 high-impact improvement targets (PROJECT_PLAN read waste, branch-switch re-reads,
+  form scope heuristic, Playwright debug path, merge-order warning)
+- Established JSONL-via-git-repo transfer pattern for Ubuntu → Windows
+- Confirmed Docker Supabase makes concurrent worktrees feasible (separate instances per worktree)
+- Added two memory files: fewer-questions feedback, workflow refinement pattern
+
+**In Progress:** Nothing.
+
+**Blocked:** Task 7 (/pull-seeds) — still waiting on thoughts re: diff direction problem.
+
+**Next Steps:**
+1. Open new session with both sailbook + seeds loaded:
+   `claude --add-dir C:\Users\eric\OneDrive\Documents\GitHub\sailbook`
+2. Use Session 118 findings to update seeds skill templates:
+   - its-alive/its-dead: grep PROJECT_PLAN.md instead of full read
+   - kill-this: read files after branch switch, not before
+   - kill-this: add merge-order warning when multiple PRs share files
+3. Task 7 (/pull-seeds, 5 pts) when ready
+
+**Context:**
+- Script capture on Ubuntu: `script -q ~/sessions/sailbook-$(date +%Y%m%d).log` before `claude`
+- JSONL transfer: copy to sailbook repo, push, pull on Windows, I can Read directly
+- seeds has no build step — markdown only
+- /kill-this naming: user noted it's hard to find in CC Desktop — consider alias or rename
+- Next session: load both repos with `claude --add-dir <sailbook-path>` from seeds dir
+
+**Code Review:** Skipped — seeds is docs/templates only, session was analysis work.
 
 ---
 
