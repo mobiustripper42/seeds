@@ -36,10 +36,13 @@ No phases — flat task list. Tests baked into each estimate.
 | 14 | PR-flow support in `/kill-this` + `/its-dead` — branch detection in kill-this Step 3 (main → DEC-005 push; task/* → gh pr create); PR state detection in its-dead Step 5 (OPEN → push to branch + stop; MERGED → FF-merge cleanup; CLOSED → STOP + ask; no PR → FF-merge cleanup). Fix 2 code review bugs (CLOSED fall-through, literal placeholders). 4 files × 2 skills. | 3 | [x] | <!-- completed 2026-04-30 --> |
 
 | 15 | Build `/read-the-tape` skill + `@tape-reader` agent — 10 known anti-patterns, self-improving candidate discovery, PR flow | 5 | [x] | <!-- completed 2026-05-02 --> Templates in dev/claude/, installed in seeds + sailbook. |
+| 16 | Project management workflow rework — per-session files (`sessions/YYYY-MM-DD-HHMM-<dev>-<slug>.md`), `~/.claude/devname` for dev identity, hybrid Issues + PROJECT_PLAN.md model, new `/start-phase` and `/retro` skills, `/read-the-tape` default + Transcript field, dual-mode skill cutover. Installed in bushel as first project on the new model. | 13 | [x] | <!-- completed 2026-05-03 --> 9 SKILL.md files touched in seeds (template + installed), 2 new skills, CLAUDE.md/AGENTS.md updates, bushel `.claude/` + `docs/` + `CLAUDE.md` + DEC-023 (testing) + DEC-024 (PM workflow) installed. |
+| 17 | Schema versioning for the seeds workflow — define a version field for PROJECT_PLAN.md / session-file format / skill API; cut a migration path so `/pull-seeds` into older projects (sailbook still on monolithic session-log.md) works without breaking. Pre-req before next `/pull-seeds`. | 5 | [ ] | New. Surfaced during Session 15. Without this, downstream installs of the new skills will silently corrupt projects still on the old conventions. |
+| 18 | Migrate sailbook to new PM workflow — copy seeds template forward, archive `session-log.md`, install per-session files + phase rituals, materialize current sailbook phase as Issues. | 5 | [ ] | Depends on Task 17 (versioning + migration path). |
 
-**Total: 56 pts**
+**Total: 79 pts** (delivered through Task 16: 69 pts; remaining: Tasks 5, 6, 7, 8, 9, 17, 18)
 
-**Next session priority:** Run `/read-the-tape` on sailbook-dev session → Task 7 (/pull-seeds skill, 5 pts) → Task 6 (Routine build, 8 pts). Task 5 (repo list format) likely N/A — reassess at task 6 start.
+**Next session priority:** Dogfood the new workflow on bushel for a real session; surface any rough edges. Then Task 17 (versioning) before any other downstream propagation.
 
 ---
 

@@ -22,11 +22,11 @@ Roles:
 | `docs/SPEC.md` | What we're building — scope, V1 vs V2 vs V3 |
 | `docs/DECISIONS.md` | Why we made each architectural choice |
 | `docs/USER_STORIES.md` | What each role does |
-| `docs/PROJECT_PLAN.md` | Phases, tasks, estimates, velocity |
-| `docs/RETROSPECTIVES.md` | Phase-end retrospectives — velocity actuals, scope changes, forecast updates |
+| `docs/PROJECT_PLAN.md` | Phases, scope, velocity table — written at phase boundaries only. Current-phase tasks live in GitHub Issues. |
+| `docs/RETROSPECTIVES.md` | Phase-end retrospectives written by `/retro` |
 | `docs/AGENTS.md` | Agent and skill specs |
 | `docs/BRAND.md` | Philosophy, visual direction, voice |
-| `session-log.md` | Session-to-session continuity log |
+| `sessions/*.md` | Per-session files — `YYYY-MM-DD-HHMM-<dev>-<slug>.md` |
 
 ## Core Data Model
 ```
@@ -153,12 +153,18 @@ npx supabase gen types typescript --local > src/lib/supabase/types.ts
 
 | Skill | When | What |
 |-------|------|------|
-| `/its-alive` | Session start | Stamp time, read context, recommend task |
+| `/its-alive` | Session start | Stamp time, open per-session file, capture transcript path, read context, recommend task |
 | `/pause-this` | Mid-session break | Build check, commit WIP, note pause |
 | `/restart-this` | Resume from pause | Reload context, continue same session |
-| `/kill-this` | Session end (part 1) | Build check, commit, push branch, open PR, code review, draft log |
+| `/kill-this` | Session end (part 1) | Build check, commit, push branch, open PR, code review, draft session body |
 | `/ship-it` | After PR review passes | Merge PR, push migration if any, record ship time + wall clock |
-| `/its-dead` | Session end (part 2) | Calc time + points, write log, update plan, PM recommendation |
+| `/its-dead` | Session end (part 2) | Calc duration + points, finalize session file, branch cleanup |
+| `/start-phase` | Phase boundary (start) | Materialize phase tasks from PROJECT_PLAN.md into Issues with phase:N + points:X labels |
+| `/retro` | Phase boundary (end) | Mark `[x]`, reconcile drift, compute phase velocity, write retro to RETROSPECTIVES.md |
+
+**Dev identity:** `~/.claude/devname` (one-line file with your handle). Set once per machine.
+
+**Task model:** PROJECT_PLAN.md is read at planning, written at retro. Untouched mid-phase. Current-phase tasks live as GitHub Issues. The phase ends when its issues close.
 
 ## Agent Workflow
 

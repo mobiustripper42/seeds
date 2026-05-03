@@ -1,6 +1,6 @@
 ---
 name: its-alive
-description: Session start. Stamps the start time, opens a new session log entry, reads last session context, reads the project plan, and presents a briefing with task recommendation. Waits for confirmation before any work begins.
+description: Session start. Stamps the start time, opens a per-session file in `sessions/`, captures the active JSONL transcript path, reads last session context, reads the project plan, and presents a briefing with task recommendation. Waits for confirmation before any work begins.
 tools: Read, Edit, Write, Bash, Glob, Grep, Agent
 ---
 
@@ -9,105 +9,175 @@ You are executing the session start ritual.
 ## Step 0 — Branch check
 
 **Worktree check first:** run `git rev-parse --git-dir`.
-- If the output contains `/worktrees/`: this is a **linked worktree session** (concurrent with another session). Skip the rest of Step 0 entirely — the branch here is intentional. Note "Linked worktree" in the briefing output and continue to Step 1.
-- Otherwise: you are in the main worktree. Continue with the checks below.
+- If the output contains `/worktrees/`: this is a **linked worktree session** (concurrent with another session). Skip the rest of Step 0 — the branch here is intentional. Note "Linked worktree" in the briefing output and continue to Step 1.
+- Otherwise: continue.
 
 Run `git fetch origin` to refresh remote state. Capture `BRANCH=$(git branch --show-current)`.
 
-**Concurrent session check:** scan `session-log.md` for any heading containing `[open]`. If found:
-- Show the user: "Session N is already open (started YYYY-MM-DD HH:MM). Is this: **(a)** a currently running concurrent session → I'll create a worktree for this new task, or **(b)** a stale/crashed entry → I'll close it and continue here?"
+**Concurrent session check:** glob `sessions/*.md` for any file with `status: open` in its YAML frontmatter (`grep -l "^status: open" sessions/*.md 2>/dev/null`). If found:
+- Show the user: "Session N is already open (file: <name>). Is this: **(a)** a currently running concurrent session → I'll create a worktree for this new task, or **(b)** a stale/crashed entry → I'll mark abandoned and continue here?"
 - Wait for the user's answer.
-- If **(b)** (stale): close the open entry by replacing `[open]` in that heading with a note like `[abandoned]`, then continue below.
-- If **(a)** (concurrent): ask **"What branch name for this new task? (e.g., `task/6.22-description`)"** Wait for the answer. Capture as `NEW_BRANCH`.
-  - Get the repo name: `REPO=$(basename $(git rev-parse --show-toplevel))`
-  - Derive a slug from the branch: strip the `task/` prefix if present (e.g., `task/6.22-other` → `6.22-other`). Capture as `SLUG`.
-  - Create the worktree: `git worktree add ../${REPO}-wt-${SLUG} -b ${NEW_BRANCH}`
-  - Tell the user: **"Worktree created at `../${REPO}-wt-${SLUG}`. Open a new CC window pointed at that directory and run /its-alive there. You can close this window."**
-  - **Stop here** — do not open a session entry in the main worktree.
+- If **(b)** (stale): change `status: open` to `status: abandoned` in that session file. Continue.
+- If **(a)** (concurrent): ask **"What branch name for this new task?"** Capture as `NEW_BRANCH`.
+  - `REPO=$(basename $(git rev-parse --show-toplevel))`
+  - `SLUG=${NEW_BRANCH#task/}`
+  - `git worktree add ../${REPO}-wt-${SLUG} -b ${NEW_BRANCH}`
+  - Tell the user: **"Worktree created at `../${REPO}-wt-${SLUG}`. Open a new CC window pointed there and run /its-alive. You can close this window."**
+  - **Stop here** — do not open a session file in the main worktree.
 
-**If `BRANCH` matches `task/*` or any intentional feature branch (not `main`, not a CC auto-branch like `claude/*`):**
-- This is intentional PR-flow work. Do NOT attempt to switch to main.
-- Run `git status --porcelain` and note any WIP files — they're in-progress work, not an error.
-- Continue to Step 1. (The session log commit in Step 3 will push to this branch, not main.)
-
-**If `BRANCH` is `main`:**
-- Run `git pull --ff-only origin main`. If it succeeds, continue to Step 1.
-- If it fails due to divergence: show the user the divergence with `git log --oneline origin/main..HEAD` (local-ahead) and `git log --oneline HEAD..origin/main` (remote-ahead), then ask: **"Main has diverged. How to reconcile? (a) rebase local onto origin/main, (b) reset local to origin/main (loses local commits), (c) abort /its-alive."** Wait for the user's choice and execute it. Do NOT pick a default.
-
-**If `BRANCH` is anything else** (e.g., `claude/<slug>` CC auto-branches):
-- Run `git status --porcelain`. If non-empty (dirty tree): stop. Surface the dirty files and ask the user to commit or stash before re-running `/its-alive`.
-- If clean:
-  - Check whether local `main` exists: `git rev-parse --verify main` (silently). If it fails (no local main yet), run `git checkout -b main origin/main` to create the tracking branch, then continue.
-  - Otherwise run `git checkout main && git pull --ff-only origin main`. If the pull diverges, apply the same (a)/(b)/(c) prompt above.
-
-Per `docs/DECISIONS.md` DEC-005, seeds/solo projects work on `main`. PR-flow projects (like sailbook) work on `task/*` branches — landing there at session start is correct and expected.
+**Branch handling:**
+- `task/*` or other intentional feature branch: continue (PR-flow project).
+- `main`: `git pull --ff-only origin main`. On divergence, show `git log --oneline origin/main..HEAD` and `git log --oneline HEAD..origin/main`, then ask: **"(a) rebase, (b) reset to origin/main, (c) abort?"** Wait for the choice.
+- Anything else (e.g. `claude/<slug>` CC web auto-branch): if `git status --porcelain` is dirty, stop and ask the user to commit/stash. If clean, switch to main per the rule above. Per `docs/DECISIONS.md` DEC-005, seeds/solo projects work on `main`; PR-flow projects (sailbook, bushel) use `task/*`.
 
 ## Step 1 — Stamp the time
 
-Run `date` to get the current local time. Record it — this is the session start time.
-
-## Step 2 — Determine session number
-
-Read `session-log.md`. Scan all `## Session N` headings (open or closed) and find the highest N. The new session number is that N+1. Do not just take the first heading — if a concurrent session is already open, it will be `[open]` at the top and must be counted.
-
-## Step 3 — Open a session entry (auto-commit + push)
-
-Prepend a new open entry at the top of `session-log.md`, immediately after the `# [Project] — Session Log` header line:
-
 ```
-## Session N — YYYY-MM-DD HH:MM [open]
+START_UTC=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+DATE_PART=$(date -u +%Y-%m-%d)
+TIME_PART=$(date -u +%H%M)
 ```
 
-Then immediately commit and push so the stop hook doesn't fire mid-briefing:
+Record both — `DATE_PART` and `TIME_PART` go into the filename; `START_UTC` goes into the file's frontmatter.
+
+## Step 2 — Resolve dev identity
 
 ```
-git add session-log.md
-git commit -m "Open Session N entry"
-git push origin <BRANCH>   # push to whatever branch you're on (main or task/*)
+DEV=$(cat ~/.claude/devname 2>/dev/null || echo "$USER")
 ```
 
-Do not fill in any other fields — this is just the timestamp anchor + a clean commit boundary.
+If `~/.claude/devname` is missing AND `$USER` is empty/unhelpful, prompt the user once and offer to write `~/.claude/devname` for them.
 
-## Step 4 — Read last session context
+## Step 3 — Derive the slug
 
-From the most recent completed session entry, extract:
-- **Next Steps** — what was planned for the next sitting
-- **In Progress** — anything partially done
-- **Blocked** — anything waiting on a decision or external input
-- **Context** — gotchas and patterns worth remembering
+Slug rule (in order of precedence):
 
-## Step 5 — Read project state
+```
+case "$BRANCH" in
+  task/*)    SLUG="${BRANCH#task/}" ;;
+  feature/*) SLUG="${BRANCH#feature/}" ;;
+  claude/*)  SLUG="${BRANCH#claude/}" ;;
+  main|master) SLUG="main" ;;
+  *) SLUG=$(echo "$BRANCH" | tr '/' '-') ;;
+esac
+```
+
+**For domain repos with no semantic branch** (or `BRANCH=main` and the project is non-dev): if the user passes a topic via `/its-alive <topic>`, use that as the slug. Otherwise the default `main` is fine.
+
+Sanitize: lowercase, replace any non-`[a-z0-9.-]` with `-`, collapse repeats.
+
+## Step 4 — Determine session number
+
+`SESSION_NUM=$(($(ls sessions/*.md 2>/dev/null | wc -l) + 1))`
+
+If `sessions/` does not exist: this is the first session under the new format. Create the dir: `mkdir -p sessions`. If the project has a legacy `session-log.md` with prior sessions, find the highest old session number and start from N+1 (counting both old and new). Run: `LEGACY_MAX=$(grep -oE "^## Session [0-9]+" session-log.md 2>/dev/null | grep -oE "[0-9]+" | sort -n | tail -1)`. Use `SESSION_NUM=$((${LEGACY_MAX:-0} + $(ls sessions/*.md 2>/dev/null | wc -l) + 1))`.
+
+## Step 5 — Capture the transcript path
+
+```
+PROJECT_SLUG=$(pwd | tr '/' '-')
+JSONL_DIR="$HOME/.claude/projects/$PROJECT_SLUG"
+TRANSCRIPT=$(ls -t "$JSONL_DIR"/*.jsonl 2>/dev/null | head -1)
+```
+
+If no JSONL is found, leave `transcript:` empty in the frontmatter. /read-the-tape will fall back to "latest JSONL" matching at audit time.
+
+## Step 6 — Compose the session filename and write the open entry
+
+```
+SESSION_FILE="sessions/${DATE_PART}-${TIME_PART}-${DEV}-${SLUG}.md"
+```
+
+Write the file with this content:
+
+```
+---
+session: <N>
+dev: <DEV>
+slug: <SLUG>
+branch: <BRANCH>
+started: <START_UTC>
+ended:
+duration:
+points:
+status: open
+transcript: <TRANSCRIPT>
+---
+
+# Session <N> — <SLUG>
+
+**Task:** [filled at /kill-this]
+
+**Completed:**
+
+**In Progress:**
+
+**Blocked:**
+
+**Next Steps:**
+
+**Context:**
+
+**Code Review:**
+```
+
+Then immediately commit + push so the stop hook stays quiet through the briefing:
+
+```
+git add "$SESSION_FILE"
+git commit -m "Open Session $SESSION_NUM entry"
+git push origin "$BRANCH"
+```
+
+## Step 7 — Read last session context
+
+Find the most recent CLOSED session file:
+
+```
+PREV=$(ls -t sessions/*.md 2>/dev/null | grep -v "$SESSION_FILE" | head -10)
+```
+
+For each candidate (newest first), check if `status: closed` is in its frontmatter (`grep "^status: closed"`). The first match is the previous session. If none exist, fall back to reading the top entry of `session-log.md` (legacy archive) for context.
+
+Extract from the previous file:
+- **Task** — what they were working on
+- **In Progress** — anything half-done
+- **Blocked** — anything waiting
+- **Next Steps** — exact verbatim
+- **Context** — gotchas worth remembering
+
+## Step 8 — Read project state
 
 Grep `docs/PROJECT_PLAN.md` — do not read the whole file:
 - Unchecked tasks: `grep "\[ \]" docs/PROJECT_PLAN.md`
 - Deferred tasks: `grep "\[~\]" docs/PROJECT_PLAN.md`
 - Priority note: `grep "Next session priority" docs/PROJECT_PLAN.md -A 2`
+- Current phase: `grep -E "^## Phase " docs/PROJECT_PLAN.md | head -3`
 - Velocity: `grep "Velocity baseline" docs/PROJECT_PLAN.md -A 1`
 
-Identify:
-- Unchecked tasks and which are next (or in scope soon)
-- Any tasks marked `[~]` (deferred) or flagged as blocked
-- Velocity baseline for rough timeline awareness (if established)
+If the project uses Issues for the active phase (post-Phase-rituals rollout), also check active issues:
+- `gh issue list --label "phase:current" --state open --json number,title,labels --limit 50` (skip silently if `gh` unavailable or the project doesn't use Issues yet).
 
-## Step 6 — Present briefing
-
-Output a concise briefing:
+## Step 9 — Present briefing
 
 ```
-Session N — [date]
-Started: HH:MM
+Session <N> — <DATE_PART>
+Started: <local time> (<UTC time>)
+Branch: <BRANCH>
+Session file: <SESSION_FILE>
+Dev: <DEV>
 
-Last session: [one-line summary of what was done]
+Last session: [one-line summary]
 
 In Progress: [anything half-done]
 Blocked: [anything waiting]
 Next Steps from last session: [verbatim or paraphrased]
 
-Recommended task: [specific task ID + name + why it's the right next thing]
+Recommended task: [task ID + name + why]
 
-[If on `main`:] ⚠ First move after confirming: cut the branch — `git checkout -b task/X.Y-description`
-[If on `task/*`:] Branch already cut: `<BRANCH>` — good to go.
-[If linked worktree:] Linked worktree on `<BRANCH>` — concurrent session, good to go.
+[On `main`:] ⚠ First move after confirming: cut the branch — `git checkout -b task/X.Y-description`
+[On `task/*`:] Branch already cut: <BRANCH> — good to go.
+[Linked worktree:] Linked worktree on <BRANCH> — concurrent session, good to go.
 ```
 
 Then ask: **"Ready to go? Confirm the task or redirect me."**

@@ -6,12 +6,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 | File | Purpose |
 |------|---------|
-| `docs/PROJECT_PLAN.md` | Task list, velocity table, priorities |
+| `docs/PROJECT_PLAN.md` | Phases, scope, velocity table — **written at phase boundaries only** (planning + retro). Tasks for the *current* phase live in GitHub Issues. |
 | `docs/SPEC.md` | Scope boundaries — what's in and out |
 | `docs/DECISIONS.md` | Architectural decisions (DEC-NNN IDs) |
 | `docs/AGENTS.md` | Agent and skill specs |
+| `docs/RETROSPECTIVES.md` | Phase-end retros — written by `/retro` |
 | `docs/VELOCITY_AND_POKER_GUIDE.md` | Estimation methodology |
-| `session-log.md` | Session continuity log |
+| `sessions/*.md` | Per-session files (one per session). Filename: `YYYY-MM-DD-HHMM-<dev>-<slug>.md`. |
+| `session-log.md` | Legacy archive — pre-rollout sessions only. New sessions write to `sessions/`. |
 
 ## What This Repo Is
 
@@ -48,17 +50,25 @@ This repo encodes a specific development workflow for solo Claude-assisted proje
 
 ### Session Skills (copy to `.claude/skills/` in your project)
 
-Five slash commands manage the session lifecycle:
-
 | Skill | When | What it does |
 |-------|------|--------------|
-| `/its-alive` | Session start | Stamps time, opens session log entry, reads context from last session + `PROJECT_PLAN.md`, recommends task |
-| `/pause-this` | Mid-session break | Runs build check, commits WIP, notes pause in session log |
-| `/restart-this` | Resume from pause | Reloads context from session log and plan — no new session number |
-| `/kill-this` | Session end (part 1) | Build check, commit, runs @code-review, drafts session log entry for review |
-| `/its-dead` | Session end (part 2) | Finalizes session log, tallies effort points, updates PROJECT_PLAN.md, commits + pushes, runs @pm |
+| `/its-alive` | Session start | Stamps time, opens a per-session file in `sessions/`, captures the active JSONL transcript path, reads last session context, recommends task |
+| `/pause-this` | Mid-session break | Runs build check, commits WIP, notes pause in the session file |
+| `/restart-this` | Resume from pause | Reloads context from the open session file — no new session number |
+| `/kill-this` | Session end (part 1) | Build check, commit, runs @code-review, drafts session file body for review |
+| `/its-dead` | Session end (part 2) | Calculates duration, fills points, finalizes the session file, commits + pushes, cleans up branch |
+| `/start-phase` | Phase boundary (start) | Reads next phase from PROJECT_PLAN.md, creates one Issue per task with `phase:N` and `points:X` labels, writes issue numbers back into the plan |
+| `/retro` | Phase boundary (end) | Marks phase tasks `[x]`, reconciles drift, computes phase velocity, prompts retro notes, appends to RETROSPECTIVES.md, optionally chains into `/start-phase` |
 | `/push-seeds` | After workflow improvements | Invokes @sync-config to classify diffs and propose backports to seeds |
 | `/read-the-tape` | After a session worth learning from | Invokes @tape-reader to audit JSONL transcript, find anti-patterns, propose skill improvements |
+
+**Dev identity:** skills resolve `DEV` from `~/.claude/devname` (one-line file) with `$USER` as fallback. Set once per machine. Used in session filenames so two devs never collide.
+
+**Task management model (post phase-rituals rollout):**
+- `PROJECT_PLAN.md` is **read at planning** and **written at retro**. Untouched during the phase.
+- The **current phase's tasks live as GitHub Issues** (created by `/start-phase`, closed by PRs).
+- Project board (GitHub Projects v2) gives kanban visibility — optional but recommended for multi-dev projects.
+- Phase boundaries are work-defined, not time-boxed: a phase ends when its issues are closed.
 
 ### Agents (copy to `.claude/agents/` in your project)
 
@@ -75,11 +85,15 @@ Five slash commands manage the session lifecycle:
 
 The skills and agents expect these files to exist in the project root:
 
-- `session-log.md` — session continuity log (skills read/write this)
+- `sessions/` — directory for per-session files (skills create + write)
 - `docs/PROJECT_PLAN.md` — phases, tasks, estimates, velocity table
+- `docs/RETROSPECTIVES.md` — phase-end retros (created by `/retro` if missing)
 - `docs/SPEC.md` — scope (V1 vs later) and "Not V1" list
 - `docs/DECISIONS.md` — architectural decisions with IDs (e.g. DEC-001)
 - `docs/AGENTS.md` — adapted from `dev/claude/docs/AGENTS.md` in this repo
+
+Plus a one-time global setup per machine:
+- `~/.claude/devname` — single line with the dev's handle (e.g. `eric`). Used in session filenames.
 
 ### Velocity & Estimation
 
@@ -87,12 +101,14 @@ Effort uses Fibonacci points: 2, 3, 5, 8, 13. No 1s (just do it), no 13s if avoi
 
 ## Setting Up a New Dev Project
 
-1. **Project docs** — copy `dev/claude/docs/` contents to `docs/` in the project root. Fill in all `[Project Name]` and `[placeholder]` fields. `PROJECT_PLAN.md` has Phase 0 pre-filled — fill in Phase 1+ during planning.
-2. **Session log** — copy `dev/claude/session-log.md` to the project root. Update the header.
-3. **CLAUDE.md** — copy `dev/claude/CLAUDE.md` to the project root. Fill in stack, data model, roles, and doc table.
-4. **Agents** — copy `dev/claude/agents/` to `.claude/agents/` in the project root. Update `description:` frontmatter with the project name.
-5. **Skills** — copy `dev/claude/skills/` directories to `.claude/skills/` in the project root (project-level install, not global).
-6. **Shell alias** — source `dev/bash/aliases.sh` from `~/.bashrc` and add a project-specific alias.
+1. **Global one-time:** put a one-liner in `~/.claude/devname` (e.g. `eric`) — your dev handle.
+2. **Project docs** — copy `dev/claude/docs/` contents to `docs/` in the project root. Fill in all `[Project Name]` and `[placeholder]` fields. `PROJECT_PLAN.md` has Phase 0 pre-filled — fill in Phase 1+ during planning.
+3. **Sessions dir** — `mkdir sessions` in project root. (No template file needed — `/its-alive` creates entries.)
+4. **CLAUDE.md** — copy `dev/claude/CLAUDE.md` to the project root. Fill in stack, data model, roles, and doc table.
+5. **Agents** — copy `dev/claude/agents/` to `.claude/agents/` in the project root. Update `description:` frontmatter with the project name.
+6. **Skills** — copy `dev/claude/skills/` directories to `.claude/skills/` in the project root (project-level install, not global).
+7. **Shell alias** — source `dev/bash/aliases.sh` from `~/.bashrc` and add a project-specific alias.
+8. **GitHub labels** (if using phase rituals) — `/start-phase` will create them on first use, but you can pre-create: `phase:0`–`phase:9`, `points:1`/`2`/`3`/`5`/`8`, `blocked`.
 
 After setup, run `/its-alive` in the new project to start the first session.
 
