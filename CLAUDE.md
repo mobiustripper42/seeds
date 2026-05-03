@@ -58,6 +58,7 @@ Five slash commands manage the session lifecycle:
 | `/kill-this` | Session end (part 1) | Build check, commit, runs @code-review, drafts session log entry for review |
 | `/its-dead` | Session end (part 2) | Finalizes session log, tallies effort points, updates PROJECT_PLAN.md, commits + pushes, runs @pm |
 | `/push-seeds` | After workflow improvements | Invokes @sync-config to classify diffs and propose backports to seeds |
+| `/read-the-tape` | After a session worth learning from | Invokes @tape-reader to audit JSONL transcript, find anti-patterns, propose skill improvements |
 
 ### Agents (copy to `.claude/agents/` in your project)
 
@@ -68,6 +69,7 @@ Five slash commands manage the session lifecycle:
 | @pm | Sonnet | Start/end of sessions via skills | Track progress, flag risks, update PROJECT_PLAN.md |
 | @ui-reviewer | Sonnet | After UI work, phase boundaries | Design quality review |
 | @sync-config | Sonnet | Via `/push-seeds` skill, or ad-hoc | Classify diffs, propose backports, flag cross-family patterns |
+| @tape-reader | Sonnet | Via `/read-the-tape` skill | Audit session JSONL for anti-patterns; self-improving via candidate pattern discovery |
 
 ### Files a target project needs
 

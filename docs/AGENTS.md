@@ -28,6 +28,11 @@ Five agents and six session skills drive seeds' own workflow. All run as Claude 
 **Spec:** `.claude/agents/ui-reviewer.md`
 **Note:** N/A for seeds itself (no UI) — included for completeness / test coverage of the template.
 
+### @tape-reader
+**Purpose:** Audits session JSONL transcripts for workflow anti-patterns. Checks 10 known patterns (P1–P10), proposes targeted skill/agent fixes, and surfaces new candidate patterns to grow its own checklist.
+**When:** Via `/read-the-tape` skill, after a session worth learning from.
+**Spec:** `.claude/agents/tape-reader.md`
+
 ### @sync-config
 **Purpose:** Classifies diffs between seeds and active projects — "generic improvement" (backport) vs. "project-specific tweak" (skip). Used in both directions (upstream PR automation + downstream `/pull-seeds`).
 **When:** Via `/push-seeds` skill, the nightly Routine, or manually.
@@ -57,6 +62,10 @@ Build check, commit, run `@code-review`, draft session log entry. Does not write
 Calculate duration + points, write session log entry, update `docs/PROJECT_PLAN.md`, push, run `@pm` for next-task recommendation.
 **Spec:** `.claude/skills/its-dead/SKILL.md`
 
+### /read-the-tape — Audit a session transcript
+Invokes `@tape-reader` agent on a session JSONL. Finds anti-patterns, proposes fixes, opens PR. Self-improving: surfaces candidate patterns for the agent's own checklist.
+**Spec:** `.claude/skills/read-the-tape/SKILL.md`
+
 ### /push-seeds — Push workflow changes back to seeds
 Invokes `@sync-config` agent to diff live project files against seeds templates. One run, one commit per repo.
 **Spec:** `.claude/skills/push-seeds/SKILL.md`
@@ -69,6 +78,7 @@ Invokes `@sync-config` agent to diff live project files against seeds templates.
 **During:** spec → build → test → mobile screenshot (N/A for seeds)
 **Pause:** `/pause-this` → break → `/restart-this`
 **End:** `/kill-this` → review draft → `/its-dead` → finalize + push
+**After a notable session:** `/read-the-tape` → find anti-patterns → PR → `/push-seeds` → backport
 **After workflow tweaks:** `/push-seeds` → propose backports
 
 ---
@@ -81,10 +91,12 @@ Invokes `@sync-config` agent to diff live project files against seeds templates.
 | @code-review | Sonnet | After commits | Catch issues early |
 | @pm | Sonnet | Start/end of sessions | Track progress, flag risks |
 | @ui-reviewer | Sonnet | After UI work | Design quality (N/A for seeds) |
+| @tape-reader | Sonnet | Via /read-the-tape | Audit transcripts, propose improvements |
 | @sync-config | Sonnet | Via skill / Routine | Classify diffs, propose backports |
 | /its-alive | — | Session start | Timestamp + briefing |
 | /pause-this | — | Mid-session break | Safe pause with commit |
 | /restart-this | — | Resume from pause | Reload context |
 | /kill-this | — | Session end (part 1) | Draft log entry |
 | /its-dead | — | Session end (part 2) | Finalize + push |
+| /read-the-tape | — | After notable sessions | Audit + improve skills |
 | /push-seeds | — | After workflow tweaks | Backport to seeds |
