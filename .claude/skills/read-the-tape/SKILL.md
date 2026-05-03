@@ -23,8 +23,7 @@ ls -lt ~/.claude/projects/<matched-dir>/*.jsonl
 ```
 
 **Selecting the session:**
-- No arg → most recently modified JSONL
-- Numeric arg (e.g. `/read-the-tape 3`) → match against session numbers in the filenames, or use the Nth most recent
+- No arg → **second most recently modified JSONL** — the current session's JSONL is always the newest (even if tiny); the one you want to audit is the previous one
 - File path arg → use that path directly
 
 ## Step 2 — Invoke @tape-reader
