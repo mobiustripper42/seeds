@@ -177,8 +177,14 @@ Five slash commands manage session lifecycle. Time tracking is automatic.
 | @code-review | Sonnet | After commits, optional | Catch issues early |
 | @pm | Sonnet | Start/end of sessions | Track progress, flag risks |
 | @ui-reviewer | Sonnet | After UI work, phase boundaries | Design quality |
-| /its-alive | — | Session start | Timestamp + briefing |
+| /its-alive | — | Session start | Timestamp + open session file + briefing |
 | /pause-this | — | Mid-session break | Safe pause with commit |
 | /restart-this | — | Resume from pause | Reload context |
-| /kill-this | — | Session end (part 1) | Draft log entry |
-| /its-dead | — | Session end (part 2) | Finalize + push |
+| /kill-this | — | Session end (part 1) | Draft session file body |
+| /its-dead | — | Session end (part 2) | Finalize session file + push |
+| /start-phase | — | Phase boundary (start) | Materialize phase as Issues |
+| /retro | — | Phase boundary (end) | Close out phase, write retro |
+
+**Per-session files:** the workflow uses `sessions/YYYY-MM-DD-HHMM-<dev>-<slug>.md` (one file per session) instead of a single monolithic `session-log.md`. `<dev>` comes from `~/.claude/devname` (one-line file, falls back to `$USER`). The slug is derived from the branch name (`task/X-foo` → `X-foo`, `main` → `main`, etc.). The active JSONL transcript path is captured in the file's frontmatter for later `/read-the-tape` audits.
+
+**Task model (post phase-rituals rollout):** `PROJECT_PLAN.md` is a phase-boundary document — read at planning, written at retro. Current-phase tasks materialize as GitHub Issues with `phase:N` + `points:X` labels. The plan stays untouched mid-phase, eliminating merge contention with multiple devs.

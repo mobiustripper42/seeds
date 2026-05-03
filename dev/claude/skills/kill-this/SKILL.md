@@ -78,13 +78,23 @@ Push already succeeded, so the branch is on the remote. Tell the user to open th
 
 ## Step 5 — Draft session log entry
 
-Compose the full session log entry but DO NOT write it yet. Duration and points are not yet known — use `[TBD]` placeholders:
-
+Find the open session — try new format first:
 ```
-## Session N — YYYY-MM-DD HH:MM–[TBD] ([TBD] hrs)
-**Duration:** [TBD] | **Points:** [TBD]
+SESSION_FILE=$(grep -l "^status: open" sessions/*.md 2>/dev/null | head -1)
+```
+
+If found: NEW MODE — draft fills the body sections of the session file (Task, Completed, etc.). Frontmatter `ended` / `duration` / `points` stay empty until /its-dead.
+
+Otherwise legacy: draft uses the inline session-log.md format with `[TBD]` placeholders.
+
+Compose the draft but DO NOT write it yet:
+
+**NEW MODE draft (preview only — do not write):**
+```
 **Task:** What the session was working on
-**Completed:** Bullet list of what got done (include file paths for significant changes)
+**Completed:**
+- Bullet list of what got done (include file paths for significant changes)
+- If Issues were closed, list them: `closed #42, #43`
 **In Progress:** Anything partially done
 **Blocked:** Anything waiting on a decision or external input
 **Next Steps:** Exactly what to do when sitting back down (specific enough for cold start)
@@ -92,6 +102,19 @@ Compose the full session log entry but DO NOT write it yet. Duration and points 
 **Code Review:** [findings or "Clean Bill of Health"]
 ```
 
+**LEGACY MODE draft:**
+```
+## Session N — YYYY-MM-DD HH:MM–[TBD] ([TBD] hrs)
+**Duration:** [TBD] | **Points:** [TBD]
+**Task:** ...
+**Completed:** ...
+**In Progress:** ...
+**Blocked:** ...
+**Next Steps:** ...
+**Context:** ...
+**Code Review:** ...
+```
+
 Show the draft to the user and ask: **"Does this look right? Any edits before I lock it in? Run /its-dead when ready — pass any time adjustments as args (e.g. /its-dead subtract 30 minutes for time away from desk)."**
 
-Stop here. Do not write anything to session-log.md yet. (Step 2 already pushed work-product — to main directly, or via PR on a feature branch; the log push happens in `/its-dead` Step 4.)
+Stop here. Do not write anything yet. (Step 2 already pushed work-product. The log write happens in `/its-dead`.)

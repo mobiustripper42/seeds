@@ -8,23 +8,20 @@ You are executing the /read-the-tape skill.
 
 ## Step 1 — Find the transcript
 
-Run `pwd` to get the current working directory.
+**If a session file path is given as the arg** (e.g. `/read-the-tape sessions/2026-05-03-0339-eric-pm-rework.md`):
+Read its YAML frontmatter and pull `transcript:`. Use that path directly. If the field is empty or missing, fall back to the heuristic below.
 
-Find the matching `.claude/projects/` directory:
-```bash
-ls ~/.claude/projects/
+**If a JSONL file path is given as the arg** (e.g. `/read-the-tape ~/.claude/projects/foo/abc123.jsonl`):
+Use it directly.
+
+**No arg — heuristic:**
+```
+PROJECT_SLUG=$(pwd | tr '/' '-')
+JSONL_DIR="$HOME/.claude/projects/$PROJECT_SLUG"
+ls -lt "$JSONL_DIR"/*.jsonl
 ```
 
-The directory name is a sanitized version of the path — separators become `--`. Find the entry that corresponds to the current project. If multiple match, pick the closest.
-
-List available sessions:
-```bash
-ls -lt ~/.claude/projects/<matched-dir>/*.jsonl
-```
-
-**Selecting the session:**
-- No arg → **second most recently modified JSONL** — the current session's JSONL is always the newest (even if tiny); the one you want to audit is the previous one
-- File path arg → use that path directly
+Default to the **second most recently modified JSONL** — the current session's JSONL is always the newest (being written live); the one to audit is the previous one. If only one JSONL exists, use it.
 
 ## Step 2 — Invoke @tape-reader
 
