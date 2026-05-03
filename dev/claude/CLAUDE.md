@@ -27,6 +27,7 @@ Roles:
 | `docs/AGENTS.md` | Agent and skill specs |
 | `docs/BRAND.md` | Philosophy, visual direction, voice |
 | `sessions/*.md` | Per-session files — `YYYY-MM-DD-HHMM-<dev>-<slug>.md` |
+| `.claude/seeds-version` | Schema version this project was last installed at. Used by `/pull-seeds` to gate template syncs. |
 
 ## Core Data Model
 ```
