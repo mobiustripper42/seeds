@@ -274,6 +274,7 @@ Doing PR reviews from your phone is tolerable if you structure for it:
 - **Diagnostic commands** (build, lint, type check, test): run directly — see errors, fix them, don't bother the user.
 - **Environment-changing commands** (npm install, supabase migrations, git push, deploys): output these for the user to run.
 - **Never rebase a task branch that already has commits on origin.** If main has advanced while a PR branch is open, leave the branch as-is — GitHub's "Update branch" button handles this at merge time. Rebasing rewrites remote history and requires a force-push, which is blocked by policy. Use `git merge --ff-only` only if explicitly asked.
+- **Before starting `npm run dev`:** run `curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/` first. If it returns 200, skip the start — a server is already up. Only start a new one if the check fails.
 - **Bug reports:** Create a GitHub issue (`gh issue create`), tag `bug`, add to current or next phase.
 
 ## Approval Before Action (all tasks)
