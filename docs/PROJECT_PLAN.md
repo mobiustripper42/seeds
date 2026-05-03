@@ -35,9 +35,11 @@ No phases — flat task list. Tests baked into each estimate.
 | 13 | `/kill-this` push behavior — currently commits but doesn't push, so stop hook fires between `/kill-this` and `/its-dead`. Two options: (a) add `git push origin main` to `/kill-this` Step 3 (2 pushes per session), or (b) live with the hook firing once between halves. Decision + implementation. | 2 | [x] | <!-- completed 2026-04-26 --> Chose (a). /kill-this Step 3 now pushes unconditionally after the commit step (no-op if nothing new). Catches any unpushed earlier commits too. Applied to both kill-this skill files; verified byte-identical. |
 | 14 | PR-flow support in `/kill-this` + `/its-dead` — branch detection in kill-this Step 3 (main → DEC-005 push; task/* → gh pr create); PR state detection in its-dead Step 5 (OPEN → push to branch + stop; MERGED → FF-merge cleanup; CLOSED → STOP + ask; no PR → FF-merge cleanup). Fix 2 code review bugs (CLOSED fall-through, literal placeholders). 4 files × 2 skills. | 3 | [x] | <!-- completed 2026-04-30 --> |
 
-**Total: 51 pts**
+| 15 | Build `/read-the-tape` skill + `@tape-reader` agent — 10 known anti-patterns, self-improving candidate discovery, PR flow | 5 | [x] | <!-- completed 2026-05-02 --> Templates in dev/claude/, installed in seeds + sailbook. |
 
-**Next session priority:** Task 7 (/pull-seeds skill, 5 pts) → Task 6 (Routine build, 8 pts). Task 5 (repo list format) likely N/A — reassess at task 6 start.
+**Total: 56 pts**
+
+**Next session priority:** Run `/read-the-tape` on sailbook-dev session → Task 7 (/pull-seeds skill, 5 pts) → Task 6 (Routine build, 8 pts). Task 5 (repo list format) likely N/A — reassess at task 6 start.
 
 ---
 

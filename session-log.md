@@ -5,7 +5,49 @@ Format: prepend newest entry at the top.
 
 ---
 
-## Session 14 — 2026-05-01 23:07 [open]
+## Session 14 — 2026-05-01 23:07–2026-05-02 20:52 (~2h 30m)
+**Duration:** ~2h 30m (wall-clock spanned overnight; working time estimated) | **Points:** 5
+**Task:** Workflow improvements — skill optimization, permission fix, /push-seeds rename, /read-the-tape build
+
+**Completed:**
+- Applied 4 skill improvements across 9 SKILL.md files (seeds template + seeds installed + sailbook):
+  - `its-alive` Step 5: full PROJECT_PLAN.md read → 4 targeted greps
+  - `its-dead` Step 0: full PROJECT_PLAN.md read → grep per task ID
+  - `kill-this`: added Step 0 (branch capture + fresh-read note)
+  - `kill-this`: added merge-order warning in Step 4
+  - `kill-this`: strengthened test plan to step-by-step scenarios (no outcome checklists)
+- Added `"defaultMode": "default"` to `permissions` in:
+  - `C:\Users\eric\.claude\settings.json` (global)
+  - `seeds/.claude/settings.json`
+  - `sailbook/.claude/settings.json`
+  — fixes CC Desktop prompting every Bash command (takes effect on next new session)
+- Added 5 missing entries to global settings.json (wsl, wsl.exe, powershell.exe, chmod, mcp__ccd_session__mark_chapter)
+- Renamed `/sync-config` → `/push-seeds` across all 3 locations (skill dirs renamed, SKILL.md frontmatter, CLAUDE.md, README.md, docs/AGENTS.md, docs/PROJECT_PLAN.md, both agent files)
+- Built `/read-the-tape` skill + `@tape-reader` agent (new Task 15, 5 pts):
+  - `dev/claude/skills/read-the-tape/SKILL.md` + `dev/claude/agents/tape-reader.md` (templates)
+  - Installed in seeds `.claude/` and sailbook `.claude/`
+  - 10 known anti-patterns (P1–P10), self-improving candidate discovery, PR flow
+  - Updated CLAUDE.md + docs/AGENTS.md to reference new skill/agent
+
+**In Progress:** Nothing — all committed and pushed
+
+**Blocked:** Nothing
+
+**Next Steps:**
+1. Run `/read-the-tape` on a real sailbook session from sailbook-dev (has a ripe session ready)
+2. Build Task 7 — `/pull-seeds` downstream skill (5 pts)
+3. Build Task 6 — nightly Routine / remote sync (8 pts)
+4. Try starting next session on mobile — test /its-alive on CC mobile
+
+**Context:**
+- CC Desktop permission fix requires a NEW session to take effect (existing sessions have `permissionMode: acceptEdits` baked in)
+- sailbook-dev is a separate server — JSONL lives there; run `/read-the-tape` from sailbook-dev CLI, not by file transfer
+- `@tape-reader` self-improves via "Candidate patterns" — after each run, review candidates, add approved ones to agent spec, then `/push-seeds`
+- Full pipeline: `/read-the-tape` → PR → `/push-seeds` → seeds PR → `/pull-seeds` → other projects
+- `@sync-config` agent name UNCHANGED — only the skill command was renamed to `/push-seeds`
+- "recursive / self-improving" is the term for the tape-reader's candidate pattern discovery
+
+**Code Review:** N/A — main branch, no PR
 
 ---
 
