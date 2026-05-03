@@ -12,6 +12,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | `docs/AGENTS.md` | Agent and skill specs |
 | `docs/RETROSPECTIVES.md` | Phase-end retros — written by `/retro` |
 | `docs/VELOCITY_AND_POKER_GUIDE.md` | Estimation methodology |
+| `docs/CHEATSHEET.md` | One-page printable skill reference |
 | `sessions/*.md` | Per-session files (one per session). Filename: `YYYY-MM-DD-HHMM-<dev>-<slug>.md`. |
 | `session-log.md` | Legacy archive — pre-rollout sessions only. New sessions write to `sessions/`. |
 
