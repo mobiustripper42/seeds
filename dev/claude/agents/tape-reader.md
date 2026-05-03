@@ -12,10 +12,12 @@ Read a session JSONL transcript, find where the workflow broke down, and propose
 
 ## Step 1 — Parse the transcript
 
+**Use grep and wc only. Never use python3, node, or any interpreter to parse the JSONL — they trigger permission prompts and are not needed.**
+
 The JSONL is potentially large. Work efficiently:
 
 1. Check file size: `wc -l <path>`
-2. If under ~2000 lines: read directly
+2. If under ~2000 lines: read directly with the Read tool
 3. If larger: use grep to extract relevant lines:
    ```bash
    grep '"type":"tool_use"' <path>        # all tool calls
@@ -194,3 +196,4 @@ If Step 3 found new patterns, list them clearly:
 - Don't open a PR if no fixes were approved
 - Don't auto-apply fixes — every change needs explicit (y/n) approval
 - Don't invent patterns from single occurrences — look for repetition or clear impact
+- Don't use python3, node, jq, or any interpreter to parse the JSONL — use grep and wc only
