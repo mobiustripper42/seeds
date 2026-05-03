@@ -13,6 +13,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | `docs/RETROSPECTIVES.md` | Phase-end retros — written by `/retro` |
 | `docs/VELOCITY_AND_POKER_GUIDE.md` | Estimation methodology |
 | `docs/CHEATSHEET.md` | One-page printable skill reference |
+| `docs/SCHEMA_VERSIONS.md` | Schema versioning policy + version history (V1, V2, …) + migration notes. The contract that `/pull-seeds` enforces. |
+| `seeds-version` | Single line at repo root — the latest published schema version. Compared against `<project>/.claude/seeds-version` by `/pull-seeds`. |
 | `sessions/*.md` | Per-session files (one per session). Filename: `YYYY-MM-DD-HHMM-<dev>-<slug>.md`. |
 | `session-log.md` | Legacy archive — pre-rollout sessions only. New sessions write to `sessions/`. |
 
@@ -27,6 +29,8 @@ Two template families:
 ## Repo Layout
 
 ```
+seeds-version            # Single line — current schema version (integer, no `v` prefix)
+
 dev/
   bash/
     aliases.sh             # Shell aliases for Claude Code workflows (source from ~/.bashrc)
@@ -61,6 +65,7 @@ This repo encodes a specific development workflow for solo Claude-assisted proje
 | `/start-phase` | Phase boundary (start) | Reads next phase from PROJECT_PLAN.md, creates one Issue per task with `phase:N` and `points:X` labels, writes issue numbers back into the plan |
 | `/retro` | Phase boundary (end) | Marks phase tasks `[x]`, reconciles drift, computes phase velocity, prompts retro notes, appends to RETROSPECTIVES.md, optionally chains into `/start-phase` |
 | `/push-seeds` | After workflow improvements | Invokes @sync-config to classify diffs and propose backports to seeds |
+| `/pull-seeds` | After seeds gets new improvements | Resolves seeds checkout, gates on `seeds-version` compatibility, invokes @sync-config in pull direction to apply approved changes to the project |
 | `/read-the-tape` | After a session worth learning from | Invokes @tape-reader to audit JSONL transcript, find anti-patterns, propose skill improvements |
 
 **Dev identity:** skills resolve `DEV` from `~/.claude/devname` (one-line file) with `$USER` as fallback. Set once per machine. Used in session filenames so two devs never collide.
@@ -92,6 +97,7 @@ The skills and agents expect these files to exist in the project root:
 - `docs/SPEC.md` — scope (V1 vs later) and "Not V1" list
 - `docs/DECISIONS.md` — architectural decisions with IDs (e.g. DEC-001)
 - `docs/AGENTS.md` — adapted from `dev/claude/docs/AGENTS.md` in this repo
+- `.claude/seeds-version` — single line containing the schema version this project was last installed at (e.g. `2`). Read by `/pull-seeds`. See `docs/SCHEMA_VERSIONS.md`.
 
 Plus a one-time global setup per machine:
 - `~/.claude/devname` — single line with the dev's handle (e.g. `eric`). Used in session filenames.
@@ -110,6 +116,7 @@ Effort uses Fibonacci points: 2, 3, 5, 8, 13. No 1s (just do it), no 13s if avoi
 6. **Skills** — copy `dev/claude/skills/` directories to `.claude/skills/` in the project root (project-level install, not global).
 7. **Shell alias** — source `dev/bash/aliases.sh` from `~/.bashrc` and add a project-specific alias.
 8. **GitHub labels** (if using phase rituals) — `/start-phase` will create them on first use, but you can pre-create: `phase:0`–`phase:9`, `points:1`/`2`/`3`/`5`/`8`, `blocked`.
+9. **Schema version** — `cp seeds-version <project>/.claude/seeds-version` so `/pull-seeds` can detect compatibility. See `docs/SCHEMA_VERSIONS.md`.
 
 After setup, run `/its-alive` in the new project to start the first session.
 
@@ -121,3 +128,5 @@ When the workflow evolves in an active project, run `/push-seeds` there. The @sy
 - Flag patterns appearing in both `dev/` and `domain/` contexts that might eventually warrant a `shared/` extraction — but never extract automatically
 
 One run, one commit per repo.
+
+**Schema version compatibility:** before any seeds ↔ project sync (in either direction), the active skill (`/push-seeds`, future `/pull-seeds`) must compare `seeds-version` against `<project>/.claude/seeds-version`. Mismatch → STOP and surface the migration. Never auto-migrate. See `docs/SCHEMA_VERSIONS.md`.
