@@ -74,44 +74,72 @@ Use whichever produced a number. If both are empty, mark `points: 0` with a note
 
 ## Step 5 — Branch cleanup + final push
 
-**Worktree check first:** `git rev-parse --git-dir`. If output contains `/worktrees/`, take the worktree path; do NOT `git checkout main` or FF-merge.
+**Worktree check first:** `git rev-parse --git-dir`. If output contains `/worktrees/`, the worktree path applies (no `checkout main`, no FF-merge). Capture `IS_WORKTREE=1`; otherwise `IS_WORKTREE=0`.
 
-**Worktree path:**
-1. `BRANCH=$(git branch --show-current)`, `WORKTREE_PATH=$(git rev-parse --show-toplevel)`.
-2. `gh pr view $BRANCH --json state -q '.state' 2>/dev/null` to check PR state.
-3. **OPEN:** `git add` (the session file or session-log.md, plus PROJECT_PLAN.md if legacy) + commit + `git push origin $BRANCH`. Remind user to review/merge. Stop here — worktree stays until merged.
-4. **MERGED:** same commit + push (log travels with branch). Tell user: "Worktree cleanup — from main repo: `git worktree remove $WORKTREE_PATH`"
-5. **CLOSED:** STOP. Ask: "PR was closed without merging — discard this worktree or keep for archeology?" Wait.
-6. **No PR:** commit + push, remind user to open a PR.
+`BRANCH=$(git branch --show-current)`.
 
-**Normal path:** `BRANCH=$(git branch --show-current)`.
+### Step 5.0 — Resolve PR state (gating)
 
-**Files to add** depend on mode:
-- NEW MODE: `git add "$SESSION_FILE"`
-- LEGACY MODE: `git add session-log.md docs/PROJECT_PLAN.md`
+If `BRANCH=main`, skip this sub-step — `STATE` is irrelevant.
 
-**On `main`:** commit + `git push origin main`. Done.
+Otherwise resolve `STATE` to exactly one of: `OPEN`, `MERGED`, `CLOSED`, `NO_PR`. Try methods in order; never silently default.
 
-**On non-main branch — PR-state check:**
+**Method 1 — `gh` CLI:**
 ```
-gh pr view $BRANCH --json state -q '.state' 2>/dev/null
+gh pr view "$BRANCH" --json state -q '.state' 2>/dev/null
 ```
+- Exit 0 with non-empty value: `STATE` = the value (`OPEN` / `MERGED` / `CLOSED`). Done.
+- Exit 0 with empty value: `STATE=NO_PR`. Done.
+- `gh: command not found` / auth error / non-zero exit: fall through.
 
-- **OPEN:** PR is the merge gate. Commit + push to the task branch so the log lands in the PR. Surface the PR URL. Do NOT FF-merge or delete the branch. Stop.
-- **MERGED:** commit the log directly to main (NOT the task branch — that requires cherry-pick).
+**Method 2 — MCP github fallback:** call `mcp__github__list_pull_requests` with `head: <owner>:$BRANCH, state: all, perPage: 5`.
+- A PR is returned: `STATE` = its `state` uppercased.
+- No PRs returned: `STATE=NO_PR`.
+
+**Method 3 — STOP:** if neither tool is available, STOP. Ask: "Cannot determine PR state for `$BRANCH` — `gh` CLI and `mcp__github__list_pull_requests` both unavailable. Tell me the state (OPEN / MERGED / CLOSED / NO_PR), or abort /its-dead so it can be fixed manually." Wait for the answer. Never default.
+
+Echo the resolved `STATE` to the user before branching.
+
+### Step 5.1 — Files to commit
+
+Set `FILES` based on mode:
+- NEW MODE: `FILES="$SESSION_FILE"`
+- LEGACY MODE: `FILES="session-log.md docs/PROJECT_PLAN.md"`
+
+Commit message: `Update session log for session $N`.
+
+### Step 5.2 — Branch on IS_WORKTREE and STATE
+
+**On `main` (no worktree):**
+```
+git add $FILES
+git commit -m "Update session log for session $N"
+git push origin main
+```
+Done.
+
+**Worktree path (`IS_WORKTREE=1`, `WORKTREE_PATH=$(git rev-parse --show-toplevel)`):**
+- **STATE=OPEN:** `git add $FILES && git commit -m "..." && git push origin $BRANCH`. Remind user to review/merge. Worktree stays until merged.
+- **STATE=MERGED:** same commit + push (log travels with the branch). Tell user: "Worktree cleanup — from main repo: `git worktree remove $WORKTREE_PATH`".
+- **STATE=CLOSED:** STOP. Ask: "PR was closed without merging — discard this worktree or keep for archeology?" Wait.
+- **STATE=NO_PR:** `git add $FILES && git commit -m "..." && git push origin $BRANCH`. Remind user to open a PR.
+
+**Normal path, non-main (`IS_WORKTREE=0`):**
+- **STATE=OPEN:** PR is the merge gate. `git add $FILES && git commit -m "..." && git push origin $BRANCH` so the log lands in the PR. Surface the PR URL. Do NOT FF-merge or delete the branch. Stop.
+- **STATE=MERGED:** commit the log directly to main (NOT the task branch — task branch is now orphaned post-merge):
   ```
   git checkout main
   git pull --ff-only origin main
-  git add <files>
-  git commit -m "Update session log for session N"
+  git add $FILES
+  git commit -m "Update session log for session $N"
   git push origin main
-  git branch -d $BRANCH
-  git push origin --delete $BRANCH   # no-op if GitHub already deleted on merge
+  git branch -d "$BRANCH"
+  git push origin --delete "$BRANCH"   # no-op if GitHub already deleted on merge
   ```
-  If `git branch -d` fails: tell the user, provide `git branch -D` for them to run manually.
-- **CLOSED:** STOP. Ask: "PR was closed without merging — discard this branch or keep?" Wait.
-- **No PR:** legacy DEC-005 cleanup (orphan auto-branches like `claude/<slug>`):
-  a. Commit on the current branch.
+  If `git branch -d` fails: tell the user, provide `git branch -D` to run manually.
+- **STATE=CLOSED:** STOP. Ask: "PR was closed without merging — discard this branch or keep?" Wait.
+- **STATE=NO_PR:** legacy DEC-005 cleanup (orphan auto-branches like `claude/<slug>`):
+  a. `git add $FILES && git commit -m "..."` on the current branch.
   b. `git checkout main` (or `git checkout -b main origin/main` if no local main yet). `git pull --ff-only origin main`.
   c. `git merge --ff-only $BRANCH`. If can't FF, surface and ask.
   d. `git branch -d $BRANCH` (lowercase, safe). If fails: surface, do not retry with `-D`.
