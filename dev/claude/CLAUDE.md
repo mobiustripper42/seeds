@@ -162,6 +162,8 @@ npx supabase gen types typescript --local > src/lib/supabase/types.ts
 | `/its-dead` | Session end (part 2) | Calc duration + points, finalize session file, branch cleanup |
 | `/start-phase` | Phase boundary (start) | Materialize phase tasks from PROJECT_PLAN.md into Issues with phase:N + points:X labels |
 | `/retro` | Phase boundary (end) | Mark `[x]`, reconcile drift, compute phase velocity, write retro to RETROSPECTIVES.md |
+| `/push-seeds` | After workflow improvements | Backport project-side improvements to the seeds templates via @sync-config |
+| `/pull-seeds` | After seeds gets new improvements | Pull template changes into this project — schema-version-gated, applied via @sync-config |
 
 **Dev identity:** `~/.claude/devname` (one-line file with your handle). Set once per machine.
 

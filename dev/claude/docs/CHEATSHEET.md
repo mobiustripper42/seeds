@@ -24,6 +24,8 @@ REFLECT / SYNC
   /read-the-tape   scan a session for anti-patterns.
                    arg: number, file path, or none = latest.
   /push-seeds      backport workflow wins to seeds.
+  /pull-seeds      pull seeds improvements into this project.
+                   gated on `seeds-version` match.
 
 INFRA                              DOMAIN
   /update-config                     /stripe-best-practices
@@ -48,3 +50,4 @@ THE SHORT VERSION
   end of phase:      /retro
   after a rough one: /read-the-tape
   after a good one:  /push-seeds
+  refresh template:  /pull-seeds
