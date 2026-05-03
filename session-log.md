@@ -5,7 +5,55 @@ Format: prepend newest entry at the top.
 
 ---
 
-## Session 15 — 2026-05-03 03:39 [open]
+## Session 15 — 2026-05-03 03:39–15:29 (11h 50m wall clock)
+**Duration:** 11h 50m wall clock (idle-heavy; not representative) | **Points:** 13 (Task 16; Tasks 17 + 18 added to plan, not executed)
+**Task:** PM workflow rework — per-session files, hybrid Issues + PROJECT_PLAN.md, phase rituals; install in bushel as first project on the new model.
+
+**Completed:**
+- **Task 16 (13 pts) — PM workflow rework, end-to-end:**
+  - `~/.claude/devname` settings file for dev identity (one-line; `$USER` fallback in skills)
+  - Per-session files at `sessions/YYYY-MM-DD-HHMM-<dev>-<slug>.md` replace monolithic `session-log.md`. Slug = current branch's last segment (`main` → "session"). YAML frontmatter captures active JSONL transcript path at `/its-alive`.
+  - 9 SKILL.md files updated (template + installed pairs, byte-matched): `/its-alive`, `/its-dead`, `/pause-this`, `/restart-this`, `/kill-this`, `/read-the-tape`. Dual-mode legacy detection: skills check `sessions/*.md` first, fall back to `session-log.md` so sailbook keeps working unchanged.
+  - 2 new skills built: `/start-phase` (materialize current PROJECT_PLAN phase as GitHub Issues with `phase:N` + `points:X` labels, write `#N` back into the plan) and `/retro` (mark `[x]`, reconcile mid-phase drift, compute phase velocity, append to `RETROSPECTIVES.md`)
+  - `/read-the-tape` default to latest non-current JSONL; reads `Transcript:` from session frontmatter when given a session-file arg
+  - Updated `seeds/CLAUDE.md`, `dev/claude/CLAUDE.md`, `dev/claude/docs/AGENTS.md` for new workflow
+  - One-page printable `CHEATSHEET.md` (50 lines, fits one printed page) propagated to `dev/claude/docs/`, `seeds/docs/`, `bushel/docs/`
+- **Bushel Phase 0.1 (install) complete:**
+  - Copied seeds → `bushel/.claude/` (skills + agents + settings.json)
+  - Populated `bushel/docs/` with templates: AGENTS, BRAND, SPEC, USER_STORIES, VELOCITY_AND_POKER_GUIDE, CHEATSHEET (BRAND/SPEC/USER_STORIES still placeholders — fill at Phase 0.7)
+  - Wrote `bushel/CLAUDE.md` adapted from template with bushel-specific stack/data model/workflow
+  - DEC-023 (testing philosophy: "test the user, not the function" + test-first when behavior changes) and DEC-024 (hybrid PROJECT_PLAN + Issues PM workflow) appended to `bushel/docs/DECISIONS.md`
+  - Marked Task 0.1 complete in `bushel/docs/PROJECT_PLAN.md`
+- **PRs opened:**
+  - seeds#5 — https://github.com/mobiustripper42/seeds/pull/5
+  - bushel#2 — https://github.com/mobiustripper42/bushel/pull/2
+- **Future work surfaced** (not executed): Task 17 (schema versioning for /pull-seeds compatibility, 5 pts) and Task 18 (sailbook migration to new PM workflow, 5 pts) added to `seeds/docs/PROJECT_PLAN.md`. Task 17 is gating: must land before next `/pull-seeds` into sailbook or it'll corrupt the legacy session-log.md format.
+
+**In Progress:** Nothing — both branches pushed, both PRs open.
+
+**Blocked:** Nothing.
+
+**Next Steps:**
+1. Print `docs/CHEATSHEET.md`, post on desk.
+2. Merge seeds#5 + bushel#2 (DEC-005 says self-merge while solo; CI is empty so no gate).
+3. Open bushel session, run `/its-alive` → first real dogfood of the new workflow on a real project. Verify `sessions/<today>-HHMM-eric-<slug>.md` is created with `Transcript:` populated.
+4. Run `/start-phase 0` on bushel → first real dogfood of phase materialization. Watch for the `phase:current` bug (Code Review finding 1) to bite — `/its-alive` Step 5 will silently return zero current-phase issues until fixed.
+5. Tiny follow-up PR in seeds: fix `phase:current` label query (4 files: `/its-alive` + `/its-dead` × template + installed). Either teach `/start-phase` to apply `phase:current` (and `/retro` to strip it) OR change the query to lowest-open-phase loop. Pick one.
+6. Modernize `dev/claude/docs/AGENTS.md` prose (Code Review finding 3) — five sub-sections still describe pre-PR-flow, pre-`sessions/`-format behavior. Add stub sections for `/start-phase` + `/retro`.
+7. Task 17 (schema versioning, 5 pts) before any `/pull-seeds` into sailbook.
+8. Task 18 (sailbook migration, 5 pts) — depends on 17.
+
+**Context:**
+- 11h 50m is wall clock — much of it was idle / not focused work. Not a useful velocity data point. Treat like Session 7 (also flagged "idle-heavy; not representative").
+- Both seeds and bushel share branch name `claude/setup-project-management-IiaPn` — pre-assigned by the harness, not a collision.
+- Seeds is markdown-only — no build check in `/kill-this`. Confirmed in `seeds/CLAUDE.md §Commands`.
+- `~/.claude/devname` set to `eric` this session. Picked up by `/its-alive` for session file naming.
+- `/kill-this` operated on seeds (where `session-log.md` lives); bushel PR was opened inline since both branches were ready.
+- Bushel `sessions/` has `.gitkeep` only — first real session file will land next session.
+- Dual-mode held: sailbook still on legacy `session-log.md` will continue to work without change. `/pull-seeds` into sailbook is BLOCKED until Task 17 ships.
+- This session was opened on a feature branch (`claude/setup-project-management-IiaPn`) per the harness, not main — so `/its-dead` Step 5 will follow PR-flow path: PR is OPEN → push log commit to branch + stop (no FF-merge until PRs land).
+
+**Code Review:** see seeds PR #5 body. Headline: 2 real bites — (1) `phase:current` label is queried but never written, will surprise first bushel `/start-phase`; (2) `dev/claude/docs/AGENTS.md` prose was left behind when the table was modernized. Plus stale-ref cleanup (`CLAUDE.md` Repo Layout orphan `session-log.md` row, `/ship-it` row referencing nonexistent skill). Nothing blocking; all routed to next session's followup list above.
 
 ---
 
