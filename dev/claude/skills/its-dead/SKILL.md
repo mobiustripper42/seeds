@@ -172,7 +172,7 @@ a. **Bump patch:**
    ```
    `--no-git-tag-version` is critical — we control tagging in (d) so each release gets exactly one tag.
 
-b. **Append CHANGELOG entry.** If `CHANGELOG.md` doesn't exist at the repo root, create it with `# Changelog\n\n`. Then prepend a new section after the `# Changelog` header (CHANGELOG entries are reverse-chronological, newest at top):
+b. **Append CHANGELOG entry.** If `CHANGELOG.md` doesn't exist at the repo root, create it with `# Changelog\n\n`. If it exists but doesn't start with the literal `# Changelog\n` header (e.g. setext form `Changelog\n=========`, or `# CHANGELOG`, or notes above the header), STOP and surface to the user — do not guess where to insert. Otherwise prepend a new section after the `# Changelog` header (CHANGELOG entries are reverse-chronological, newest at top):
    ```
    ## [<NEW_VERSION>] - <YYYY-MM-DD>
    - PR #<PR_NUMBER>: <PR_TITLE>

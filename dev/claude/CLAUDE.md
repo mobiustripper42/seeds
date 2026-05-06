@@ -224,17 +224,26 @@ Every dev project carries a SemVer version in `package.json`, mirrored to a git 
 
 ### `<VersionTag />` component
 
-Build-time version display, reads `process.env.npm_package_version` + `process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA`. Renders e.g. `v1.2.3 (a1b2c3)`.
+Build-time version display, reads `process.env.NEXT_PUBLIC_APP_VERSION` + `process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA`. Renders e.g. `v1.2.3 (a1b2c3)`.
 
 Install:
 1. Copy `dev/claude/templates/VersionTag.tsx` from seeds to `src/components/VersionTag.tsx` (or wherever your component dir is).
-2. Wire into the login screen and footer:
+2. **One-time Next.js setup:** in `next.config.js` (or `next.config.mjs`), forward the npm-set version into the client-inlinable namespace:
+   ```js
+   module.exports = {
+     env: {
+       NEXT_PUBLIC_APP_VERSION: process.env.npm_package_version,
+     },
+   };
+   ```
+   Without this, `<VersionTag />` will silently render `v0.0.0` in any client component tree — Next.js only inlines `process.env.X` into the client bundle when `X` starts with `NEXT_PUBLIC_`.
+3. Wire into the login screen and footer:
    ```tsx
    import { VersionTag } from "@/components/VersionTag";
    <VersionTag className="text-xs text-muted-foreground" />
    ```
-3. No env-var setup needed — Vercel sets `NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA` automatically; npm sets `npm_package_version` during build.
-4. Local dev (`npm run dev` outside Vercel): commit hash is omitted, version shows alone. That's intentional.
+4. No additional env-var setup — Vercel sets `NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA` automatically; the `next.config.js` forward handles the version.
+5. Local dev (`npm run dev` outside Vercel): commit hash is omitted, version shows alone. That's intentional.
 
 ### CHANGELOG.md
 

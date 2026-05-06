@@ -24,8 +24,9 @@ If `BRANCH != $WORKING_BRANCH`: STOP. Major bumps must run on the working branch
 
 Read the current version:
 ```
-CURRENT_VERSION=$(grep -E '^\s*"version":' package.json | head -1 | sed -E 's/.*"version": *"([^"]+)".*/\1/')
+CURRENT_VERSION=$(npm pkg get version | tr -d '"')
 ```
+`npm pkg get` is JSON-aware and handles minified single-line `package.json`. If `CURRENT_VERSION` is empty, STOP and surface "Could not parse version from package.json — is the file valid JSON with a `version` field?"
 
 Compute the new version: split `CURRENT_VERSION` on `.`, increment the first segment, set the other two to `0`. Hold as `NEW_VERSION`.
 
@@ -43,7 +44,7 @@ npm version major --no-git-tag-version
 
 ## Step 4 — CHANGELOG entry
 
-If `CHANGELOG.md` doesn't exist, create with `# Changelog\n\n`. Prepend after the `# Changelog` header (newest at top):
+If `CHANGELOG.md` doesn't exist, create with `# Changelog\n\n`. If it exists but doesn't start with the literal `# Changelog\n` header (e.g. setext form, `# CHANGELOG`, or notes above the header), STOP and surface to the user — do not guess where to insert. Otherwise prepend after the `# Changelog` header (newest at top):
 
 ```
 ## [<NEW_VERSION>] - <YYYY-MM-DD> — Major release

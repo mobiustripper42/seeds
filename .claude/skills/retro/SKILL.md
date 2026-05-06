@@ -127,7 +127,7 @@ a. **Bump minor:**
    ```
    `npm version minor` zeros the patch automatically (e.g. `1.2.7 → 1.3.0`).
 
-b. **Append CHANGELOG entry.** If `CHANGELOG.md` doesn't exist, create with `# Changelog\n\n`. Prepend after the `# Changelog` header:
+b. **Append CHANGELOG entry.** If `CHANGELOG.md` doesn't exist, create with `# Changelog\n\n`. If it exists but doesn't start with the literal `# Changelog\n` header (e.g. setext form, `# CHANGELOG`, or notes above the header), STOP and surface to the user — do not guess where to insert. Otherwise prepend after the `# Changelog` header:
    ```
    ## [<NEW_VERSION>] - <YYYY-MM-DD> — Phase <N>
    - <points> pts shipped across <session count> sessions (<hrs/pt> hrs/pt)

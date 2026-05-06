@@ -10,9 +10,9 @@ You are promoting `staging` → `main`. This is the deploy moment for staging-fl
 
 **Staging exists:**
 ```
-git ls-remote --heads origin staging 2>/dev/null | grep -q . || echo "missing"
+git show-ref --verify --quiet refs/remotes/origin/staging || echo "missing"
 ```
-If `origin/staging` doesn't exist, STOP. Tell the user: "/promote-staging requires `origin/staging` (DEC-008). This repo doesn't have a staging branch — promotions go straight through `/its-dead` on `main`." Do not proceed.
+If `origin/staging` doesn't exist (locally cached), STOP. Tell the user: "/promote-staging requires `origin/staging` (DEC-008). This repo doesn't have a staging branch — promotions go straight through `/its-dead` on `main`." Do not proceed. Step 1 will refresh the cache from the remote regardless, so a stale local view that misses a freshly-created staging is recovered after the user re-runs.
 
 **Dev project (for tagging):**
 ```
@@ -50,8 +50,9 @@ Ask: **"main has diverged from staging. Options: (a) merge main into staging fir
 ## Step 3 — Read the version that will ship
 
 ```
-NEW_VERSION=$(grep -E '^\s*"version":' package.json | head -1 | sed -E 's/.*"version": *"([^"]+)".*/\1/')
+NEW_VERSION=$(npm pkg get version | tr -d '"')
 ```
+`npm pkg get` is JSON-aware. If `NEW_VERSION` is empty, STOP and surface "Could not parse version from package.json — is the file valid JSON with a `version` field?"
 
 This is whatever `/its-dead` (patch), `/retro` (minor), or `/bump-major` (major) accumulated on `staging` since the last promotion.
 

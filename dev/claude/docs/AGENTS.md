@@ -1,7 +1,7 @@
 # [Project] — Claude Code Agents & Skills
 
 ## Overview
-Four agents and five session skills support the development workflow. All run as Claude Code sessions, subagents, or slash commands. None are blocking — if one creates friction, drop it and revisit later.
+Several agents and slash-command skills support the development workflow. All run as Claude Code sessions, subagents, or slash commands. None are blocking — if one creates friction, drop it and revisit later. The summary table at the end of this doc is the canonical list — the per-skill sections below cover the original session-lifecycle set; newer skills (`/start-phase`, `/retro`, `/bump-major`, `/promote-staging`, etc.) are documented in their own `SKILL.md` files under `.claude/skills/`.
 
 ---
 
@@ -71,7 +71,7 @@ Four agents and five session skills support the development workflow. All run as
 
 ## Session Skills
 
-Five slash commands manage session lifecycle. Time tracking is automatic.
+Slash commands manage session lifecycle. Time tracking is automatic.
 
 ### /its-alive — Session Start
 
