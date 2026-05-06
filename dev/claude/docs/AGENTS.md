@@ -183,7 +183,9 @@ Five slash commands manage session lifecycle. Time tracking is automatic.
 | /kill-this | — | Session end (part 1) | Draft session file body |
 | /its-dead | — | Session end (part 2) | Finalize session file + push |
 | /start-phase | — | Phase boundary (start) | Materialize phase as Issues |
-| /retro | — | Phase boundary (end) | Close out phase, write retro |
+| /retro | — | Phase boundary (end) | Close out phase, write retro, bump minor version |
+| /bump-major | — | Breaking change | Manual major version bump |
+| /promote-staging | — | Ship staging to prod | ff-merge `staging` → `main`, tag, push |
 
 **Per-session files:** the workflow uses `sessions/YYYY-MM-DD-HHMM-<dev>-<slug>.md` (one file per session) instead of a single monolithic `session-log.md`. `<dev>` comes from `~/.claude/devname` (one-line file, falls back to `$USER`). The slug is derived from the branch name (`task/X-foo` → `X-foo`, `main` → `main`, etc.). The active JSONL transcript path is captured in the file's frontmatter for later `/read-the-tape` audits.
 

@@ -46,6 +46,7 @@ When in doubt, bump.
 |---------|-------------------|---------|
 | **1** | session-file, skill set | Original workflow. Monolithic `session-log.md`. No `~/.claude/devname`. No phase rituals (no `/start-phase`, no `/retro`). No dual-mode detection. |
 | **2** | session-file, skill set, skill API | Per-session files at `sessions/YYYY-MM-DD-HHMM-<dev>-<slug>.md` with YAML frontmatter. `~/.claude/devname` resolves dev identity. Phase rituals via GitHub Issues (`/start-phase` materializes a phase, `/retro` closes it). New skills: `/start-phase`, `/retro`, `/pause-this`, `/restart-this`, `/read-the-tape`, `/push-seeds`. Skills detect legacy projects (`session-log.md` present, `sessions/` absent) and run in legacy mode for backward compat. |
+| **3** | skill set, skill API, project-root convention | Project semver workflow (DEC-007) + staging-flow conventions (DEC-008). New skills: `/bump-major`, `/promote-staging`. `/its-dead` patch-bumps on STATE=MERGED for dev projects. `/retro` minor-bumps at phase close on dev projects. `/kill-this` PRs into `staging` if `origin/staging` exists, else `main`. `/its-dead` resolves the working branch from `origin/staging` presence too. New `dev/claude/templates/VersionTag.tsx` build-time component template. New `CHANGELOG.md` at the project root, auto-maintained by the bump skills. Detection signals: `package.json` (dev project) and `origin/staging` (staging flow) — no new project-root files required, but skills now write `package.json` and `CHANGELOG.md` for dev projects. |
 
 ## Migration notes
 
@@ -62,6 +63,31 @@ A v1 project still has `session-log.md` and no `sessions/` directory. To migrate
 The dual-mode detection in v2 skills (`grep -l "^status: open" sessions/*.md` first, fall back to `session-log.md`) means v1 projects keep working without migration — but `/start-phase` and `/retro` will behave unexpectedly until the project is fully migrated. Rule: do not partially migrate.
 
 The actual migration script and per-project execution are out of scope for the schema-version definition. They land per-project as Task 18 (sailbook) and any future v1 holdouts.
+
+### v2 → v3
+
+A v2 project has no version skills installed and (if deployable) no version surface. Migration depends on whether the project is a dev project (`package.json` exists) and whether it uses staging-flow.
+
+**All v2 projects:**
+1. Copy the new skill directories: `dev/claude/skills/bump-major/` and `dev/claude/skills/promote-staging/` into `<project>/.claude/skills/`.
+2. Update existing skills with v3 changes — easiest via `/pull-seeds` once it's been wired to honor v3:
+   - `/its-dead` — staging-aware working-branch resolution + Step 5.3 patch bump
+   - `/retro` — Step 6.5 minor bump
+   - `/kill-this` — staging-aware PR base
+3. Update `<project>/.claude/seeds-version` to `3`.
+
+**Dev projects only (`package.json` exists):**
+4. Copy `dev/claude/templates/VersionTag.tsx` to `<project>/src/components/VersionTag.tsx`. Wire into login screen + footer per `dev/claude/CLAUDE.md §Versioning`.
+5. Decide starting version. Three reasonable choices:
+   - First release: leave `package.json` at `0.1.0` (npm's default), let `/its-dead` patch-bump from there.
+   - Has been deploying without semver: read the most recent git tag if any (`git describe --tags --abbrev=0`); if none, set `package.json` to `1.0.0` and tag `v1.0.0` on main manually as the baseline.
+   - Has historical CalVer or other scheme: pick a SemVer floor that won't go backwards, set both `package.json` and a tag.
+6. Seed `CHANGELOG.md`. The first bump skill will create it if absent, but for projects with history worth preserving, create it manually with notable past releases before running the first bump.
+
+**Staging adoption (optional, dev projects only):**
+7. If shipping through a staging environment: `git checkout -b staging main && git push -u origin staging`. All skills auto-detect via `git ls-remote --heads origin staging`. No skill changes required to opt in or out — staging existence is the only signal.
+
+**No data migration required.** v3 changes are additive — existing session files, PROJECT_PLAN.md, RETROSPECTIVES.md formats are unchanged. v2-only projects (e.g. seeds itself, domain projects) skip steps 4–7 and only inherit the new skill bodies.
 
 ## How `/pull-seeds` (downstream sync) uses this
 

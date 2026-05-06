@@ -41,6 +41,8 @@ dev/
       sync-config.md       # Template maintenance agent (see "Syncing improvements" below)
     skills/                # Session lifecycle skills — copy to .claude/skills/ in your project
       push-seeds/          # Invokes @sync-config agent to push improvements to seeds
+    templates/             # Code templates — copy individually as needed
+      VersionTag.tsx       # Build-time version display (DEC-007). Wire into login + footer.
     docs/
       AGENTS.md            # Reference doc explaining the full agent + skill workflow
       VELOCITY_AND_POKER_GUIDE.md  # Estimation and velocity tracking methodology
@@ -61,9 +63,11 @@ This repo encodes a specific development workflow for solo Claude-assisted proje
 | `/pause-this` | Mid-session break | Runs build check, commits WIP, notes pause in the session file |
 | `/restart-this` | Resume from pause | Reloads context from the open session file — no new session number |
 | `/kill-this` | Session end (part 1) | Build check, commit, runs @code-review, drafts session file body for review |
-| `/its-dead` | Session end (part 2) | Calculates duration, fills points, finalizes the session file, commits + pushes, cleans up branch |
+| `/its-dead` | Session end (part 2) | Calculates duration, fills points, finalizes the session file, commits + pushes, cleans up branch, bumps patch version on dev projects |
 | `/start-phase` | Phase boundary (start) | Reads next phase from PROJECT_PLAN.md, creates one Issue per task with `phase:N` and `points:X` labels, writes issue numbers back into the plan |
-| `/retro` | Phase boundary (end) | Marks phase tasks `[x]`, reconciles drift, computes phase velocity, prompts retro notes, appends to RETROSPECTIVES.md, optionally chains into `/start-phase` |
+| `/retro` | Phase boundary (end) | Marks phase tasks `[x]`, reconciles drift, computes phase velocity, prompts retro notes, appends to RETROSPECTIVES.md, bumps minor version on dev projects, optionally chains into `/start-phase` |
+| `/bump-major` | Breaking change | Manually bumps major version. CHANGELOG entry + tag (on main) or deferred tag (on staging). Dev projects only |
+| `/promote-staging` | Ship staging to prod | ff-merges `staging` → `main`, tags release with current `package.json` version, pushes both. Staging-flow projects only |
 | `/push-seeds` | After workflow improvements | Invokes @sync-config to classify diffs and propose backports to seeds |
 | `/pull-seeds` | After seeds gets new improvements | Resolves seeds checkout, gates on `seeds-version` compatibility, invokes @sync-config in pull direction to apply approved changes to the project |
 | `/read-the-tape` | After a session worth learning from | Invokes @tape-reader to audit JSONL transcript, find anti-patterns, propose skill improvements |
@@ -117,6 +121,8 @@ Effort uses Fibonacci points: 2, 3, 5, 8, 13. No 1s (just do it), no 13s if avoi
 7. **Shell alias** — source `dev/bash/aliases.sh` from `~/.bashrc` and add a project-specific alias.
 8. **GitHub labels** (if using phase rituals) — `/start-phase` will create them on first use, but you can pre-create: `phase:0`–`phase:9`, `points:1`/`2`/`3`/`5`/`8`, `blocked`.
 9. **Schema version** — `cp seeds-version <project>/.claude/seeds-version` so `/pull-seeds` can detect compatibility. See `docs/SCHEMA_VERSIONS.md`.
+10. **VersionTag (deployable projects)** — copy `dev/claude/templates/VersionTag.tsx` to `<project>/src/components/VersionTag.tsx`. Wire into login screen + footer per `dev/claude/CLAUDE.md §Versioning`. Skip for non-deployable projects.
+11. **Staging branch (optional)** — if shipping through a staging environment: `git checkout -b staging main && git push -u origin staging`. Skills auto-detect via `git ls-remote --heads origin staging`. See DEC-008.
 
 After setup, run `/its-alive` in the new project to start the first session.
 

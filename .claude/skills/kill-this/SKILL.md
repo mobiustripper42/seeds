@@ -42,7 +42,13 @@ Run the @code-review agent against HEAD (`git diff HEAD~1`). Wait for it to comp
 
 ## Step 4 — Open PR (feature branches only)
 
-**Merge-order check:** Run `git diff --name-only main..HEAD` to get changed files. Then run `gh pr list --state open --json number,title,headRefName` and for each open PR whose branch is not `$BRANCH`, run `gh pr diff <number> --name-only`. If any file appears in both lists, warn: "⚠ PR #N also touches `<file>` — consider merge order." Advisory only; do not block.
+**Resolve PR base:** projects using staging-flow (DEC-008) PR into `staging`, not `main`.
+```
+git show-ref --verify --quiet refs/remotes/origin/staging && BASE=staging || BASE=main
+```
+Use `$BASE` for both the merge-order check and the PR creation in Step 4.2.
+
+**Merge-order check:** Run `git diff --name-only $BASE..HEAD` to get changed files. Then run `gh pr list --state open --base "$BASE" --json number,title,headRefName` and for each open PR whose branch is not `$BRANCH`, run `gh pr diff <number> --name-only`. If any file appears in both lists, warn: "⚠ PR #N also touches `<file>` — consider merge order." Advisory only; do not block.
 
 ### Step 4.0 — Resolve existing PR state (gating)
 
@@ -78,13 +84,13 @@ Compose `BODY` with all four sections:
 One-line description of what changed and why.
 
 **## Files changed**
-Bulleted list from `git diff --name-only main..HEAD`.
+Bulleted list from `git diff --name-only $BASE..HEAD`.
 
 **## Code review**
 Paste the findings from Step 3 here. If clean, say "Clean bill of health."
 
 **## Test plan**
-Generate this yourself by inspecting `git diff --name-only main..HEAD`. Do NOT copy from the code review findings. Each item must be a step-by-step scenario: navigate to URL → take action → verify result. No vague outcome checklists.
+Generate this yourself by inspecting `git diff --name-only $BASE..HEAD`. Do NOT copy from the code review findings. Each item must be a step-by-step scenario: navigate to URL → take action → verify result. No vague outcome checklists.
 
 Check each category:
 - Any `supabase/migrations/*.sql`? → `- [ ] Run \`supabase db push\`, confirm migration applied without error`
@@ -99,11 +105,11 @@ Try creation methods in order; never silently default to "no PR":
 
 **Method 1 — `gh pr create`:**
 ```
-gh pr create --base main --head "$BRANCH" --title "$SUBJECT" --body "$BODY"
+gh pr create --base "$BASE" --head "$BRANCH" --title "$SUBJECT" --body "$BODY"
 ```
 On success (exit 0, URL printed): capture URL. Done.
 
-**Method 2 — MCP fallback:** if `gh` is unavailable or returned a non-zero exit, call `mcp__github__create_pull_request` with `base: main, head: $BRANCH, title: $SUBJECT, body: $BODY`. Capture `html_url`.
+**Method 2 — MCP fallback:** if `gh` is unavailable or returned a non-zero exit, call `mcp__github__create_pull_request` with `base: $BASE, head: $BRANCH, title: $SUBJECT, body: $BODY`. Capture `html_url`.
 
 **Method 3 — STOP:** if both methods fail, push has already succeeded so the branch is on the remote — surface to the user: "PR creation failed via `gh` and MCP. Branch `$BRANCH` is pushed. Open manually at the GitHub branch URL and paste the body below: ..." then print the body. Note the missing PR in the draft log's Context. Do not pretend the PR exists.
 

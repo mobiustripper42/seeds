@@ -161,7 +161,9 @@ npx supabase gen types typescript --local > src/lib/supabase/types.ts
 | `/ship-it` | After PR review passes | Merge PR, push migration if any, record ship time + wall clock |
 | `/its-dead` | Session end (part 2) | Calc duration + points, finalize session file, branch cleanup |
 | `/start-phase` | Phase boundary (start) | Materialize phase tasks from PROJECT_PLAN.md into Issues with phase:N + points:X labels |
-| `/retro` | Phase boundary (end) | Mark `[x]`, reconcile drift, compute phase velocity, write retro to RETROSPECTIVES.md |
+| `/retro` | Phase boundary (end) | Mark `[x]`, reconcile drift, compute phase velocity, write retro to RETROSPECTIVES.md, bump minor version |
+| `/bump-major` | Breaking change | Manually bump major version. CHANGELOG.md entry + tag (on main) or deferred tag (on staging). Dev projects only |
+| `/promote-staging` | Ship staging to prod | ff-merge `staging` → `main`, tag the release with current `package.json` version, push both. Staging-flow projects only |
 | `/push-seeds` | After workflow improvements | Backport project-side improvements to the seeds templates via @sync-config |
 | `/pull-seeds` | After seeds gets new improvements | Pull template changes into this project — schema-version-gated, applied via @sync-config |
 
@@ -191,6 +193,63 @@ npx supabase gen types typescript --local > src/lib/supabase/types.ts
 - Keep no more than 3 open PRs at once. Prefer 1.
 - Never have two open PRs with migrations touching the same table — merge one first.
 - Self-approve unless a stakeholder review is explicitly needed.
+
+### Staging vs no-staging (DEC-008)
+
+If `origin/staging` exists, the project uses staging-flow:
+- `/kill-this` opens PRs into `staging`, not `main`.
+- `/its-dead` patch-bumps on `staging` (no tag — DEC-007 says tags only on `main`).
+- `/retro` minor-bumps on `staging` (no tag).
+- `/promote-staging` ff-merges `staging` → `main`, tags the release, pushes. **No PR for promotion** — the merge is already implicit in each task PR landing on staging.
+
+Without `origin/staging`, the project ships straight to `main`:
+- `/kill-this` opens PRs into `main`.
+- `/its-dead` patch-bumps on `main` and tags `vX.Y.Z` immediately.
+- `/retro` minor-bumps on `main` and tags `vX.0.0` immediately.
+
+Adopting staging mid-project: cut `staging` from `main` (`git checkout -b staging main && git push -u origin staging`). All future skills will detect it automatically — no skill changes required.
+
+## Versioning (DEC-007)
+
+Every dev project carries a SemVer version in `package.json`, mirrored to a git tag (`vX.Y.Z`) on `main`.
+
+**Three triggers:**
+- **Patch:** `/its-dead` after every PR merge. CHANGELOG entry derived from PR title.
+- **Minor:** `/retro` at phase close. CHANGELOG entry summarizes the phase.
+- **Major:** `/bump-major` manual. User supplies the breaking-change rationale.
+
+**Tag rule:** tags are only ever applied on `main`. In staging-flow projects, bumps on `staging` are untagged; the tag lands when `/promote-staging` ff-merges to `main`.
+
+**Detection:** these skills check `package.json` exists at the repo root before bumping. If it doesn't (template/markdown-only project), they no-op silently.
+
+### `<VersionTag />` component
+
+Build-time version display, reads `process.env.npm_package_version` + `process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA`. Renders e.g. `v1.2.3 (a1b2c3)`.
+
+Install:
+1. Copy `dev/claude/templates/VersionTag.tsx` from seeds to `src/components/VersionTag.tsx` (or wherever your component dir is).
+2. Wire into the login screen and footer:
+   ```tsx
+   import { VersionTag } from "@/components/VersionTag";
+   <VersionTag className="text-xs text-muted-foreground" />
+   ```
+3. No env-var setup needed — Vercel sets `NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA` automatically; npm sets `npm_package_version` during build.
+4. Local dev (`npm run dev` outside Vercel): commit hash is omitted, version shows alone. That's intentional.
+
+### CHANGELOG.md
+
+Auto-maintained by the version-bump skills. Don't edit by hand mid-flow — the skills always prepend after the `# Changelog` header. If the file doesn't exist, the first bump creates it.
+
+Format (Keep-a-Changelog inspired but simpler):
+```
+# Changelog
+
+## [1.2.3] - 2026-05-05
+- PR #42: Add login form
+
+## [1.2.2] - 2026-05-04
+- PR #41: Fix dashboard query
+```
 
 ### PR Review on Mobile (developer notes)
 
