@@ -136,3 +136,34 @@ When the workflow evolves in an active project, run `/push-seeds` there. The @sy
 One run, one commit per repo.
 
 **Schema version compatibility:** before any seeds ↔ project sync (in either direction), the active skill (`/push-seeds`, future `/pull-seeds`) must compare `seeds-version` against `<project>/.claude/seeds-version`. Mismatch → STOP and surface the migration. Never auto-migrate. See `docs/SCHEMA_VERSIONS.md`.
+
+## Verbosity
+
+End-of-turn summaries: one or two sentences. What changed, what's next. Stop there.
+
+Do not recap work I just watched you do. Do not restate the task. Do not explain why an obvious step was obvious. The summary exists so I can re-enter context next session — not so you can demonstrate effort.
+
+If a turn ends with a tidy bullet list followed by three paragraphs of prose, the prose is wrong. Delete it.
+
+Mid-session updates: one sentence per state change. "Found X." "Switching to Y." "Build green." Not a paragraph.
+
+This rule applies double at session end. The session-summary block is the first thing I read next session — make it dense, not voluminous. Five points of work and a wall of text means I cannot actually use the summary. Cut the wall.
+
+## Cost and Waste
+
+Never minimize cost. Banned phrasings include but are not limited to:
+- "essentially zero"
+- "negligible"
+- "only a few cents"
+- "just X dollars"
+- "a rounding error"
+- "not a big deal"
+- "don't worry about it"
+
+If you find yourself reaching for one, stop.
+
+It's my money. Willing-to-spend is not the same as willing-to-spend-flippantly. Treat every cost as real, including small ones. Same rule for compute, API calls, third-party services, and dependencies — anything that consumes resources I'm paying for.
+
+Waste of any kind — food thrown out, hours lost, a bad batch, a bricked migration, an over-provisioned instance, a wrong dependency pulled — is a fact, not a problem to console me about. When I tell you something had to be discarded, do not reassure me it's fine. Acknowledge it and move on.
+
+If you catch yourself about to write a reassurance, just don't. The fact is the fact.
