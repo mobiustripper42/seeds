@@ -68,6 +68,33 @@ things → sub_things → line_items
 - After schema changes: regenerate types with `npx supabase gen types typescript --local > src/lib/supabase/types.ts`
 - **Before creating a migration:** run `gh pr list` to check for open PRs touching the same tables. If overlap exists, merge the in-flight PR first (or rename the new migration to a later timestamp to keep ledger order clean).
 
+### Production write protection (DEC-009)
+
+Two-layer defense against accidentally running destructive Supabase CLI ops on production:
+
+1. **Discipline:** never `supabase link` to a prod project ref from a dev box. Production deploys read `SUPABASE_URL` and the service-role key from Vercel env vars — there is no reason for a local link to prod. Link only to staging or local.
+2. **Wrapper script (`scripts/safe-supabase.sh`):** reads the linked ref from `supabase/.temp/project-ref` and refuses to pass through `db reset`, `db push`, `db remote *`, or `migration repair` if the linked ref appears in `.claude/prod-supabase-refs`. Pass-through for everything else.
+
+Setup (one-time per project):
+
+```
+cp <seeds>/dev/claude/scripts/safe-supabase.sh scripts/safe-supabase.sh
+chmod +x scripts/safe-supabase.sh
+mkdir -p .claude
+echo "<your-prod-project-ref>" > .claude/prod-supabase-refs
+echo ".claude/prod-supabase-refs" >> .gitignore
+```
+
+Optional shell alias for transparent protection:
+
+```
+alias supabase='./scripts/safe-supabase.sh'
+```
+
+The `.claude/prod-supabase-refs` file accepts one ref per line; blank lines and `#` comments are ignored. Per-project rather than global so multi-project dev boxes don't cross-contaminate.
+
+The wrapper only catches CLI ops. Direct `psql` against the prod URL or any tool that doesn't go through the `supabase` binary is not guarded — those rely on the discipline (no prod URL in local env, no prod password on disk).
+
 ## Commands
 ```bash
 # Development

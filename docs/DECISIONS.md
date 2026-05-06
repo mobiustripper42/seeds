@@ -75,6 +75,21 @@ Tags are only ever applied on `main`. In staging-flow projects (DEC-008), patch/
 
 **Alternatives considered:** Open a staging→main PR and self-merge (rejected — empty ceremony, every promotion would auto-approve); merge commit instead of ff (rejected — adds a "Merge branch 'staging'" commit on every promotion that conveys nothing).
 
+## DEC-009: Supabase prod-write guard — discipline + wrapper script
+**Decision:** Two-layer defense against destructive Supabase CLI ops landing on production:
+- **Discipline:** never `supabase link` to a prod project ref from a dev box. Production reads its `SUPABASE_URL` + service-role key from Vercel env vars; there is no reason for a local link to prod.
+- **Wrapper script:** `scripts/safe-supabase.sh` (template at `dev/claude/scripts/safe-supabase.sh`) reads the linked ref from `supabase/.temp/project-ref` and a per-project prod-ref allowlist from `.claude/prod-supabase-refs` (gitignored). For destructive subcommands (`db reset`, `db push`, `db remote *`, `migration repair`), if the linked ref is in the prod list, refuses the operation and prints a remediation hint. Pass-through for everything else.
+
+**Why:** `supabase db reset` is a common dev-loop command that needs to work freely on staging — but the same command on a prod link would wipe production. Discipline alone fails the day someone runs `supabase link --project-ref <prod>` to "just check something" and forgets to relink. The wrapper closes that gap without restricting the staging dev loop.
+
+**Tradeoff:** Wrapper only catches CLI ops. Dashboard ops, direct `psql` against the prod URL, and any tool that doesn't go through the `supabase` CLI are not guarded by it — those rely on the discipline (no prod URL in local env, no prod password on disk). A user who aliases `supabase='./scripts/safe-supabase.sh'` at the shell level gets transparent protection; a user who keeps invoking `supabase` directly bypasses the script. Acceptable: the script is opt-in protection, not a sandbox.
+
+**Detection — "is this a Supabase project?":** presence of `supabase/` directory at the repo root. Projects without it skip the script + setup entirely.
+
+**Where the prod list lives:** `<project>/.claude/prod-supabase-refs`, gitignored. One ref per line, blank lines + `#` comments allowed. Per-project rather than global so multi-project dev boxes don't cross-contaminate (e.g. project A's prod ref shouldn't block project B's destructive ops). A stale ref from a retired project would silently un-protect a global file; per-project keeps the blast radius scoped.
+
+**Alternatives considered:** Single global `~/.claude/prod-supabase-refs` (rejected — cross-project bleed, retired-project staleness). Wrap with a shell alias only, no script (rejected — discipline becomes "remember to type `safe-supabase` instead of `supabase`"; a script + alias is just-as-easy and transparent). Block at the CLI argv level via a hook in the supabase CLI itself (rejected — Supabase CLI has no plugin hook; we'd be patching their binary). PR-test that runs against staging-only (rejected — different concern; this guard is for the developer's local box, not CI).
+
 ---
 
 ## DEC-TBD: Anthropic Routines GitHub access model
