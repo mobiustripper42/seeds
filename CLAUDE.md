@@ -31,6 +31,9 @@ Two template families:
 ```
 seeds-version            # Single line — current schema version (integer, no `v` prefix)
 
+.claude/
+  routine-config.yaml      # Routine config — orgs, exclude list, directions (DEC-010)
+
 dev/
   bash/
     aliases.sh             # Shell aliases for Claude Code workflows (source from ~/.bashrc)
@@ -41,6 +44,9 @@ dev/
       sync-config.md       # Template maintenance agent (see "Syncing improvements" below)
     skills/                # Session lifecycle skills — copy to .claude/skills/ in your project
       push-seeds/          # Invokes @sync-config agent to push improvements to seeds
+    routines/              # Source-controlled prompts for scheduled Anthropic Routines
+      nightly-sync.md      # Nightly bi-directional sync Routine (DEC-010)
+      README.md            # How to deploy + update Routines via /web-setup
     templates/             # Code templates — copy individually as needed
       VersionTag.tsx       # Build-time version display (DEC-007). Wire into login + footer.
     scripts/               # Per-project scripts — copy individually as needed
@@ -139,6 +145,18 @@ When the workflow evolves in an active project, run `/push-seeds` there. The @sy
 One run, one commit per repo.
 
 **Schema version compatibility:** before any seeds ↔ project sync (in either direction), the active skill (`/push-seeds`, future `/pull-seeds`) must compare `seeds-version` against `<project>/.claude/seeds-version`. Mismatch → STOP and surface the migration. Never auto-migrate. See `docs/SCHEMA_VERSIONS.md`.
+
+## The Routine
+
+Bi-directional sync also runs unattended via a nightly Anthropic Routine (DEC-010). The Routine reads `.claude/routine-config.yaml` for orgs + exclude list + directions, lists `<org>/*` repos, filters by `.claude/seeds-version` presence + version match, and per (repo × direction) invokes @sync-config in `mode: auto`. Each invocation that produces non-empty changes opens its own PR — upstream PRs land on `mobiustripper42/seeds:main`, downstream PRs land on each project's default branch. Nothing merges automatically; the PR is the human review surface.
+
+- **Prompt source of truth:** `dev/claude/routines/nightly-sync.md`. Edit there, then re-paste into the Routine config on claude.ai (manual — see `dev/claude/routines/README.md`).
+- **Config source of truth:** `.claude/routine-config.yaml`. Add/remove orgs, exclude repos, toggle directions there.
+- **Schema-version mismatches** are skipped per-repo and rolled into a single rolling `routine: migration backlog` issue on `mobiustripper42/seeds`. Migrate the project, next run picks it back up.
+- **Per-run summary:** rolling `routine: last run <DATE>` issue on `mobiustripper42/seeds`. Body replaced each run.
+- **Run budget:** Pro plan caps Routines at 5 runs/day across all your Routines. This one assumes a single nightly fire.
+
+Manual `/push-seeds` and `/pull-seeds` still exist for ad-hoc pulls and pushes — the Routine handles the steady-state, manual handles the "I want it now" cases.
 
 ## Verbosity
 
