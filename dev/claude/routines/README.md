@@ -3,10 +3,10 @@
 This directory holds source-controlled prompt bodies for scheduled
 [Anthropic Routines](https://claude.ai/) that run against this workflow.
 
-A Routine is a scheduled CC session: configured once via the claude.ai web UI
-(`/web-setup`), it fires on its schedule, opens an unattended CC session with
-the configured prompt + GitHub OAuth grants, and exits. Pro plan limit is
-5 runs per day across all your Routines (DEC-006).
+A Routine is a scheduled CC session: configured once via the `/web-setup`
+skill flow on claude.ai, it fires on its schedule, opens an unattended CC
+session with the configured prompt + GitHub OAuth grants, and exits. Pro
+plan limit is 5 runs per day across all your Routines (DEC-010).
 
 ## Why prompts live here
 
@@ -40,7 +40,8 @@ they migrate.
 
 ## Deploying a Routine (one-time per Routine)
 
-1. Open `https://claude.ai` and go to Routines (`/web-setup` flow).
+1. On claude.ai, run the `/web-setup` skill flow to reach the Routines
+   configuration UI.
 2. Create a new Routine. Set:
    - **Name:** `seeds nightly sync` (or whatever you'll recognize at 3am).
    - **Schedule:** nightly, off-hours for your timezone.

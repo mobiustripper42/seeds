@@ -27,8 +27,9 @@ require:
   has_seeds_version: true
   # Must not be archived on GitHub.
   not_archived: true
-  # Must have a default branch with at least one commit.
-  has_default_branch: true
+  # Must have at least one commit on the default branch (excludes brand-new
+  # empty repos where there's nothing to diff against yet).
+  has_commits_on_default_branch: true
 
 # Which directions to run nightly. Comment one out to disable that direction.
 # Both run in the same Routine session; per-direction PRs are opened

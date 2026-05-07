@@ -148,7 +148,7 @@ One run, one commit per repo.
 
 ## The Routine
 
-Bi-directional sync also runs unattended via a nightly Anthropic Routine (DEC-010). The Routine reads `.claude/routine-config.yaml` for orgs + exclude list + directions, lists `<org>/*` repos, filters by `.claude/seeds-version` presence + version match, and per (repo × direction) invokes @sync-config in `mode: auto`. Each invocation that produces non-empty changes opens its own PR — upstream PRs land on `mobiustripper42/seeds:main`, downstream PRs land on each project's default branch. Nothing merges automatically; the PR is the human review surface.
+Bi-directional sync also runs unattended via a nightly Anthropic Routine (DEC-010). The Routine reads `.claude/routine-config.yaml` for orgs + exclude list + filter requirements + directions + PR/branch prefixes, lists `<org>/*` repos, filters by `.claude/seeds-version` presence + version match, and per (repo × direction) invokes @sync-config in `mode: auto`. Each invocation that produces non-empty changes opens its own PR — upstream PRs land on `mobiustripper42/seeds:main`, downstream PRs land on each project's default branch. Nothing merges automatically; the PR is the human review surface.
 
 - **Prompt source of truth:** `dev/claude/routines/nightly-sync.md`. Edit there, then re-paste into the Routine config on claude.ai (manual — see `dev/claude/routines/README.md`).
 - **Config source of truth:** `.claude/routine-config.yaml`. Add/remove orgs, exclude repos, toggle directions there.

@@ -118,6 +118,8 @@ These rely on the discipline (no prod URL in local env, no prod password on disk
 
 **Tradeoff:** the prompt in `dev/claude/routines/nightly-sync.md` is the canonical body, but the Routine actually executes from a copy stored in claude.ai. Drift between the two is a real failure mode — the deployment guide (`dev/claude/routines/README.md`) calls out the manual re-paste step, but there's no automated check.
 
+**Scaling boundary:** discovery is O(repos-in-org). Each candidate repo costs one `GET contents` call to fetch `.claude/seeds-version` plus the listing call. The current org has a handful of repos; revisit the discovery model if it grows past ~100 active repos (paginated listing + parallelization, or a hand-maintained allowlist instead of org scan).
+
 **Resolves the prior `DEC-TBD: Anthropic Routines GitHub access model`** — answered by Task 4 research: multi-repo OAuth via /web-setup, PRs to `claude/<slug>` branches, Pro plan = 5 runs/day. No PAT or GitHub App install needed; the OAuth grant is per-org during Routine setup.
 
 **Resolves the prior `DEC-TBD: Repo list format for the Routine`** — chosen format is YAML at `.claude/routine-config.yaml`. Rationale above.
