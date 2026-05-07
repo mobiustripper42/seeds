@@ -18,8 +18,10 @@ Use it directly.
 ```
 PROJECT_SLUG=$(pwd | tr '/' '-')
 JSONL_DIR="$HOME/.claude/projects/$PROJECT_SLUG"
-ls -lt "$JSONL_DIR"/*.jsonl
+(cd "$JSONL_DIR" 2>/dev/null && ls -lt *.jsonl)
 ```
+
+The `cd`-and-relative-glob form is deliberate — tree-sitter-bash chokes on `"$VAR"/*.glob`, dropping every invocation into a permission prompt. See its-alive Step 5 for the longer note.
 
 Default to the **second most recently modified JSONL** — the current session's JSONL is always the newest (being written live); the one to audit is the previous one. If only one JSONL exists, use it.
 
