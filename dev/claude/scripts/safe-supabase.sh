@@ -21,7 +21,17 @@
 #     (blank lines and lines starting with # are ignored)
 #
 # What's blocked when linked to a prod ref:
-#   db reset, db push, db remote *, migration repair
+#   db reset, db push, db remote *, migration up, migration repair
+#
+# The matcher walks adjacent argument pairs so leading global flags
+# (--debug, --workdir, etc.) don't bypass the guard:
+#   `supabase --debug db push` is still blocked.
+#
+# Bypass surfaces NOT guarded (by design — discipline-plus-wrapper):
+#   - `supabase ... --db-url postgres://...` skips the linked-project
+#     entirely and writes to whatever URL is passed.
+#   - Direct `psql` against a prod URL.
+#   - Anything that doesn't go through the `supabase` binary.
 #
 # Everything else (db pull, db diff, db lint, migration list, gen types,
 # status, start, stop, login, projects list, etc.) passes through unchanged.
@@ -38,14 +48,23 @@ repo_root() {
   git rev-parse --show-toplevel 2>/dev/null || pwd
 }
 
+MATCHED_PAIR=""
 is_destructive() {
-  case "${1:-} ${2:-}" in
-    "db reset"*)         return 0 ;;
-    "db push"*)          return 0 ;;
-    "db remote"*)        return 0 ;;
-    "migration repair"*) return 0 ;;
-    *) return 1 ;;
-  esac
+  # Walk adjacent argument pairs so leading global flags don't shift
+  # the destructive subcommand out of the $1/$2 window. Sets
+  # MATCHED_PAIR so the refusal message can name the actual subcommand
+  # rather than echo back the leading flag.
+  MATCHED_PAIR=""
+  local prev=""
+  for arg in "$@"; do
+    case "$prev $arg" in
+      "db reset"|"db push"|"db remote"|"migration up"|"migration repair")
+        MATCHED_PAIR="$prev $arg"
+        return 0 ;;
+    esac
+    prev="$arg"
+  done
+  return 1
 }
 
 linked_ref() {
@@ -74,7 +93,7 @@ main() {
     if [ -n "$ref" ] && is_prod_ref "$ref"; then
       cat >&2 <<EOF
 
-safe-supabase: REFUSED — '${1:-} ${2:-}' is destructive and the linked
+safe-supabase: REFUSED — '$MATCHED_PAIR' is destructive and the linked
 project ref ($ref) is in $PROD_REFS_FILE.
 
 Production deploys read env vars (SUPABASE_URL, service-role key) from
