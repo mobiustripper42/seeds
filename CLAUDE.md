@@ -43,6 +43,8 @@ dev/
       push-seeds/          # Invokes @sync-config agent to push improvements to seeds
     templates/             # Code templates — copy individually as needed
       VersionTag.tsx       # Build-time version display (DEC-007). Wire into login + footer.
+    scripts/               # Per-project scripts — copy individually as needed
+      safe-supabase.sh     # Supabase prod-write guard (DEC-009). Wrap with shell alias.
     docs/
       AGENTS.md            # Reference doc explaining the full agent + skill workflow
       VELOCITY_AND_POKER_GUIDE.md  # Estimation and velocity tracking methodology
@@ -123,6 +125,7 @@ Effort uses Fibonacci points: 2, 3, 5, 8, 13. No 1s (just do it), no 13s if avoi
 9. **Schema version** — `cp seeds-version <project>/.claude/seeds-version` so `/pull-seeds` can detect compatibility. See `docs/SCHEMA_VERSIONS.md`.
 10. **VersionTag (deployable projects)** — copy `dev/claude/templates/VersionTag.tsx` to `<project>/src/components/VersionTag.tsx`. Wire into login screen + footer per `dev/claude/CLAUDE.md §Versioning`. Skip for non-deployable projects.
 11. **Staging branch (optional)** — if shipping through a staging environment: `git checkout -b staging main && git push -u origin staging`. Skills auto-detect via `git ls-remote --heads origin staging`. See DEC-008.
+12. **Supabase prod-write guard (Supabase projects)** — copy `dev/claude/scripts/safe-supabase.sh` to `<project>/scripts/safe-supabase.sh`, `chmod +x`, then `mkdir -p .claude && echo "<your-prod-ref>" > .claude/prod-supabase-refs && echo ".claude/prod-supabase-refs" >> .gitignore`. Optional alias: `alias supabase='./scripts/safe-supabase.sh'`. See DEC-009 + `dev/claude/CLAUDE.md §Migration Protocol`.
 
 After setup, run `/its-alive` in the new project to start the first session.
 
