@@ -6,7 +6,7 @@ branch: claude/next-task-ISRrG
 started: 2026-05-07T02:11:40Z
 ended: 2026-05-07T11:18:44Z
 duration: 9.08
-points: 10
+points: 13
 status: closed
 transcript: /root/.claude/projects/-home-user-seeds/f85d0233-7bb8-4e9b-b5e4-11f414189b2e.jsonl
 ---
@@ -24,7 +24,8 @@ transcript: /root/.claude/projects/-home-user-seeds/f85d0233-7bb8-4e9b-b5e4-11f4
 - **`CLAUDE.md` (bbb8a4d, 1cc1f73):** new "The Routine" section + repo layout entry.
 - **PROJECT_PLAN (bbb8a4d, 1cc1f73):** Tasks 5 + 6 marked `[x]`. Task 4 row stale `DEC-006` reference fixed to `DEC-010`. Next-session priority rewritten.
 - **Code-review fold-in (1cc1f73):** 8 OBSERVATIONs + 4 NITs from `@code-review` all addressed. No BLOCKERs.
-- **PR #11:** https://github.com/mobiustripper42/seeds/pull/11 — base `main`, awaiting merge.
+- **Task 25 — `/retro` PM commentary (folded in post-`/its-dead`):** new Step 4.5 in `/retro` invokes `@pm` after user verbatim answers, passes full phase context (metrics, user answers, session-file paths, closed issues), captures a 3–5 paragraph commentary covering pace / scope / patterns / reaction to the user's answers. New `### PM read` section in `RETROSPECTIVES.md` template. New 7th responsibility on `@pm`. Order is post-answers on purpose — surfaced when the user noticed bushel's just-completed retro had no PM narrative (was never wired up — original `/retro` from 7a699e5 had user prompts only). 4 files: `retro/SKILL.md` × 2, `pm.md` × 2.
+- **PR #11:** https://github.com/mobiustripper42/seeds/pull/11 — base `main`, awaiting merge. Now covers Tasks 5 + 6 + 25 (13 pts).
 
 **In Progress:** Nothing — PR #11 is the close-out.
 
@@ -45,5 +46,7 @@ transcript: /root/.claude/projects/-home-user-seeds/f85d0233-7bb8-4e9b-b5e4-11f4
 - Downstream-targets-staging detection happens per-project at PR-open time (each project gets its own `git ls-remote --heads origin staging`), not from the Routine config. This means a project flipping to staging-flow mid-cycle automatically picks up the new base on the next run — no Routine-config edit needed. Same DEC-008 detection pattern the skills already use.
 - Manual deploy step is the only gap between code-merged and Routine-running. There's no automated push of `nightly-sync.md` body → claude.ai because Anthropic doesn't expose Routine config via API (per Task 4 / DEC-010). Drift between canonical and deployed is a real failure mode; the README calls it out but can't prevent it. Worth a future skill (`/sync-routine-prompt`?) to at least diff the canonical body against a clipboard-pasted snapshot.
 - Duration recorded raw (9.08h) per user — wall-clock from session start to last commit. Actual focused effort was a fraction of that; the session spanned multiple discussion → implementation passes with idle gaps.
+- Task 25 was folded into PR #11 after `/its-dead` already ran. The session file's `points` field bumped 10 → 13. The `duration` stays at 9.08h (covers the wall-clock through the fold-in too) per user "keep raw" call. Worth flagging that `/its-dead` doesn't anticipate post-finalize fold-ins; if this becomes a habit, the skill should grow a `/its-dead --reopen` mode rather than relying on edit-after-the-fact. For one-offs the manual frontmatter edit is fine.
+- Decision to put `@pm` AFTER user answers (not before): pre-answers priming would degrade "what didn't" recall — the agent's read of the phase would seed the user's framing. Post-answers, the agent's commentary becomes a reaction the user can push back on, not a script the user fills in.
 
 **Code Review:** No BLOCKERs. 8 OBSERVATIONs + 4 NITs all folded in via `1cc1f73`. Findings: staging-flow downstream-base gap (would have hit sailbook the moment it joined V3), loop-ordering ambiguity (prose-only, now load-bearing), per-repo error handling missing in Step 3, migration-backlog conflation between project-lagging and seeds-lagging cases, ambiguous `<direction>` placeholder in commit-message format, `has_default_branch` vs `has_commits_on_default_branch` definition mismatch, scaling-boundary note for DEC-010, two stale DEC-006 cross-references (README + PROJECT_PLAN Task 4 row), CLAUDE.md "The Routine" truncated description, README `/web-setup` URL-vs-skill phrasing, re-trigger one-liner shy of explaining daily-cap blast radius. All addressed.
