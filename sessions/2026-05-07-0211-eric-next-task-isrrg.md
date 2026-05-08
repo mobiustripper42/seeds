@@ -4,9 +4,9 @@ dev: eric
 slug: next-task-isrrg
 branch: claude/next-task-ISRrG
 started: 2026-05-07T02:11:40Z
-ended: 2026-05-07T11:18:44Z
+ended: 2026-05-08T14:55:39Z
 duration: 9.08
-points: 13
+points: 17
 status: closed
 transcript: /root/.claude/projects/-home-user-seeds/f85d0233-7bb8-4e9b-b5e4-11f414189b2e.jsonl
 ---
@@ -25,18 +25,22 @@ transcript: /root/.claude/projects/-home-user-seeds/f85d0233-7bb8-4e9b-b5e4-11f4
 - **PROJECT_PLAN (bbb8a4d, 1cc1f73):** Tasks 5 + 6 marked `[x]`. Task 4 row stale `DEC-006` reference fixed to `DEC-010`. Next-session priority rewritten.
 - **Code-review fold-in (1cc1f73):** 8 OBSERVATIONs + 4 NITs from `@code-review` all addressed. No BLOCKERs.
 - **Task 25 — `/retro` PM commentary (folded in post-`/its-dead`):** new Step 4.5 in `/retro` invokes `@pm` after user verbatim answers, passes full phase context (metrics, user answers, session-file paths, closed issues), captures a 3–5 paragraph commentary covering pace / scope / patterns / reaction to the user's answers. New `### PM read` section in `RETROSPECTIVES.md` template. New 7th responsibility on `@pm`. Order is post-answers on purpose — surfaced when the user noticed bushel's just-completed retro had no PM narrative (was never wired up — original `/retro` from 7a699e5 had user prompts only). 4 files: `retro/SKILL.md` × 2, `pm.md` × 2.
-- **PR #11:** https://github.com/mobiustripper42/seeds/pull/11 — base `main`, awaiting merge. Now covers Tasks 5 + 6 + 25 (13 pts).
+- **PR #11 (merged):** Tasks 5 + 6 + 25 — bi-directional sync Routine + auto-mode `@sync-config` + `/retro` PM commentary. 13 pts.
+- **Task 26 — Routine v2 (PR #14, merged):** three fixes from the first two live runs. (a) form-as-source-of-truth: dropped `orgs:` org-scan from `routine-config.yaml` since GitHub OAuth is per-repo, not org-wide — the Routine form's chip area is the active-set declaration. (b) Provenance labeling on every hunk (`Project-only` / `Template-only` / `Both-modified`) — replaces the file-level skip the auto-mode classifier defaulted to on first run, so structural template changes propagate even into heavily-customized files like BRAND.md / PROJECT_PLAN.md / CLAUDE.md. (c) added project-root `CLAUDE.md` vs `<seeds>/dev/claude/CLAUDE.md` pair to `@sync-config` Step 1 diff scope — was missing, so structural sections (`§Versioning`, `§Tone`, `§Verbosity`, etc.) had no propagation path. 3 pts.
+- **PR #15 (merged):** Routine-opened upstream PR — first bidirectional sync of the lifecycle. Backported the `/read-the-tape` row from bushel's Session Skills table to the seeds template. Body had to be hand-reformatted post-open because of the literal-`\n` bug (caught and fixed via Task 27).
+- **Task 27 — Routine PR-body real-newlines (PR #16, merged):** explicit `## Output formatting (PR bodies + issue bodies)` section in `nightly-sync.md` requiring real line breaks, not `\n` escapes. Concrete bad-input example (`"## Section\\n\\n| col1 | col2 |\\n"`) for clarity. Covers both `mcp__github__create_pull_request` bodies and the rolling `routine: last run` / `routine: migration backlog` issue bodies. 1 pt.
+- **Routine deployed and dogfooded:** form configured on claude.ai (Remote, Sonnet, daily 02:00 EDT, mobiustripper42/seeds + bushel + 2 more V3 repos added by user post-deploy, "Allow unrestricted git push" toggle ON). Prompt re-pasted three times across the day (PR #11 deploy → #14 v2 → #16 newlines). First successful sync run produced PR #15 with proper Provenance classification.
 
-**In Progress:** Nothing — PR #11 is the close-out.
+**In Progress:** Nothing.
 
-**Blocked:** Nothing in code. The Routine itself is blocked on a manual deploy step (paste prompt into claude.ai `/web-setup` UI) — can't be automated, that's the user's call post-merge.
+**Blocked:** Nothing in code. The Routine fires automatically at 02:00 EDT — tomorrow's run is the next verification (real newlines + 3-repo enumeration + `/read-the-tape` row landing in seeds template after PR #15 merge).
 
 **Next Steps:**
-1. Merge PR #11. Patch bump skipped (seeds has no `package.json` — DEC-007 detection).
-2. **Deploy the Routine on claude.ai:** `/web-setup` flow → create `seeds nightly sync` → paste `dev/claude/routines/nightly-sync.md` body → grant `mobiustripper42` org OAuth → set nightly schedule.
-3. After first nightly fire: check `mobiustripper42/seeds` issues for `routine: last run <DATE>` and `routine: migration backlog` (sailbook should appear under `## Project lagging` until Task 18 lands).
-4. **Task 18** (sailbook V2→V3 migration, 5 pts) is now the gating item to get sailbook out of the migration backlog. Bushel reportedly already on V3 (per user) — verify and shrink/close Task 24 next session.
-5. Long-deferred: Task 8 (nightly-sync.sh fate) revisits after the Routine has run a couple weeks.
+1. **Tomorrow 02:00 EDT:** Routine fires automatically. Verify three things in the resulting `routine: last run 2026-05-09` issue body: (a) PR bodies have wrapped tables (real newlines, Task 27 fix verified), (b) all 3 V3 repos enumerated in active set (form-as-source-of-truth across multiple chips), (c) bushel's `CLAUDE.md` now hunk-classified rather than blanket-skipped (Task 26 fix verified).
+2. **Issue cleanup:** close stale `mobiustripper42/seeds#12` (config read failed, 2026-05-07) and `#13` (first-run summary, 2026-05-08 — replaced by next run's body anyway). Manual close.
+3. **Task 18** (sailbook V2→V3 migration, 5 pts) — sailbook is the last V2 holdout; Routine will skip-and-backlog it until 18 lands.
+4. **Task 24** (bushel V3 migration) — user says bushel is V3 already; verify and close out as a no-op or shrink next session.
+5. Long-deferred: Task 8 (nightly-sync.sh fate) revisits after the Routine has run a couple weeks. Task 9 stays deferred.
 
 **Context:**
 - The local `scripts/nightly-sync.sh` prototype (lines 87-114 specifically) was the design template for `mode: auto` — the override block lifted almost verbatim into the formal agent contract. Task 8's "what to do with the local script" is now squarely about whether the offline path still earns its keep, not about what it implements.
@@ -48,5 +52,12 @@ transcript: /root/.claude/projects/-home-user-seeds/f85d0233-7bb8-4e9b-b5e4-11f4
 - Duration recorded raw (9.08h) per user — wall-clock from session start to last commit. Actual focused effort was a fraction of that; the session spanned multiple discussion → implementation passes with idle gaps.
 - Task 25 was folded into PR #11 after `/its-dead` already ran. The session file's `points` field bumped 10 → 13. The `duration` stays at 9.08h (covers the wall-clock through the fold-in too) per user "keep raw" call. Worth flagging that `/its-dead` doesn't anticipate post-finalize fold-ins; if this becomes a habit, the skill should grow a `/its-dead --reopen` mode rather than relying on edit-after-the-fact. For one-offs the manual frontmatter edit is fine.
 - Decision to put `@pm` AFTER user answers (not before): pre-answers priming would degrade "what didn't" recall — the agent's read of the phase would seed the user's framing. Post-answers, the agent's commentary becomes a reaction the user can push back on, not a script the user fills in.
+- **Re-paste pain (×3):** the Routine deploy required three manual re-pastes of `nightly-sync.md` into claude.ai across the day — once after PR #11 merge, again after PR #14 (v2 fixes), again after PR #16 (newlines fix). Each one is a copy-raw-trim-preamble-paste cycle. Obvious Anthropic-side improvement: auto-pull Routine prompt from a git URL, eliminating the canonical-vs-deployed drift DEC-010 calls out. User flagged for product feedback. Until then: every meaningful prompt change ships with a re-paste cost.
+- **Form-as-source-of-truth verified live:** user added 2 more V3 repos to the Routine form post-deploy (no `routine-config.yaml` edit needed). Form's chip area is the active-set declaration. Tomorrow's run is the multi-repo-enumeration proof.
+- **Provenance labels caught a real backport on first live run:** PR #15 surfaced the `/read-the-tape` row in bushel's Session Skills table — a `Project-only` hunk that's *structurally* template-shaped (not project-specific). Without Provenance, the auto-mode classifier likely would have skipped it as "Project-only = skip." Single concrete win for the Provenance design.
+- **Bushel#24 (yesterday's downstream PR) landed via separate path:** Routine's stale `auto-sync/downstream/2026-05-08` branch had zero net diff vs main when checked, because the same changes had already merged via `task/pull-seeds-2026-05-07`. Routine correctly skipped opening an empty PR — graceful out-of-band-merge handling.
+- **Wrong-file paste (re-paste #2):** user accidentally pasted `dev/claude/agents/sync-config.md` (agent definition) instead of `dev/claude/routines/nightly-sync.md` (Routine prompt). Routine session loaded as `@sync-config` standalone and asked "which direction?" instead of orchestrating. Easy fix once spotted but flag it for naming-disambiguation in a future README clarification — the two filenames are too similar.
+- **Literal-`\n` bug in PR #15 body:** Routine constructed body string with escape sequences instead of real line breaks; GitHub rendered `\n` as text. Body had to be hand-reformatted via `mcp__github__update_pull_request`. Task 27's `## Output formatting` section closes the gap. Verifies tomorrow.
+- **`/pull-seeds` and `/push-seeds` skills are now diagnostic-only** in steady state: the Routine's auto-mode handles bidirectional sync without human intervention. Manual skills become useful for "I want to see what auto-mode would do without letting it" or hot-fix "I want this seeds change in this project today, not at 2am." Worth a future docs-demotion PR.
 
-**Code Review:** No BLOCKERs. 8 OBSERVATIONs + 4 NITs all folded in via `1cc1f73`. Findings: staging-flow downstream-base gap (would have hit sailbook the moment it joined V3), loop-ordering ambiguity (prose-only, now load-bearing), per-repo error handling missing in Step 3, migration-backlog conflation between project-lagging and seeds-lagging cases, ambiguous `<direction>` placeholder in commit-message format, `has_default_branch` vs `has_commits_on_default_branch` definition mismatch, scaling-boundary note for DEC-010, two stale DEC-006 cross-references (README + PROJECT_PLAN Task 4 row), CLAUDE.md "The Routine" truncated description, README `/web-setup` URL-vs-skill phrasing, re-trigger one-liner shy of explaining daily-cap blast radius. All addressed.
+**Code Review:** No BLOCKERs across the session. PR #11 review (8 OBSERVATIONs + 4 NITs all folded in via `1cc1f73`). PR #14 (Task 26) reviewed inline with the prior PR #11 review pattern, no separate `@code-review`. PR #15 was Routine-opened — review-on-merge by user. PR #16 (Task 27) was a single-paragraph addition, no separate `@code-review`. PR #11 findings: staging-flow downstream-base gap, loop-ordering ambiguity, per-repo error handling missing, migration-backlog conflation, ambiguous `<direction>` placeholder, `has_default_branch` definition mismatch, scaling-boundary note, two stale DEC-006 cross-references, CLAUDE.md "The Routine" truncated description, README `/web-setup` URL-vs-skill phrasing, re-trigger note expansion. All addressed.
