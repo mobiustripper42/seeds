@@ -18,7 +18,7 @@ Roles:
 
 ## Key Docs
 | File | Purpose |
-|------|---------|
+|------|-------|
 | `docs/SPEC.md` | What we're building — scope, V1 vs V2 vs V3 |
 | `docs/DECISIONS.md` | Why we made each architectural choice |
 | `docs/USER_STORIES.md` | What each role does |
@@ -196,6 +196,7 @@ npx supabase gen types typescript --local > src/lib/supabase/types.ts
 | `/promote-staging` | Ship staging to prod | ff-merge `staging` → `main`, tag the release with current `package.json` version, push both. Staging-flow projects only |
 | `/push-seeds` | After workflow improvements | Backport project-side improvements to the seeds templates via @sync-config |
 | `/pull-seeds` | After seeds gets new improvements | Pull template changes into this project — schema-version-gated, applied via @sync-config |
+| `/read-the-tape` | After a session worth learning from | Audit JSONL transcript, find anti-patterns, propose skill improvements |
 
 **Dev identity:** `~/.claude/devname` (one-line file with your handle). Set once per machine.
 
@@ -204,7 +205,7 @@ npx supabase gen types typescript --local > src/lib/supabase/types.ts
 ## Agent Workflow
 
 | Agent | Model | When | Purpose |
-|-------|-------|------|---------|
+|-------|-------|------|-------|
 | @architect | Opus | Before design decisions | Keep architecture coherent |
 | @code-review | Sonnet | After every commit (wired into `/kill-this`) | Catch issues early |
 | @pm | Sonnet | Start/end of sessions (via skills) | Track progress, flag risks |
