@@ -17,7 +17,7 @@ this session — you cannot ask questions. When in doubt, default to the
 
 ## What you're doing
 
-For every active project repo in the configured org, run @sync-config in
+For every project repo this session has access to, run @sync-config in
 both directions and open a PR per (repo × direction) with the proposed
 changes. The PRs are the human review surface; nothing merges automatically.
 
@@ -26,9 +26,9 @@ changes. The PRs are the human review surface; nothing merges automatically.
 Clone the seeds repo (`mobiustripper42/seeds`) into the working dir and read
 `.claude/routine-config.yaml`. The fields you care about:
 
-- `orgs` — list of orgs to scan
-- `exclude` — `org/repo` paths to skip entirely
-- `require` — filter conditions for active repos
+- `exclude` — `org/repo` paths to skip even if accessible (always includes
+  `mobiustripper42/seeds` itself)
+- `require` — filter conditions for active repos (post-access filter)
 - `directions` — which sync directions to run this session
 - `pr_title_prefix`, `branch_prefix` — naming for the PRs you'll open
 
@@ -38,9 +38,24 @@ issue on `mobiustripper42/seeds` titled `routine: config read failed
 
 ## Step 1 — Discover candidate repos
 
-For each org in `orgs`, list its repos via the GitHub API. For each repo:
+**The Routine form's repo chip area defines this session's access scope.**
+Your MCP github tools can only read or write the repos granted there.
+Treat that scope as the source of truth — do NOT enumerate the org via
+GitHub's `repos.list` API; the previous design did that and ate one
+access denial per non-granted repo per pass before settling on the
+small set the form had granted (run 2026-05-08 surfaced the failure
+mode; DEC-010 captures the post-mortem).
 
-- Skip if it appears in `exclude`.
+Enumerate the repos accessible to your MCP github session. The exact
+introspection mechanism depends on the MCP server implementation; in
+practice, attempting `mcp__github__get_file_contents` on a non-granted
+repo returns an "Allowed repositories: ..." error that lists the
+session's scope. If your MCP exposes a direct "list accessible repos"
+call, prefer that.
+
+For each accessible repo:
+
+- Skip if it appears in `exclude` (always at least `mobiustripper42/seeds`).
 - Skip if `require.not_archived` is true and the repo is archived.
 - Skip if `require.has_commits_on_default_branch` is true and the repo's
   default branch has no commits.
@@ -49,6 +64,11 @@ For each org in `orgs`, list its repos via the GitHub API. For each repo:
 
 Collect the surviving repos as the **candidate set**. Log skips with reasons
 to stdout.
+
+**To add a project to the active set:** open the Routine on claude.ai via
+`/web-setup` and add the repo to the form's chip area (toggle Permissions
+ON for it too, or pushes will fail). To remove: remove the chip. No edits
+to `routine-config.yaml` are needed for either operation.
 
 ## Step 2 — Schema-version gate per repo
 
@@ -103,10 +123,10 @@ For each direction in `[upstream, downstream]` (skipping any direction not prese
 6. Otherwise: push the branch, open a PR against `mobiustripper42/seeds:main`
    titled `{pr_title_prefix.upstream} — <repo> — <DATE>`. The PR body must
    include:
-   - The agent's classification table (Step 3 output).
-   - A list of files changed.
-   - Any pattern-flag entries the agent surfaced.
-   - A "Skipped (project-specific)" section listing hunks not backported.
+   - **Classification table** with the agent's Step 3 columns: `File | Hunk | Provenance | Classification | Action`. Provenance is `Project-only` / `Template-only` / `Both-modified` per the agent contract.
+   - **Files changed** — flat list.
+   - **Pattern flags** — any flagged hunks with descriptions.
+   - **Skipped hunks** — `Project-only` skips (project-specific substitutions preserved) and any `Both-modified` skips that need a human call.
 
 ### Downstream (seeds → project)
 
