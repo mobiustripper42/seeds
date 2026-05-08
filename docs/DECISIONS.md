@@ -99,15 +99,35 @@ These rely on the discipline (no prod URL in local env, no prod password on disk
 
 ---
 
-## DEC-TBD: Anthropic Routines GitHub access model
-**Question:** Can Anthropic Routines authenticate to N private GitHub repos and open a PR to one of them? What auth mechanism (GitHub App, PAT, OAuth)?
-**Options:** GitHub App install vs. PAT stored in Routine config.
-**Blocks:** Task 6 in PROJECT_PLAN.md.
+## DEC-010: Bi-directional nightly sync via Anthropic Routine
+**Decision:** Sync runs unattended nightly via a single Anthropic Routine (`dev/claude/routines/nightly-sync.md`) that handles BOTH directions per repo. The Routine reads `.claude/routine-config.yaml` to discover orgs + exclude list, lists `<org>/*` repos, filters by `.claude/seeds-version` presence and version match, and per (repo × direction) invokes `@sync-config` in `mode: auto`. Each invocation that produces non-empty changes opens its own PR — upstream PRs into `mobiustripper42/seeds:main`, downstream PRs into the project's default branch. Nothing merges automatically; the PR is the human-review checkpoint.
+
+**Supersedes the upstream-only stance in DEC-004.** That decision treated downstream as manual-only because mid-task conflicts were the worst-case. The Routine's "open a PR, never apply directly" pattern bounds that risk: a bad downstream sync lands as a PR sitting in a project's queue, not as a destructive merge. Manual `/pull-seeds` still exists for the "I want it now" case.
+
+**Auto mode on `@sync-config`:** the agent now accepts `mode: interactive` (default, used by `/push-seeds` and `/pull-seeds`) and `mode: auto` (used by the Routine). Auto mode applies every backport/forward-port without prompting, defaults to skip on ambiguity (the PR is the safety net), and never acts on pattern flags — those go in the report only.
+
+**PR shape: one per (repo × direction).** The earlier local prototype (`scripts/nightly-sync.sh`) used a stacked single-PR-to-seeds for all upstream changes. Per-repo PRs are easier to merge selectively, easier to revert per-repo, and parallelize across the two directions. Cost: more PR noise per run. Acceptable — the rolling `routine: last run <DATE>` issue lists them all in one place.
+
+**Schema-version mismatches** are skipped per-repo with no PR opened, rolled into a single rolling `routine: migration backlog` issue on `mobiustripper42/seeds`. The repo rejoins the active set automatically the run after it migrates.
+
+**Per-run summary** is a rolling `routine: last run <DATE>` issue on `mobiustripper42/seeds` — body replaced each run, edit history preserved by GitHub. One issue, not one per day, so the issue list stays clean.
+
+**Why YAML for `routine-config.yaml`:** the config carries lists (orgs, exclude, directions) and nested keys (per-direction prefixes). Plain newline-separated would force a parallel-file convention; JSON forbids comments which the file genuinely needs. YAML supports comments, is human-editable, and CC parses it natively.
+
+**Why a single Routine, not one per direction:** running both directions in the same session means upstream backports landing in seeds first are already visible to the downstream pass — no day-of-lag for a backport to ride out to other projects. The Pro plan's 5-runs/day limit also matters; one Routine consuming one slot/day leaves headroom for ad-hoc Routines.
+
+**Tradeoff:** the prompt in `dev/claude/routines/nightly-sync.md` is the canonical body, but the Routine actually executes from a copy stored in claude.ai. Drift between the two is a real failure mode — the deployment guide (`dev/claude/routines/README.md`) calls out the manual re-paste step, but there's no automated check.
+
+**Scaling boundary:** discovery is O(repos-in-org). Each candidate repo costs one `GET contents` call to fetch `.claude/seeds-version` plus the listing call. The current org has a handful of repos; revisit the discovery model if it grows past ~100 active repos (paginated listing + parallelization, or a hand-maintained allowlist instead of org scan).
+
+**Resolves the prior `DEC-TBD: Anthropic Routines GitHub access model`** — answered by Task 4 research: multi-repo OAuth via /web-setup, PRs to `claude/<slug>` branches, Pro plan = 5 runs/day. No PAT or GitHub App install needed; the OAuth grant is per-org during Routine setup.
+
+**Resolves the prior `DEC-TBD: Repo list format for the Routine`** — chosen format is YAML at `.claude/routine-config.yaml`. Rationale above.
+
+**Still TBD:** fate of the local-WSL `scripts/nightly-sync.sh` (Task 8 in PROJECT_PLAN.md). Decide after the Routine has run for a couple weeks and we know whether the offline path matters.
+
+---
 
 ## DEC-TBD: Fate of `scripts/nightly-sync.sh`
 **Question:** Once the remote Routine works, does the local WSL-scheduled `scripts/nightly-sync.sh` stay as a belt-and-suspenders alternative, get retired, or stay as the "works offline" path?
 **Blocks:** Task 8 in PROJECT_PLAN.md.
-
-## DEC-TBD: Repo list format for the Routine
-**Question:** JSON, YAML, or plain text newline-separated? Lives in seeds root or under `docs/`?
-**Depends on:** What the Routine natively reads.
