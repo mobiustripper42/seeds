@@ -7,21 +7,29 @@
 #   upstream   = project → seeds (backport improvements that emerged in projects)
 #   downstream = seeds → project (propagate template changes outward)
 #
-# Schema-version gating: the Routine still honors `seeds-version` per project.
-# If a project's `.claude/seeds-version` doesn't match `seeds-version`, that
-# repo is skipped this run and logged to the migration backlog issue.
+# Active set comes from the Routine form's repo chip area on claude.ai —
+# NOT from an org scan. The first run (2026-05-08) tried to enumerate
+# `mobiustripper42/*` via the GitHub API and ate 17 access denials per pass
+# because OAuth scope is per-repo. The form is now the single source of
+# truth for which repos this Routine can reach. To add a project to the
+# active set: open the Routine in /web-setup and add it to the repo chips.
+# To remove: remove the chip. No config change needed for either.
+#
+# Schema-version gating: the Routine still honors `seeds-version` per
+# project. If a project's `.claude/seeds-version` doesn't match
+# `seeds-version`, that repo is skipped this run and logged to the
+# migration backlog issue.
 
-# GitHub orgs to scan. The Routine lists `<org>/*` repos and filters by
-# the `require:` block below.
-orgs:
-  - mobiustripper42
-
-# Repos to never touch. Match by full `org/repo` path.
+# Repos to never sync, even if the Routine form grants access. Match by
+# full `org/repo` path. Seeds itself is here because seeds doesn't sync
+# into seeds — and the form has to grant seeds access for the Routine
+# to read this very config file, so we exclude it explicitly.
 exclude:
-  # The hub itself — seeds doesn't sync into seeds.
   - mobiustripper42/seeds
 
 # A repo joins the active set only if every condition here is true.
+# These run AFTER the form has already determined which repos this
+# session can access — they're a second filter, not the access gate.
 require:
   # Must have `.claude/seeds-version` at the default branch HEAD.
   has_seeds_version: true
@@ -48,3 +56,4 @@ pr_title_prefix:
 branch_prefix:
   upstream: "auto-sync/upstream"
   downstream: "auto-sync/downstream"
+
