@@ -148,10 +148,12 @@ One run, one commit per repo.
 
 ## The Routine
 
-Bi-directional sync also runs unattended via a nightly Anthropic Routine (DEC-010). The Routine reads `.claude/routine-config.yaml` for orgs + exclude list + filter requirements + directions + PR/branch prefixes, lists `<org>/*` repos, filters by `.claude/seeds-version` presence + version match, and per (repo × direction) invokes @sync-config in `mode: auto`. Each invocation that produces non-empty changes opens its own PR — upstream PRs land on `mobiustripper42/seeds:main`, downstream PRs land on each project's default branch. Nothing merges automatically; the PR is the human review surface.
+Bi-directional sync also runs unattended via a nightly Anthropic Routine (DEC-010). The Routine clones seeds, reads `.claude/routine-config.yaml` for filter rules + directions + PR/branch prefixes, enumerates the repos its MCP github session has access to (the **Routine form's repo chip area on claude.ai is the active-set source of truth**), filters by `exclude:` + `require:` + `.claude/seeds-version` match, and per (repo × direction) invokes @sync-config in `mode: auto`. Each invocation that produces non-empty changes opens its own PR — upstream PRs land on `mobiustripper42/seeds:main`, downstream PRs land on each project's default branch (or `staging` when present, DEC-008). Nothing merges automatically; the PR is the human review surface.
 
 - **Prompt source of truth:** `dev/claude/routines/nightly-sync.md`. Edit there, then re-paste into the Routine config on claude.ai (manual — see `dev/claude/routines/README.md`).
-- **Config source of truth:** `.claude/routine-config.yaml`. Add/remove orgs, exclude repos, toggle directions there.
+- **Active-set source of truth:** the Routine form's repo chip area on claude.ai — NOT `routine-config.yaml`. Add a project = add chip + toggle "Allow unrestricted git push" in Permissions. Remove = remove chip. No config edit either way.
+- **Config source of truth:** `.claude/routine-config.yaml` carries `exclude:`, `require:`, `directions:`, and per-direction PR/branch prefixes. No `orgs:` or active-repo list (DEC-010 post-mortem from the 2026-05-08 first run).
+- **Provenance labeling:** every PR body the Routine opens includes a per-hunk classification table with `Provenance` column — `Project-only` / `Template-only` / `Both-modified`. The label tells you at a glance where each change came from and why it was applied or skipped. See `@sync-config` Step 2 for the rubric.
 - **Schema-version mismatches** are skipped per-repo and rolled into a single rolling `routine: migration backlog` issue on `mobiustripper42/seeds`. Migrate the project, next run picks it back up.
 - **Per-run summary:** rolling `routine: last run <DATE>` issue on `mobiustripper42/seeds`. Body replaced each run.
 - **Run budget:** Pro plan caps Routines at 5 runs/day across all your Routines. This one assumes a single nightly fire.

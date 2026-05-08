@@ -123,10 +123,10 @@ For each direction in `[upstream, downstream]` (skipping any direction not prese
 6. Otherwise: push the branch, open a PR against `mobiustripper42/seeds:main`
    titled `{pr_title_prefix.upstream} — <repo> — <DATE>`. The PR body must
    include:
-   - The agent's classification table (Step 3 output).
-   - A list of files changed.
-   - Any pattern-flag entries the agent surfaced.
-   - A "Skipped (project-specific)" section listing hunks not backported.
+   - **Classification table** with the agent's Step 3 columns: `File | Hunk | Provenance | Classification | Action`. Provenance is `Project-only` / `Template-only` / `Both-modified` per the agent contract.
+   - **Files changed** — flat list.
+   - **Pattern flags** — any flagged hunks with descriptions.
+   - **Skipped hunks** — `Project-only` skips (project-specific substitutions preserved) and any `Both-modified` skips that need a human call.
 
 ### Downstream (seeds → project)
 
