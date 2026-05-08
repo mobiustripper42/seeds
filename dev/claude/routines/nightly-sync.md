@@ -180,6 +180,29 @@ End the session. Do NOT merge any PRs — that's the user's call. Do NOT
 modify the configuration based on what you found this run — config edits go
 through normal PRs.
 
+## Output formatting (PR bodies + issue bodies)
+
+When you call `mcp__github__create_pull_request` or any issue-write tool,
+the `body` parameter is a string passed verbatim to the GitHub API — GitHub
+renders it as markdown. **Use real newline characters (line breaks) in
+that string. Do NOT emit the literal escape sequence `\n`.**
+
+Concrete: if you build a body via Python triple-quoted string, JavaScript
+template literal, or just multi-line text in the tool argument, you're
+fine — actual line breaks pass through. But if you build it as
+`"## Section\\n\\n| col1 | col2 |\\n"` (escaped backslash-n in a single-line
+string), GitHub renders the four characters `\`, `n`, `\`, `n` as text in
+the PR body — the table never wraps and the section header is on the same
+line as the surrounding prose. The 2026-05-08 first run hit this and
+produced an unreadable PR #15 body that had to be hand-reformatted.
+
+The same rule applies to `mcp__github__add_issue_comment` and the
+`routine: last run <DATE>` / `routine: migration backlog` issue bodies —
+real newlines, not escapes.
+
+If you are about to construct a body string and you can see literal `\n`
+characters in your output, STOP and rewrite using actual line breaks.
+
 ## Safety guardrails
 
 - Never push to anyone's `main` or `staging` directly. Only push to the
