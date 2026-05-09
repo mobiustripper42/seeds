@@ -32,7 +32,8 @@ Two template families:
 seeds-version            # Single line — current schema version (integer, no `v` prefix)
 
 .claude/
-  routine-config.yaml      # Routine config — orgs, exclude list, directions (DEC-010)
+  routine-config.yaml      # Routine config — exclude list, directions, prefixes (DEC-010)
+  type-manifest.yaml       # Project-type gating manifest read by @sync-config (DEC-011)
 
 dev/
   bash/
@@ -110,6 +111,7 @@ The skills and agents expect these files to exist in the project root:
 - `docs/DECISIONS.md` — architectural decisions with IDs (e.g. DEC-001)
 - `docs/AGENTS.md` — adapted from `dev/claude/docs/AGENTS.md` in this repo
 - `.claude/seeds-version` — single line containing the schema version this project was last installed at (e.g. `2`). Read by `/pull-seeds`. See `docs/SCHEMA_VERSIONS.md`.
+- `.claude/project-type` — single line naming the project's type: `webapp` (Next.js + Supabase shape) or `tool` (CLI / agent / library shape). Read by `@sync-config` to gate template files that don't apply to the project's type (DEC-011). Optional but recommended; without it, `@sync-config` skips type-gating and diffs every template file.
 
 Plus a one-time global setup per machine:
 - `~/.claude/devname` — single line with the dev's handle (e.g. `eric`). Used in session filenames.
@@ -129,6 +131,7 @@ Effort uses Fibonacci points: 2, 3, 5, 8, 13. No 1s (just do it), no 13s if avoi
 7. **Shell alias** — source `dev/bash/aliases.sh` from `~/.bashrc` and add a project-specific alias.
 8. **GitHub labels** (if using phase rituals) — `/start-phase` will create them on first use, but you can pre-create: `phase:0`–`phase:9`, `points:1`/`2`/`3`/`5`/`8`, `blocked`.
 9. **Schema version** — `cp seeds-version <project>/.claude/seeds-version` so `/pull-seeds` can detect compatibility. See `docs/SCHEMA_VERSIONS.md`.
+9a. **Project type (DEC-011)** — write the project's type to `<project>/.claude/project-type` as a single line. Currently supported: `webapp` (Next.js / React / shadcn / Supabase / Vercel) or `tool` (CLI / agent / library; Node stdlib + shell). The type gates a small set of template files in `dev/claude/` (e.g. `agents/ui-reviewer.md` is `webapp`-only). See `.claude/type-manifest.yaml`. Optional — if omitted, `@sync-config` runs without gating and forward-ports every template file.
 10. **VersionTag (deployable projects)** — copy `dev/claude/templates/VersionTag.tsx` to `<project>/src/components/VersionTag.tsx`. Wire into login screen + footer per `dev/claude/CLAUDE.md §Versioning`. Skip for non-deployable projects.
 11. **Staging branch (optional)** — if shipping through a staging environment: `git checkout -b staging main && git push -u origin staging`. Skills auto-detect via `git ls-remote --heads origin staging`. See DEC-008.
 12. **Supabase prod-write guard (Supabase projects)** — copy `dev/claude/scripts/safe-supabase.sh` to `<project>/scripts/safe-supabase.sh`, `chmod +x`, then `mkdir -p .claude && echo "<your-prod-ref>" > .claude/prod-supabase-refs && echo ".claude/prod-supabase-refs" >> .gitignore`. Optional alias: `alias supabase='./scripts/safe-supabase.sh'`. See DEC-009 + `dev/claude/CLAUDE.md §Migration Protocol`.
@@ -153,7 +156,8 @@ Bi-directional sync also runs unattended via a nightly Anthropic Routine (DEC-01
 - **Prompt source of truth:** `dev/claude/routines/nightly-sync.md`. Edit there, then re-paste into the Routine config on claude.ai (manual — see `dev/claude/routines/README.md`).
 - **Active-set source of truth:** the Routine form's repo chip area on claude.ai — NOT `routine-config.yaml`. Add a project = add chip + toggle "Allow unrestricted git push" in Permissions. Remove = remove chip. No config edit either way.
 - **Config source of truth:** `.claude/routine-config.yaml` carries `exclude:`, `require:`, `directions:`, and per-direction PR/branch prefixes. No `orgs:` or active-repo list (DEC-010 post-mortem from the 2026-05-08 first run).
-- **Provenance labeling:** every PR body the Routine opens includes a per-hunk classification table with `Provenance` column — `Project-only` / `Template-only` / `Both-modified`. The label tells you at a glance where each change came from and why it was applied or skipped. See `@sync-config` Step 2 for the rubric.
+- **Provenance labeling:** every PR body the Routine opens includes a per-hunk classification table with `Provenance` column — `Project-only` / `Template-only` / `Both-modified` / `Type-gated`. The first three are hunk-level (Step 2 rubric); `Type-gated` is whole-file (Step 1 scoping per DEC-011 — file dropped because the project's `.claude/project-type` doesn't match the manifest's allowed list). See `@sync-config` for both rubrics.
+- **Project-type gating:** projects with `.claude/project-type` set get filtered against `<seeds>/.claude/type-manifest.yaml` before diffing — irrelevant template files (e.g. `agents/ui-reviewer.md` for a `tool`-type project) drop out of scope and surface as `Type-gated` skips in the PR body. Projects without `.claude/project-type` are treated as ungated (legacy behavior). DEC-011.
 - **Schema-version mismatches** are skipped per-repo and rolled into a single rolling `routine: migration backlog` issue on `mobiustripper42/seeds`. Migrate the project, next run picks it back up.
 - **Per-run summary:** rolling `routine: last run <DATE>` issue on `mobiustripper42/seeds`. Body replaced each run.
 - **Run budget:** Pro plan caps Routines at 5 runs/day across all your Routines. This one assumes a single nightly fire.
