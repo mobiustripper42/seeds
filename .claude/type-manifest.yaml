@@ -1,0 +1,37 @@
+# Project-type gating manifest — read by @sync-config (DEC-011).
+#
+# Most files in dev/claude/ apply to every dev project type. A few don't —
+# `agents/ui-reviewer.md` is built around shadcn UI conventions and is
+# meaningless in a CLI/agent tool project. Listing those exceptions here lets
+# @sync-config skip them with an explicit `Type-gated` Provenance label
+# instead of silently forward-porting irrelevant files (the captains-log
+# 2026-05-09 case) or letting the absence of a file trigger a pattern flag
+# (the helm 2026-05-09 case).
+#
+# Format:
+#   <path-relative-to-dev/claude>: [list of project types this file applies to]
+#
+# Files NOT listed here apply to all project types (the common case).
+#
+# Project type is read from `<project>/.claude/project-type` — single-line
+# file containing one of the type tokens below. If absent or unrecognized,
+# @sync-config treats the project as ungated (legacy behavior, no gating
+# applied) and surfaces a one-liner reminder in the Step 6 report.
+#
+# Currently supported types:
+#   webapp — Next.js / React / shadcn / Supabase / Vercel shape (bushel, sailbook)
+#   tool   — CLI / agent / library; Node stdlib + shell scripts (helm, captains-log)
+#
+# Future types (NOT YET in this manifest — will get a separate task + DEC):
+#   domain — non-dev domains (bread, tomatoes, ops). Surfaced when domain/
+#            template family gets populated.
+#
+# Adding a new type:
+#   1. Decide what files are gated to it (and which existing files now need
+#      to add the new type to their list).
+#   2. Document in a successor DEC entry that supersedes the relevant part
+#      of DEC-011.
+#   3. Update CLAUDE.md (root) Setup section to list the type.
+#   4. Update this file.
+
+agents/ui-reviewer.md: [webapp]

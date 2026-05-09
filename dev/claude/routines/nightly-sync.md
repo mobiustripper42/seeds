@@ -123,10 +123,10 @@ For each direction in `[upstream, downstream]` (skipping any direction not prese
 6. Otherwise: push the branch, open a PR against `mobiustripper42/seeds:main`
    titled `{pr_title_prefix.upstream} — <repo> — <DATE>`. The PR body must
    include:
-   - **Classification table** with the agent's Step 3 columns: `File | Hunk | Provenance | Classification | Action`. Provenance is `Project-only` / `Template-only` / `Both-modified` per the agent contract.
+   - **Classification table** with the agent's Step 3 columns: `File | Hunk | Provenance | Classification | Action`. Provenance is `Project-only` / `Template-only` / `Both-modified` (hunk-level, Step 2 rubric) or `Type-gated` (whole-file, Step 1 scoping per DEC-011) per the agent contract.
    - **Files changed** — flat list.
    - **Pattern flags** — any flagged hunks with descriptions.
-   - **Skipped hunks** — `Project-only` skips (project-specific substitutions preserved) and any `Both-modified` skips that need a human call.
+   - **Skipped hunks** — `Project-only` skips (project-specific substitutions preserved), any `Both-modified` skips that need a human call, and any `Type-gated` skips (whole files dropped from scope because they don't apply to the project's `.claude/project-type`).
 
 ### Downstream (seeds → project)
 

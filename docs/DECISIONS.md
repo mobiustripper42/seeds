@@ -134,6 +134,27 @@ These rely on the discipline (no prod URL in local env, no prod password on disk
 
 ---
 
+## DEC-011: Project-type gating for template files
+**Decision:** Each project declares its type in a single-line `<project>/.claude/project-type` file (currently `webapp` or `tool`). A manifest at `<seeds>/.claude/type-manifest.yaml` lists the small subset of `dev/claude/` template files that don't apply to every type — e.g. `agents/ui-reviewer.md` is `[webapp]` only because it's built around shadcn UI conventions. `@sync-config` reads both before scoping its diff: any gated file whose allowed-types list doesn't include the project's type is dropped from scope and surfaces in the PR body as a `Type-gated` Provenance row. Projects without `.claude/project-type` are treated as **ungated** — every template file is diffed (legacy behavior preserved); the Step 6 report carries a one-liner so the absent file doesn't go unnoticed.
+
+**Why a separate file, not a field on `seeds-version`.** Two reasons. (1) Read precision — `seeds-version` is parsed as an integer by every consumer (skills, the Routine, `@sync-config`'s own gate). Mixing in a string field would force every reader to grow a parser. (2) Scope clarity — `seeds-version` controls schema-compatibility gating (DEC-006), `project-type` controls file-applicability gating. Different concerns, different lifetimes (a project's type rarely changes; its schema version migrates each cycle). One file per concern is the convention here (`devname`, `seeds-version`, `prod-supabase-refs` all follow it).
+
+**Why a manifest, not per-file frontmatter.** A YAML manifest at the seeds root makes the gating list visible in one place, easy to audit, and easy to extend. Per-file frontmatter (e.g. a `# project-types: [webapp]` header inside `ui-reviewer.md`) would scatter the policy across the template tree and require every file consumer to parse it. Since most template files apply to all types — only listed files are gated — a single deny-list-style manifest keeps the common case overhead-free.
+
+**Whole-file gate, not hunk-level.** Type-gating drops a file pair from the diff scope entirely; it doesn't classify hunks. This is intentional: a `tool` project doesn't half-want a UI reviewer, it doesn't want one at all. Scoping out the file before classification is cleaner than emitting a Provenance row per hunk inside a file that shouldn't have been diffed in the first place. The PR body still surfaces one `Type-gated` row per gated file so the reviewer can confirm the gate fired correctly.
+
+**Provenance row for type-gated skips.** The PR body's classification table gets a fourth Provenance value: `Type-gated`. Action format: `Skipped — project type <type>, file applies to [<allowed types>]`. Same column as the Step 2 hunk Provenance values; readers don't need a separate section.
+
+**Backfill:** existing projects (bushel, sailbook → `webapp`; helm, captains-log → `tool`) get the file written manually as part of Task 28. New projects get it during `/web-setup` per CLAUDE.md Setup step 9a.
+
+**Forcing function:** the 2026-05-09 nightly sync run surfaced two related failures. (a) helm#5's pattern flag fired only because helm has *no* `ui-reviewer.md` — the absence triggered the flag. captains-log was created from seeds the day before, so it *has* `ui-reviewer.md` even though it's a tool project; the SHA matched and no flag fired. Same architectural fact (both projects are tool-type), inconsistent classifier output. (b) The Routine had no way to express "this template file applies only to certain projects" — the `@sync-config` contract was either "all template files diff against all projects" or "the human reviewer figures it out per file." DEC-011 makes the distinction explicit and source-controlled.
+
+**Tradeoff:** the manifest is a hand-maintained list. Adding a new template file that's type-specific requires editing two files (the file itself, plus the manifest). The same applies to type-renames or splits. Acceptable — the alternative is per-file frontmatter, which scales worse on the read path.
+
+**Out of scope (deferred to a later task):** a `domain` project type for `<seeds>/domain/` template family (bread, tomatoes, ops, etc.). Surface it when the domain templates get populated; the manifest format already accommodates new types via the per-file `[<types>]` list.
+
+---
+
 ## DEC-TBD: Fate of `scripts/nightly-sync.sh`
 **Question:** Once the remote Routine works, does the local WSL-scheduled `scripts/nightly-sync.sh` stay as a belt-and-suspenders alternative, get retired, or stay as the "works offline" path?
 **Blocks:** Task 8 in PROJECT_PLAN.md.

@@ -28,6 +28,7 @@ Roles:
 | `docs/BRAND.md` | Philosophy, visual direction, voice |
 | `sessions/*.md` | Per-session files — `YYYY-MM-DD-HHMM-<dev>-<slug>.md` |
 | `.claude/seeds-version` | Schema version this project was last installed at. Used by `/pull-seeds` to gate template syncs. |
+| `.claude/project-type` | Project type — `webapp` or `tool`. Used by `@sync-config` to gate template files that don't apply to this project's type (DEC-011). Optional. |
 
 ## Core Data Model
 ```
