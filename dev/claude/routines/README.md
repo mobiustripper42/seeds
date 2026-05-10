@@ -48,10 +48,13 @@ issue on `mobiustripper42/seeds`. They rejoin the active set the run after
 they migrate.
 
 **Provenance labeling:** `@sync-config` Step 3 tags each diff hunk with
-`Project-only` / `Template-only` / `Both-modified`, so every PR body the
-Routine opens shows where each change came from at a glance. See the agent
-file (`<seeds>/dev/claude/agents/sync-config.md` § Step 2) for the full
-classification rubric.
+`Project-only` / `Template-only` / `Both-modified` (Step 2 hunk rubric)
+or `Type-gated` (whole-file scoping per DEC-011 — file dropped because
+the project's `.claude/project-type` doesn't match the manifest's
+allowed list). Every PR body the Routine opens shows where each change
+came from at a glance. See the agent file
+(`<seeds>/dev/claude/agents/sync-config.md` § Step 1 + Step 2) for the
+full classification rubric.
 
 ## Deploying a Routine (one-time per Routine)
 
