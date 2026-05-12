@@ -51,7 +51,8 @@ things → sub_things → line_items
 6. **Run targeted tests** — `npx playwright test tests/foo.spec.ts --project=desktop` (and mobile if relevant). `supabase test db` if RLS-touching. Do NOT run the full suite — that's the user's call.
 7. **Mobile screenshot** — confirm 375px viewport passes
 8. **Open PR** — `/kill-this` commits, pushes branch, opens PR. Preview URL lands in the PR description.
-9. **Review & ship** — tap the preview URL, address any `@code-review` findings, run full suite if RLS-touching, then `/ship-it` to merge.
+9. **Review & close** — tap the preview URL, address any `@code-review` findings, run full suite if RLS-touching, then `/its-dead` to finalize the session log. The session-log finalize commit lands on the same PR branch (auto-updates the PR).
+10. **Merge the PR** — once `/its-dead` reports complete, merge with `gh pr merge <N> --merge --delete-branch` or via GitHub UI. The branch deletes at merge time. **Do not merge between `/kill-this` and `/its-dead`** — that leaves the finalize commit orphaned (DEC-012).
 
 **No test, no push.**
 
@@ -189,8 +190,7 @@ npx supabase gen types typescript --local > src/lib/supabase/types.ts
 | `/pause-this` | Mid-session break | Build check, commit WIP, note pause |
 | `/restart-this` | Resume from pause | Reload context, continue same session |
 | `/kill-this` | Session end (part 1) | Build check, commit, push branch, open PR, code review, draft session body |
-| `/ship-it` | After PR review passes | Merge PR, push migration if any, record ship time + wall clock |
-| `/its-dead` | Session end (part 2) | Calc duration + points, finalize session file, branch cleanup |
+| `/its-dead` | Session end (part 2) | Calc time fields (wall_clock / dev_time / review_time) + points, finalize session file, branch cleanup. Merge the PR AFTER this runs. |
 | `/start-phase` | Phase boundary (start) | Materialize phase tasks from PROJECT_PLAN.md into Issues with phase:N + points:X labels |
 | `/retro` | Phase boundary (end) | Mark `[x]`, reconcile drift, compute phase velocity, write retro to RETROSPECTIVES.md, bump minor version |
 | `/bump-major` | Breaking change | Manually bump major version. CHANGELOG.md entry + tag (on main) or deferred tag (on staging). Dev projects only |
@@ -221,7 +221,7 @@ npx supabase gen types typescript --local > src/lib/supabase/types.ts
 ## PR Workflow
 
 - Each task gets a branch (`git checkout -b task/X.Y-short-description`).
-- `/kill-this` opens the PR. `/ship-it` merges it.
+- `/kill-this` opens the PR. `/its-dead` finalizes the session log into the same PR branch (PR auto-updates). User merges with `gh pr merge <N> --merge --delete-branch` AFTER `/its-dead` reports complete. See DEC-012 for why merge happens last.
 - Keep no more than 3 open PRs at once. Prefer 1.
 - Never have two open PRs with migrations touching the same table — merge one first.
 - Self-approve unless a stakeholder review is explicitly needed.

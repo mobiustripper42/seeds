@@ -24,15 +24,60 @@ If found: LEGACY MODE. Note this and proceed; all writes go to `session-log.md` 
 
 If neither: stop and ask the user how to proceed.
 
-## Step 1 — Calculate duration
+## Step 1 — Calculate time fields
 
-**End time:** `END_UTC=$(git log -1 --format="%cI")` (most recent commit ISO 8601 timestamp).
+Three numbers go into the session frontmatter — all in hours, rounded to nearest 5 minutes (0.083 hr):
 
-**Start time:**
+| Field | Meaning | Source |
+|-------|---------|--------|
+| `wall_clock` | Raw end − start. Includes overnight idle, lunch, etc. | Auto. |
+| `dev_time` | Active work time — wall clock minus inferred breaks. The number that drives velocity. | Auto (transcript gap inference) + optional user adjustment from skill args. |
+| `review_time` | Time between PR open and PR merge. Captures how long review took. | Auto-backfilled by next `/its-alive` once the PR merges. Left blank here when `STATE != MERGED`. |
+
+`duration:` remains in the frontmatter as a synonym for `dev_time:` — same value, kept for backwards compat with the legacy velocity table reader. Set both.
+
+### Step 1.0 — End time
+
+```
+END_UTC=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+```
+(Not `git log -1 --format="%cI"` — that's the last commit's time, which can be hours earlier than session close if the user reviewed the /kill-this draft for a while. Wall clock means right now.)
+
+### Step 1.1 — Start time
+
 - NEW MODE: parse `started:` from the session file's YAML frontmatter.
 - LEGACY MODE: parse the timestamp from the `## Session N — YYYY-MM-DD HH:MM [open]` heading.
 
-Compute `END_UTC - START_UTC` in hours, rounded to nearest 5 minutes (0.083 hr). Apply any time adjustment from skill args (e.g. "subtract 30 minutes" → reduce by 0.5 hr). If you cannot confidently determine duration, ask the user.
+### Step 1.2 — wall_clock
+
+`WALL_CLOCK = (END_UTC − START_UTC) in hours`. Round to nearest 0.083 hr.
+
+### Step 1.3 — dev_time (break inference)
+
+Active dev time = wall_clock minus inferred breaks. A "break" is any gap in the transcript JSONL longer than the break threshold.
+
+**Threshold:** 15 minutes. Two consecutive transcript entries > 15 min apart count as a break; the full gap is subtracted from dev_time.
+
+**How to compute:**
+1. Read `transcript:` path from the session frontmatter.
+2. If the file exists: extract each line's `timestamp` field (the JSONL format records one per entry), sort, and walk pairwise. Sum gaps > 15 min.
+3. If the file is missing or unreadable: fall back to `wall_clock` as dev_time (no inference possible) and note `inference: unavailable` in the Context section.
+
+**Manual adjustment from skill args:** if the user passed adjustments (e.g. `/its-dead subtract 30 minutes for time away from desk`), apply on top of the inferred number. Args win over inference — the human knows what they did.
+
+`DEV_TIME = max(0, wall_clock − inferred_breaks − manual_adjustment)`.
+
+If `wall_clock < 0.25h`, skip inference entirely — there's not enough span for it to matter. Set `dev_time = wall_clock`.
+
+### Step 1.4 — review_time
+
+Set `REVIEW_TIME=` (blank) for now. Three exceptions:
+
+- **STATE=MERGED at /its-dead time** (rare — user merged between /kill-this and /its-dead): compute `REVIEW_TIME = PR.merged_at − pr_opened_at` from the session frontmatter (set by /kill-this). If `pr_opened_at` is missing, leave blank.
+- **STATE=NO_PR with no PR ever opened:** leave blank permanently. There was no review.
+- **STATE=OPEN (most common):** leave blank. Next session's `/its-alive` backfill step reads this session's `pr_opened_at` + the PR's `merged_at` and writes the value back.
+
+If you cannot confidently determine any of these, ask the user. Never guess.
 
 ## Step 2 — Tally points
 
@@ -54,7 +99,10 @@ Use whichever produced a number. If both are empty, mark `points: 0` with a note
 **NEW MODE:** edit the session file:
 1. Update frontmatter:
    - `ended: <END_UTC>`
-   - `duration: <hours>` (e.g. `2.5`)
+   - `wall_clock: <WALL_CLOCK>` (e.g. `4.5`)
+   - `dev_time: <DEV_TIME>` (e.g. `2.5`)
+   - `review_time: <REVIEW_TIME>` (blank if not yet known — next /its-alive backfills)
+   - `duration: <DEV_TIME>` (synonym for dev_time, kept for legacy readers)
    - `points: <sum>`
    - `status: closed`
 2. Replace the body sections with the approved /kill-this draft (Task, Completed, In Progress, Blocked, Next Steps, Context, Code Review).
@@ -145,7 +193,33 @@ Done.
   If `git branch -d` fails: tell the user, provide `git branch -D` to run manually.
   Then continue to Step 5.3 for the post-merge version bump.
 - **STATE=CLOSED:** STOP. Ask: "PR was closed without merging — discard this branch or keep?" Wait.
-- **STATE=NO_PR:** legacy DEC-005 cleanup (orphan auto-branches like `claude/<slug>`):
+- **STATE=NO_PR:** legacy DEC-005 cleanup (orphan auto-branches like `claude/<slug>`) — but **first detect protected `$WORKING_BRANCH`** (DEC-012). If `$WORKING_BRANCH` rejects direct push, drop into the PR-creation fallback rather than failing:
+
+  **Protection probe (do this before the cleanup attempt):**
+  ```
+  PROTECTED=0
+  if gh api "repos/{owner}/{repo}/branches/$WORKING_BRANCH/protection" --silent 2>/dev/null; then PROTECTED=1; fi
+  ```
+  (If `gh` is unavailable, also try MCP `mcp__github__pull_request_read`-adjacent endpoints; if both unavailable, attempt the push and catch a 403 as `PROTECTED=1`.)
+
+  **If `PROTECTED=1` (protected-main fallback):**
+  Treat this as if the session ran without a PR by accident. Open one now:
+  a. `git add $FILES && git commit -m "Update session log for session $N"` on the current branch.
+  b. `git push origin $BRANCH`.
+  c. Compose a minimal PR body:
+     ```
+     ## Summary
+     Session $N close-out — PR opened by /its-dead because direct push to `$WORKING_BRANCH` is protected and no PR existed from /kill-this.
+
+     ## Files changed
+     <list from git diff --name-only origin/$WORKING_BRANCH..HEAD>
+     ```
+  d. Try `gh pr create --base "$WORKING_BRANCH" --head "$BRANCH" --title "Session $N close-out" --body "..."`. On non-zero exit, fall back to `mcp__github__create_pull_request`. On both failing, STOP and ask user to open manually.
+  e. Capture the resulting PR URL. **Set `STATE=OPEN`** (the protected-main fallback effectively turns this into an OPEN-state close) and continue to Step 6, which will surface the merge instruction.
+  f. Do NOT delete the branch — the PR is the merge gate now.
+  No version bump on this path — the post-merge bump waits for the next session's /its-alive (which detects the merge during orphan-branch scan and triggers Step 5.3 retroactively) or for `/its-dead` of the merging session.
+
+  **If `PROTECTED=0` (unprotected main — original DEC-005 path):**
   a. `git add $FILES && git commit -m "..."` on the current branch.
   b. `git checkout $WORKING_BRANCH` (or `git checkout -b $WORKING_BRANCH origin/$WORKING_BRANCH` if no local copy yet). `git pull --ff-only origin $WORKING_BRANCH`.
   c. `git merge --ff-only $BRANCH`. If can't FF, surface and ask.
@@ -153,7 +227,7 @@ Done.
   e. `git push origin --delete $BRANCH`. Capture success/failure.
   f. If remote delete failed: append `**Orphan branch:** \`$BRANCH\` could not be deleted on origin (best-effort failure). Manual cleanup via GitHub UI required.` to the session file's Context section. Amend the commit.
   g. `git push origin $WORKING_BRANCH`.
-  No version bump for NO_PR — it's a legacy cleanup path, not a real merge event. (If a project on this path adopts semver, it should also adopt PR flow.)
+  No version bump for NO_PR — it's a legacy cleanup path, not a real merge event.
 
 ### Step 5.3 — Version bump (dev projects only, post-merge)
 
@@ -203,9 +277,29 @@ f. **Echo:** `Version bumped: v<previous> → v<NEW_VERSION>` (and `tag: v<NEW_V
 
 ## Step 6 — Closing summary
 
-Print a one-line summary:
+The summary must be **conditional on the resolved `STATE`** — never report a flat "Session N closed" when there's still an action waiting. The user reads this line and walks away; if a PR is open they'll forget it sat there.
+
+**STATE=OPEN (most common on protected-main PR-flow projects):**
 ```
-Session <N> closed. Duration: <hours>h. Points: <N>. File: <path>.
+Session <N> closed. Wall: <wall_clock>h | Dev: <dev_time>h | Pts: <N>.
+⚠ PR #<X> is OPEN — merge to ship:
+    gh pr merge <X> --merge --delete-branch
+or via GitHub UI. Branch `$BRANCH` lives until merged. Review time fills in next /its-alive.
 ```
 
-If on a PR-flow project and the phase rituals are in use, also say: "Phase progress: see `gh issue list --label phase:current --state open` — close out remaining issues, then `/retro` at phase boundary."
+**STATE=MERGED:**
+```
+Session <N> closed. Wall: <wall_clock>h | Dev: <dev_time>h | Review: <review_time>h | Pts: <N>.
+PR #<X> merged. Branch cleaned. Version bumped: v<previous> → v<NEW_VERSION>.
+```
+Drop the version-bump line if Step 5.3 skipped (non-dev project, etc.).
+
+**STATE=NO_PR (legacy DEC-005 direct-push to unprotected main):**
+```
+Session <N> closed. Wall: <wall_clock>h | Dev: <dev_time>h | Pts: <N>.
+Cleaned up `$BRANCH`.
+```
+
+**STATE=CLOSED:** the skill already STOPped in Step 5.2 awaiting user direction; no closing summary fires from that path.
+
+If on a PR-flow project and the phase rituals are in use, append: "Phase progress: see `gh issue list --label phase:current --state open` — close out remaining issues, then `/retro` at phase boundary."
