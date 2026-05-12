@@ -194,22 +194,6 @@ Extract from the previous file:
 - **Next Steps** — exact verbatim
 - **Context** — gotchas worth remembering
 
-### Step 7.5 — Backfill review_time on prior session
-
-Read the previous session file's frontmatter. If it has `pr_number:` set AND `review_time:` is blank, attempt the backfill:
-
-1. Look up the PR's merge state:
-   - `gh pr view <pr_number> --json mergedAt,state 2>/dev/null` — or MCP `mcp__github__pull_request_read`.
-2. If `state` is `MERGED` and `mergedAt` is non-null:
-   - `REVIEW_TIME = (mergedAt − pr_opened_at)` in hours, rounded to 0.083 hr.
-   - Edit the previous session file: set `review_time: <value>`. Commit on the current branch (the open session file is already there too — combine into one commit `"Backfill review_time on session <N-1>"` or amend the open-session commit if it hasn't been pushed yet).
-3. If `state` is `OPEN`: leave `review_time:` blank. Try again next session.
-4. If `state` is `CLOSED` (not merged): set `review_time:` to the close timestamp delta — `(closedAt − pr_opened_at)` — and add a note in Context: "PR #N closed without merging on <closedAt>."
-
-If `pr_number:` is missing on the prior session: skip silently. Sessions before this convention won't have the field; nothing to backfill.
-
-If `gh` and MCP are both unavailable: skip silently. Next session will retry.
-
 ## Step 8 — Read project state
 
 Grep `docs/PROJECT_PLAN.md` — do not read the whole file:
