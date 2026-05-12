@@ -26,15 +26,17 @@ If neither: stop and ask the user how to proceed.
 
 ## Step 1 — Calculate time fields
 
-Three numbers go into the session frontmatter — all in hours, rounded to nearest 5 minutes (0.083 hr):
+Three numbers go into the session frontmatter, all in hours, rounded to nearest 5 minutes (0.083 hr). The session splits in two at `pr_opened_at`: everything before is dev work, everything after is review/close-out work.
 
-| Field | Meaning | Source |
-|-------|---------|--------|
-| `wall_clock` | Raw end − start. Includes overnight idle, lunch, etc. | Auto. |
-| `dev_time` | Active work time — wall clock minus inferred breaks. The number that drives velocity. | Auto (transcript gap inference) + optional user adjustment from skill args. |
-| `review_time` | Time between PR open and PR merge. Captures how long review took. | Auto-backfilled by next `/its-alive` once the PR merges. Left blank here when `STATE != MERGED`. |
+| Field | Window | Definition |
+|-------|--------|------------|
+| `wall_clock` | `started` → `ended` | Raw end−start. Includes idle. |
+| `dev_time` | `started` → `pr_opened_at` | Active dev time. Wall portion minus inferred breaks within that window. |
+| `review_time` | `pr_opened_at` → `ended` | Review + close-out time (addressing code-review findings, drafting log, running `/its-dead`). Wall portion minus inferred breaks within that window. |
 
-`duration:` remains in the frontmatter as a synonym for `dev_time:` — same value, kept for backwards compat with the legacy velocity table reader. Set both.
+Merge happens AFTER `/its-dead` under DEC-012, so it's outside the session — not counted in any of these.
+
+`duration:` remains in the frontmatter as a synonym for `dev_time:` for legacy velocity-table readers — write both to the same value.
 
 ### Step 1.0 — End time
 
@@ -52,30 +54,46 @@ END_UTC=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 
 `WALL_CLOCK = (END_UTC − START_UTC) in hours`. Round to nearest 0.083 hr.
 
-### Step 1.3 — dev_time (break inference)
+### Step 1.3 — Break inference (per window)
 
-Active dev time = wall_clock minus inferred breaks. A "break" is any gap in the transcript JSONL longer than the break threshold.
-
-**Threshold:** 15 minutes. Two consecutive transcript entries > 15 min apart count as a break; the full gap is subtracted from dev_time.
+A "break" is any gap between consecutive transcript JSONL entries longer than the **15-minute threshold**.
 
 **How to compute:**
 1. Read `transcript:` path from the session frontmatter.
-2. If the file exists: extract each line's `timestamp` field (the JSONL format records one per entry), sort, and walk pairwise. Sum gaps > 15 min.
-3. If the file is missing or unreadable: fall back to `wall_clock` as dev_time (no inference possible) and note `inference: unavailable` in the Context section.
+2. If the file exists: extract each line's `timestamp` field, sort, and walk pairwise. For each gap > 15 min, classify it by the gap-start timestamp:
+   - Gap-start ≤ `pr_opened_at` → dev-window break.
+   - Gap-start > `pr_opened_at` → review-window break.
+3. If the file is missing or unreadable: skip inference (both window breaks = 0) and note `inference: unavailable` in the Context section.
 
-**Manual adjustment from skill args:** if the user passed adjustments (e.g. `/its-dead subtract 30 minutes for time away from desk`), apply on top of the inferred number. Args win over inference — the human knows what they did.
+Multiple JSONL files may exist if the session was compacted — Glob all `*.jsonl` in the transcript directory whose first timestamp is ≥ `started`, concatenate timestamps, sort.
 
-`DEV_TIME = max(0, wall_clock − inferred_breaks − manual_adjustment)`.
+**Manual adjustment from skill args:** if the user passed adjustments (e.g. `/its-dead subtract 30 minutes for time away from desk`), apply on top of inference. Ask which window the adjustment belongs to if not obvious from the user's phrasing; default to dev-window if ambiguous.
 
-If `wall_clock < 0.25h`, skip inference entirely — there's not enough span for it to matter. Set `dev_time = wall_clock`.
+### Step 1.4 — dev_time
 
-### Step 1.4 — review_time
+If `pr_opened_at` is **set** in the frontmatter (normal case — /kill-this ran):
+```
+dev_window = pr_opened_at − started
+dev_time = max(0, dev_window − dev_window_breaks − dev_window_adjustment)
+```
 
-Set `REVIEW_TIME=` (blank) for now. Three exceptions:
+If `pr_opened_at` is **blank** (STATE=NO_PR — /kill-this didn't open a PR):
+```
+dev_time = wall_clock − all_breaks − adjustments
+review_time = 0
+```
+The whole session was effectively dev work — no review phase. Skip Step 1.5.
 
-- **STATE=MERGED at /its-dead time** (rare — user merged between /kill-this and /its-dead): compute `REVIEW_TIME = PR.merged_at − pr_opened_at` from the session frontmatter (set by /kill-this). If `pr_opened_at` is missing, leave blank.
-- **STATE=NO_PR with no PR ever opened:** leave blank permanently. There was no review.
-- **STATE=OPEN (most common):** leave blank. Next session's `/its-alive` backfill step reads this session's `pr_opened_at` + the PR's `merged_at` and writes the value back.
+### Step 1.5 — review_time
+
+```
+review_window = ended − pr_opened_at
+review_time = max(0, review_window − review_window_breaks − review_window_adjustment)
+```
+
+`review_time` captures work done after the PR was opened: addressing `@code-review` findings, drafting the session entry, running `/its-dead`. The user-merge that happens AFTER `/its-dead` is outside this window — DEC-012 puts the merge outside the session entirely.
+
+If `wall_clock < 0.25h`, skip both window inferences — there's not enough span. Set `dev_time = wall_clock - any adjustments`, `review_time = 0`.
 
 If you cannot confidently determine any of these, ask the user. Never guess.
 

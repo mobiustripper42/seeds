@@ -189,13 +189,25 @@ The user merging AFTER `/its-dead` is the keystone. It eliminates the `STATE=MER
 
 **What DEC-005 still covers.** DEC-005 (always on main while solo) is now scoped to projects where `$WORKING_BRANCH` is unprotected. The CC platform's `claude/<slug>` auto-branching + protected `main` + branch protection rules on org repos means the de-facto default has already shifted to PR-flow. DEC-005's direct-push is the unprotected-main fallback, not the primary path.
 
-**Wall clock / dev time / review time.** The reordering created the seam to capture three time fields rather than one: wall clock (raw end−start), dev time (wall clock minus inferred breaks from transcript gaps > 15 min, plus user-adjusted args), and review time (PR open → PR merged, backfilled at next session). The `duration:` field stays as a synonym for `dev_time:` for legacy velocity-table readers.
+**Wall clock / dev time / review time.** The reordering created the seam to capture three time fields rather than one. The session splits in two at `pr_opened_at`:
+
+- `wall_clock` = `/its-dead` end − `/its-alive` start. Raw.
+- `dev_time` = `pr_opened_at` − `started`, minus inferred breaks within that window.
+- `review_time` = `ended` − `pr_opened_at`, minus inferred breaks within that window.
+
+Break inference walks the transcript JSONL(s) and counts any gap > 15 min as idle. A gap's start timestamp picks which window it belongs to. Manual user adjustments (`/its-dead subtract 30 minutes for time away from desk`) apply on top, with the user clarifying which window if ambiguous.
+
+If `pr_opened_at` is unset (`STATE=NO_PR` — `/kill-this` never opened a PR), the session is treated as one window: `dev_time = wall_clock - all_breaks`, `review_time = 0`.
+
+The merge happens AFTER `/its-dead` (the DEC-012 reorder) — so merge time is *not* part of `review_time`. `review_time` here measures in-session review work (addressing `@code-review` findings, drafting the log, running `/its-dead`), not GitHub-PR-pending-merge wall time.
+
+All three fields are populated at `/its-dead` close, no backfill needed. `duration:` stays as a synonym for `dev_time:` for legacy velocity-table readers.
 
 **Consequences.**
 - `/ship-it` was on the template skills table but never built — folded into `/its-dead` + manual merge.
 - The "everything is closed" closing summary line is now `STATE`-conditional. `OPEN` says "merge to ship," `MERGED` says "version bumped + branch cleaned," `NO_PR` says "cleaned up branch." No more flat success when a PR sits waiting.
 - `/its-alive` Step 0.5 scans for orphan-branches-without-PRs at session start, catching any work that fell through the cracks of a prior session.
-- Three new frontmatter fields per session: `wall_clock`, `dev_time`, `review_time`. `/retro` reads all three to compute three velocities — points/wall_clock, points/dev_time, points/review_time.
+- Three new frontmatter fields per session: `wall_clock`, `dev_time`, `review_time` — all populated at `/its-dead` close from the `pr_opened_at` seam. `/retro` reads all three to compute three velocities: points/wall_clock, points/dev_time, points/review_time.
 
 **Trade-offs.** The user is on the hook for one extra step (merge after /its-dead) that the original convention had them do mid-session. The benefit: no orphaned commits, no overnight-PR surprises, no "everything is closed" misreports. The cost: a 5-second `gh pr merge` after `/its-dead` prints its closing line.
 
