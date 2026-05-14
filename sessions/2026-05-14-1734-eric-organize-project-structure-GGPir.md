@@ -7,7 +7,7 @@ started: 2026-05-14T17:34:48Z
 ended:
 points:
 pr_numbers: []
-status: open
+status: abandoned
 transcript: /root/.claude/projects/-home-user-seeds/a0c9efff-552b-4165-a09a-bdc2af4a0d09.jsonl
 ---
 
