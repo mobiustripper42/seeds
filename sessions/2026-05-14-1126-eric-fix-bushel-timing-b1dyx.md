@@ -4,13 +4,13 @@ dev: eric
 slug: fix-bushel-timing-b1dyx
 branch: claude/fix-bushel-timing-B1dYx
 started: 2026-05-14T11:26:21Z
-ended:
+ended: 2026-05-14T15:12:52Z
 wall_clock:
 dev_time:
 review_time:
 duration:
-points:
-status: open
+points: 13
+status: closed
 pr_numbers: [38, 75]
 pr_number:
 pr_url:
