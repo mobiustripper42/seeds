@@ -11,7 +11,7 @@ review_time:
 duration:
 points:
 status: open
-pr_numbers: [38]
+pr_numbers: [38, 75]
 pr_number:
 pr_url:
 pr_opened_at:
@@ -44,8 +44,26 @@ transcript: /root/.claude/projects/-home-user/3b81b9f0-599b-4c57-a669-3c0fddda13
 **Branch:** claude/fix-bushel-timing-B1dYx
 **Opened at:** 2026-05-14T12:30:00Z
 
+## Task 2: DEC-013 + DEC-014 mirror — bushel
+
+**Completed:**
+- Copied the 6 rewritten skill bodies (template-identical) into `bushel/.claude/skills/{its-alive,its-dead,kill-this,retro,pause-this,restart-this}/SKILL.md`.
+- `bushel/CLAUDE.md` updated: skills table (DEC-013/014 framing), Micro Workflow (per-task `/kill-this`, `/its-dead` at end), PR Workflow (`/retro` does all bumps), Versioning (CHANGELOG owned by `/retro` + `/bump-major`, not `/its-dead`), Key Docs row for sessions/*.md.
+- **Migration on bushel:** built orphan `sessions` branch via plumbing — captured the existing `sessions/` tree, added a README, mktree + commit-tree + update-ref to a new orphan commit, pushed `origin/sessions`. Removed `sessions/` from `main`. Added `.sessions-worktree/` to `.gitignore`. Attached worktree at `.sessions-worktree/`.
+- **Mid-flight rebase:** PRs #72/#73/#74 landed on bushel main during this session (v0.4.4 → v0.4.5 + 3.3/3.4 features). Merged `origin/main` into the branch (commit 7686361) — one conflict on `sessions/2026-05-14-0346-eric-main.md` (modify/delete: deletion wins on main, the finalized version was backfilled onto the orphan `sessions` branch as a follow-up commit 93527fb).
+
+**Code review:** No formal pass — skill bodies are byte-identical to seeds' templates so seeds#38's review covers it. Self-review confirmed `.gitignore` entry, orphan-branch correctness (zero parent), session-20 backfill landed on the orphan.
+
+**PR:** [#75](https://github.com/mobiustripper42/bushel/pull/75)
+**Points:** 0 (folded into Task 1's 13 — same work, second target)
+**Branch:** claude/fix-bushel-timing-B1dYx (bushel)
+**Opened at:** 2026-05-14T12:50:00Z
+
+**Vercel follow-up flagged:** the orphan `sessions` branch will trigger Vercel preview builds on bushel and fail (no `package.json` on that branch). Fix: Vercel Project Settings → Git → Ignored Build Step → `if [ "$VERCEL_GIT_COMMIT_REF" = "sessions" ]; then exit 0; else exit 1; fi`. Surfaced to user during the session.
+
 **Next Steps:**
-- Merge PR #38 (seeds) + the companion bushel PR (opening next).
+- Apply the Vercel Ignored Build Step on bushel (one-time, dashboard click).
+- Merge PR #38 (seeds) + PR #75 (bushel).
 - Dogfood the new flow on the next real Claude session — verify `/its-alive` Step 0.6 + per-task `/kill-this` + `/its-dead` gut-check all behave on a fresh window.
 - `/retro` lives unrun until phase end; will get its first real test when this seeds phase closes.
 
