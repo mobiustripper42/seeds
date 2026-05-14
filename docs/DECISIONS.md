@@ -130,7 +130,7 @@ These rely on the discipline (no prod URL in local env, no prod password on disk
 
 **Resolves the prior `DEC-TBD: Repo list format for the Routine`** — chosen format is YAML at `.claude/routine-config.yaml`. Rationale above.
 
-**Still TBD:** fate of the local-WSL `scripts/nightly-sync.sh` (Task 8 in PROJECT_PLAN.md). Decide after the Routine has run for a couple weeks and we know whether the offline path matters.
+**Resolved:** the local-WSL `scripts/nightly-sync.sh` was retired 2026-05-14 (DEC-TBD resolution above, Task 8). The Routine is the only sync path.
 
 ---
 
@@ -155,9 +155,8 @@ These rely on the discipline (no prod URL in local env, no prod password on disk
 
 ---
 
-## DEC-TBD: Fate of `scripts/nightly-sync.sh`
-**Question:** Once the remote Routine works, does the local WSL-scheduled `scripts/nightly-sync.sh` stay as a belt-and-suspenders alternative, get retired, or stay as the "works offline" path?
-**Blocks:** Task 8 in PROJECT_PLAN.md.
+## DEC-TBD: Fate of `scripts/nightly-sync.sh` — RESOLVED 2026-05-14
+**Resolution:** Retired. The remote Routine (DEC-010) has run cleanly for ~5 days. `scripts/nightly-sync.sh` and its docs are removed. Task 8 closed.
 
 ---
 
@@ -214,3 +213,103 @@ All three fields are populated at `/its-dead` close, no backfill needed. `durati
 **Migration.** Existing projects pick up DEC-012 via the nightly Routine (forward-port of the four skill files + this CLAUDE.md template change). No data migration — the new frontmatter fields are additive and optional; sessions written before DEC-012 stay readable.
 
 **Supersedes:** DEC-005's direct-push convention (now scoped to unprotected `$WORKING_BRANCH` only).
+
+---
+
+## DEC-013: Per-task `/kill-this`, single `/its-dead`, all time math at `/retro`
+
+**Date:** 2026-05-14
+**Status:** Accepted
+**Supersedes:** DEC-012's three-time-fields-at-close and the `/its-alive` Step 7.5 backfill.
+
+**Context.** DEC-012 introduced `pr_opened_at` as the seam for `dev_time` / `review_time` splits, plus a backfill in `/its-alive` that wrote `review_time` into the *previous* session's frontmatter once that PR merged. Two problems surfaced in dogfooding:
+
+1. **Backfill violates atomicity.** A session file that was supposed to be closed kept getting mutated by the next session. The closing summary said "everything is clean," but it wasn't — the next `/its-alive` would reach back and rewrite. The user surfaced this directly: "session_log needs to be atomic to the claude session."
+2. **One Claude session usually has multiple tasks.** The skill names imply pairing (`/kill-this` ↔ `/its-dead`), but the actual workflow opens N PRs across one Claude window — `/kill-this` runs per task while waiting on CI / walking away / context-switching, and `/its-dead` only runs once at the very end. Stacked tasks on the old model left earlier commits uncounted and stranded the prior session's `status: open`.
+
+**The new shape.**
+
+- `/its-alive` — opens a session (1 per Claude window).
+- `/kill-this` — runs **per task**. Build check, commit, opens a PR, **appends** a task block to the running session file. Captures `pr_number` into a `pr_numbers:` list in frontmatter. Does **not** compute time, does not set `ended:`.
+- `/its-dead` — runs **once per Claude window**, last. Stamps `ended:`. Displays `wall_clock` (= `ended − started`) to screen as a gut-check, but does **not** write any time field to the session file. Commits and closes the file. No version bump (moved to `/retro`).
+- Merge ordering — user's choice. PRs can merge before or after `/its-dead`; retro reads GitHub at retro time and gets the merge timestamps regardless.
+- `/its-alive` Step 7.5 (backfill) — **deleted**.
+- `/retro` — new responsibilities. For each session in the closing phase: reads `started`, `ended`, `transcript`, `pr_numbers`. Queries GitHub for each PR's `opened_at` / `merged_at`. Walks the transcript JSONL for break gaps. Computes per-session `wall_clock`, `dev_time`, `review_time`, and the three phase-level velocities (points / each).
+
+**Session file schema after DEC-013.**
+
+Frontmatter (atomic — written once, never mutated):
+- `session:` `dev:` `slug:` `branch:` — unchanged.
+- `started:` — stamped at `/its-alive`.
+- `ended:` — stamped at `/its-dead`. Sole new addition vs pre-frontmatter.
+- `pr_numbers:` — list of PR numbers, appended by each `/kill-this`. Replaces the singular `pr_number:` / `pr_url:`.
+- `points:` — total points for the session (sum across tasks). Filled at `/its-dead` from the per-task points entered at each `/kill-this`.
+- `status:` — `open` / `closed` / `abandoned`.
+- `transcript:` — JSONL path captured at `/its-alive`.
+
+**Removed fields:** `wall_clock`, `dev_time`, `review_time`, `duration`, `pr_opened_at`, `pr_url`, `pr_number`. Velocity-table readers that reached for `duration:` now read it from `RETROSPECTIVES.md` or from `/retro`'s computed report.
+
+**Body structure.** One **## Task <N>** block per task, appended by each `/kill-this`. Each task block has `Task:`, `Completed:`, `Blocked:`, `PR:` (number + URL), `Points:`. The session-wide `Next Steps:` and `Context:` sections live at the bottom, written by `/its-dead`.
+
+**Sanity check at close.** `/its-dead` displays "Wall clock: Nh Mm" to screen *only*. Lets the user spot anomalies ("that can't be right, I was here way less than that") and apply manual adjustments before walking away. The displayed number is not persisted to the file — the user's instinct to verify gets served, atomicity holds.
+
+**Migration.** Existing session files (DEC-012-era) keep their old fields — the new schema is forward-only. `/retro` tolerates old-schema sessions: if `wall_clock`/`dev_time`/`review_time` are pre-filled, it uses them; otherwise it computes. No mass rewrite.
+
+**Trade-offs.**
+- Per-task velocity fidelity is lost when a session bundles multiple tasks of different sizes. Session-total velocity still works; per-task velocity would need either separate sessions per task (back to the old model) or tagging each commit with a task ID. Not worth the friction.
+- Phase-end velocity reports require GitHub API access at `/retro` time. If `gh` + MCP are both unavailable, `/retro` skips `review_time` and reports only wall_clock + dev_time with a note. Same fallback discipline as DEC-012's STATE checks.
+- The "wall clock seems wrong at close" case has no path to silently fix the file. The user adjusts via manual notes in the session body (`Context:` section) or waits for `/retro` to surface the anomaly across the phase.
+
+**Why merge ordering is now free.** Pre-DEC-013, merge-before-/its-dead was a problem because the session file's `review_time` couldn't be computed without the merge timestamp, and merge-after-/its-dead needed the backfill hack. With math at retro: GitHub has both timestamps no matter what order things happened in, so retro just queries and computes. Neither ordering is privileged.
+
+**Paired with DEC-014.** DEC-013's per-task `/kill-this` creates an immediate question: which branch does the appended session file get committed to? DEC-014 answers that — an orphan `sessions` branch via a dedicated worktree, decoupled from any task branch. The two ship together.
+
+---
+
+## DEC-014: Session files on orphan `sessions` branch via dedicated worktree
+
+**Date:** 2026-05-14
+**Status:** Accepted
+**Depends on:** DEC-013 (per-task `/kill-this` semantics).
+
+**Context.** DEC-013 made `/kill-this` per-task, opening N PRs per session. Each `/kill-this` writes to the session file. The file therefore needs commits on N different task branches — and those branches get squashed/merged/deleted at PR merge. The session file would either fragment across merged-and-deleted branches or pile up on whichever branch happened to be current at each `/kill-this` invocation. Both shapes are broken.
+
+The fix is to remove the session file from the task-branch lifecycle entirely.
+
+**Decision.** Each project has an **orphan `sessions` branch** containing only `sessions/` and a stub `README.md`. Skills access it via a dedicated git worktree at `.sessions-worktree/` (hidden, project-root-adjacent, ignored from `main`'s tree by being on a separate branch with separate history).
+
+**Properties:**
+- `sessions` branch has **zero shared history** with `main` (created via `git checkout --orphan sessions`). Never merges to main. Never merges from main.
+- `.sessions-worktree/` is a `git worktree` attached to the `sessions` branch. Skills `cd` into it for session-file commits and pushes; the user's main checkout never moves.
+- Branch protection on `main` becomes irrelevant for session work. Sessions branch is unprotected by default.
+- Dev server / hot reload / build tools never see session-file commits, because they never appear in the main working tree.
+
+**Skill changes.**
+- `/its-alive` — Step 0.6 (new): ensures `.sessions-worktree/` exists. If missing, regenerates from `origin/sessions`; if `origin/sessions` doesn't exist yet (first run on a fresh project), creates the orphan branch + initial commit + worktree. Writes the session opener file inside the worktree. Commits and pushes the `sessions` branch.
+- `/kill-this` — code commits + PR go to the task branch as today. Session-file appends go to `.sessions-worktree/sessions/<file>.md` and are committed/pushed to the `sessions` branch.
+- `/its-dead` — stamps `ended:` inside the worktree, commits and pushes `sessions` branch. Sets `status: closed`.
+- `/retro` — reads session files from `.sessions-worktree/sessions/*.md`.
+
+**Three creation triggers** (so users can't accidentally end up without a worktree):
+1. **New projects** — one-time setup step added to CLAUDE.md's "Setting Up a New Dev Project" list.
+2. **Existing projects** — migration step (see below) creates it once.
+3. **Safety net** — `/its-alive` Step 0.6 (new) checks for `.sessions-worktree/`; if missing, it regenerates from `origin/sessions` automatically.
+
+**`.gitignore` entry.** `.sessions-worktree/` is added to `main`'s `.gitignore` so the worktree directory is invisible from main's tree.
+
+**Migration (one-time per project).**
+1. Create the `sessions` orphan branch with the existing session files: `git checkout --orphan sessions && git rm -rf . && git checkout main -- sessions/ && git add sessions/ && git commit -m "Initialize sessions branch" && git push -u origin sessions`.
+2. Switch back to `main`: `git checkout main`.
+3. Remove `sessions/` from `main`: `git rm -r sessions/`.
+4. Add `.sessions-worktree/` to `.gitignore`.
+5. Commit on `main`: `git commit -m "Move sessions to orphan sessions branch (DEC-014)"`.
+6. Create the worktree: `git worktree add .sessions-worktree sessions`.
+
+Existing session files preserved verbatim — they live on the new branch from commit 1.
+
+**Trade-offs.**
+- `ls sessions/` from `main` returns "no such directory" — muscle memory breaks. Quick peek workaround: `cat .sessions-worktree/sessions/<file>.md`.
+- The Routine (DEC-010) doesn't currently know about the `sessions` branch. Sessions are project-local; only skill templates sync via the Routine. No change needed there.
+- A user who manually `git checkout sessions` lands in a working tree with no code. Recovery: `git checkout main`. Not a hazard unless deliberately invoked.
+
+**Why orphan rather than long-lived feature-branch.** Long-lived parallel branches accumulate merge debt against main forever. Orphan branches have zero shared history — they can't conflict, can't drift, can't fall behind. Sessions are not source code; treating them as a sibling timeline is the honest shape.

@@ -15,8 +15,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | `docs/CHEATSHEET.md` | One-page printable skill reference |
 | `docs/SCHEMA_VERSIONS.md` | Schema versioning policy + version history (V1, V2, …) + migration notes. The contract that `/pull-seeds` enforces. |
 | `seeds-version` | Single line at repo root — the latest published schema version. Compared against `<project>/.claude/seeds-version` by `/pull-seeds`. |
-| `sessions/*.md` | Per-session files (one per session). Filename: `YYYY-MM-DD-HHMM-<dev>-<slug>.md`. |
-| `session-log.md` | Legacy archive — pre-rollout sessions only. New sessions write to `sessions/`. |
+| `sessions/*.md` (on orphan `sessions` branch) | Per-session files (one per session). Filename: `YYYY-MM-DD-HHMM-<dev>-<slug>.md`. Lives on the orphan `sessions` branch, accessed via `.sessions-worktree/` (DEC-014). Atomic after `/its-dead` writes `status: closed` (DEC-013). |
+| `session-log.md` | Legacy archive — pre-rollout sessions only. New sessions write to the orphan `sessions` branch. |
 
 ## What This Repo Is
 
@@ -68,13 +68,13 @@ This repo encodes a specific development workflow for solo Claude-assisted proje
 
 | Skill | When | What it does |
 |-------|------|--------------|
-| `/its-alive` | Session start | Stamps time, opens a per-session file in `sessions/`, captures the active JSONL transcript path, reads last session context, recommends task |
-| `/pause-this` | Mid-session break | Runs build check, commits WIP, notes pause in the session file |
+| `/its-alive` | Session start | Ensures `.sessions-worktree/` exists, stamps time, opens a per-session file on the orphan `sessions` branch, captures the active JSONL transcript path, reads last session context, recommends task (DEC-014) |
+| `/pause-this` | Mid-session break | Runs build check, commits WIP on the task branch, notes pause in the session file on the sessions branch |
 | `/restart-this` | Resume from pause | Reloads context from the open session file — no new session number |
-| `/kill-this` | Session end (part 1) | Build check, commit, runs @code-review, drafts session file body for review |
-| `/its-dead` | Session end (part 2) | Calculates duration, fills points, finalizes the session file, commits + pushes, cleans up branch, bumps patch version on dev projects |
+| `/kill-this` | Per-task (DEC-013) | Build check, code commit on the task branch, runs @code-review, opens a PR, appends a `## Task <N>` block to the running session file. May run multiple times per Claude window — one per task |
+| `/its-dead` | Session end (once per window) | Stamps `ended:`, tallies total points, displays wall_clock to screen for gut-check, closes the session file. No time math, no version bump — those moved to `/retro` (DEC-013) |
 | `/start-phase` | Phase boundary (start) | Reads next phase from PROJECT_PLAN.md, creates one Issue per task with `phase:N` and `points:X` labels, writes issue numbers back into the plan |
-| `/retro` | Phase boundary (end) | Marks phase tasks `[x]`, reconciles drift, computes phase velocity, prompts retro notes, appends to RETROSPECTIVES.md, bumps minor version on dev projects, optionally chains into `/start-phase` |
+| `/retro` | Phase boundary (end) | Computes per-session wall/dev/review times from each session's `started`/`ended`/transcript/PR timestamps. Aggregates to phase velocity. Marks tasks `[x]`, prompts retro notes, appends to RETROSPECTIVES.md, runs version bumps (patch per merged PR + minor at phase close), optionally chains into `/start-phase` (DEC-013) |
 | `/bump-major` | Breaking change | Manually bumps major version. CHANGELOG entry + tag (on main) or deferred tag (on staging). Dev projects only |
 | `/promote-staging` | Ship staging to prod | ff-merges `staging` → `main`, tags release with current `package.json` version, pushes both. Staging-flow projects only |
 | `/push-seeds` | After workflow improvements | Invokes @sync-config to classify diffs and propose backports to seeds |
@@ -104,7 +104,7 @@ This repo encodes a specific development workflow for solo Claude-assisted proje
 
 The skills and agents expect these files to exist in the project root:
 
-- `sessions/` — directory for per-session files (skills create + write)
+- **orphan `sessions` branch + `.sessions-worktree/`** (DEC-014) — per-session files live here, not on `main`. `/its-alive` Step 0.6 auto-creates the worktree (and the branch on first run). `.sessions-worktree/` should be `.gitignore`d from `main`.
 - `docs/PROJECT_PLAN.md` — phases, tasks, estimates, velocity table
 - `docs/RETROSPECTIVES.md` — phase-end retros (created by `/retro` if missing)
 - `docs/SPEC.md` — scope (V1 vs later) and "Not V1" list
@@ -124,7 +124,7 @@ Effort uses Fibonacci points: 2, 3, 5, 8, 13. No 1s (just do it), no 13s if avoi
 
 1. **Global one-time:** put a one-liner in `~/.claude/devname` (e.g. `eric`) — your dev handle.
 2. **Project docs** — copy `dev/claude/docs/` contents to `docs/` in the project root. Fill in all `[Project Name]` and `[placeholder]` fields. `PROJECT_PLAN.md` has Phase 0 pre-filled — fill in Phase 1+ during planning.
-3. **Sessions dir** — `mkdir sessions` in project root. (No template file needed — `/its-alive` creates entries.)
+3. **Sessions branch + worktree (DEC-014)** — `/its-alive` Step 0.6 creates these automatically on first run (orphan `sessions` branch + `.sessions-worktree/` checkout). You can do it manually if preferred: `git checkout --orphan sessions && git rm -rf . && mkdir sessions && echo "# Sessions branch" > sessions/README.md && git add . && git commit -m "Initialize sessions branch" && git push -u origin sessions && git checkout main && echo ".sessions-worktree/" >> .gitignore && git add .gitignore && git commit -m "Ignore .sessions-worktree" && git push && git worktree add .sessions-worktree sessions`.
 4. **CLAUDE.md** — copy `dev/claude/CLAUDE.md` to the project root. Fill in stack, data model, roles, and doc table.
 5. **Agents** — copy `dev/claude/agents/` to `.claude/agents/` in the project root. Update `description:` frontmatter with the project name.
 6. **Skills** — copy `dev/claude/skills/` directories to `.claude/skills/` in the project root (project-level install, not global).
