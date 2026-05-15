@@ -77,9 +77,9 @@ The session has a dev phase (work happens, possibly across multiple tasks via N 
 - Breaks: count only break gaps whose start timestamp falls inside this window.
 - In-session review of earlier PRs (reading the diff at `/kill-this` time) is overlapped with dev and counted as dev, not subtracted out — the user isn't review-blocked between tasks.
 
-**`review_time`** = sum across all PRs of the *post-dev-window* portion of `(merged_at − created_at)`, capped at `ended − max(pr.createdAt)` if the user merged before `/its-dead`.
+**`review_time`** = sum across all PRs of the post-dev-window portion of `(merged_at − created_at)`, capped at `ended − max(pr.createdAt)` if the user merged before `/its-dead`. Post-dev-window = `[max(pr.createdAt), ended]`.
 - If a PR was opened mid-session and merged after `/its-dead`, count only the in-session portion from `max(pr.createdAt)` to `ended`.
-- If a PR was opened and merged in-session, count `(merged_at − max(max(pr.createdAt), created_at))`, clamped at 0.
+- If a PR was opened and merged in-session, count `max(0, merged_at − max(pr.createdAt))`. The clamp is load-bearing, not a clock-skew guard: if a PR merged *before* `max(pr.createdAt)` (Task 1's PR reviewed while Task 2 was being built), that review is overlapped with dev per the dev_time rule above and intentionally absorbed into dev_time — contributing 0 here is the correct behavior, not a missing case.
 - Subtract any break gaps inside the review window.
 
 Edge cases:
