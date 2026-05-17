@@ -127,7 +127,7 @@ Reconcile drift: issues with `phase:<N>` labels that don't appear in PROJECT_PLA
 Update the velocity table at the top:
 ```
 | Phase | Sessions | Points | Wall (h) | Dev (h) | Review (h) | hrs/pt (dev) |
-|-------|----------|--------|----------|---------|------------|--------------|
+|-------|----------|--------|----------|---------|------------|______________|
 | N     | <count>  | <pts>  | <wall>   | <dev>   | <review>   | <hrs_pt_dev> |
 ```
 
@@ -159,7 +159,7 @@ Show the commentary verbatim:
 
 ## Step 6 — Append to RETROSPECTIVES.md
 
-If `docs/RETROSPECTIVES.md` doesn't exist, create it with `# Retrospectives\n\n`. Append:
+Read `docs/RETROSPECTIVES.md` first (Edit requires a prior Read). If it doesn't exist, create it with Write and the header `# Retrospectives\n\n`. Otherwise Edit the file by replacing the `# Retrospectives\n\n` header with `# Retrospectives\n\n## Phase <N> — <YYYY-MM-DD>\n\n...full block...\n\n` so the new phase lands at the top. Block template:
 
 ```
 ## Phase <N> — <YYYY-MM-DD>
@@ -295,4 +295,4 @@ Version: v<NEW_VERSION>  (dev projects only; skipped if no package.json)
 - **Session files are read-only here.** Retro reads them; never writes. DEC-013 atomicity.
 - **GitHub queries can fail.** If `gh` and MCP are both unavailable, skip the PR-derived numbers, mark them `inference: github-unavailable` in the retro, and tell the user they can rerun retro later. Don't guess.
 - **The headline velocity is `dev_time / point`.** Wall-clock velocity is inflated by review-and-merge wait. Review-time velocity is interesting but secondary. Forecast against dev_time.
-- **The dev/review boundary is the LAST `/kill-this` of the session, not the first** (Step 2.5). Pre-fix, the formula used `min(pr.createdAt)`, which dropped Tasks 2..N out of `dev_time` and into `review_time`. Bushel Phase 3 retro surfaced the artifact: 0.15 h/pt dev vs 0.35 h/pt active. Any historical retro run before this fix that included multi-task sessions has under-reported `dev_time` and over-reported `review_time` — treat those numbers as method artifacts and forecast against `wall_clock − breaks` (active time) instead.
+- **The dev/review boundary is the LAST `/kill-this` of the session, not the first** (Step 2.5). Pre-fix, the formula used `min(pr.createdAt)`, which dropped Tasks 2..N out of `dev_time` and into `review_time`. Any historical retro run before this fix that included multi-task sessions has under-reported `dev_time` and over-reported `review_time` — treat those numbers as method artifacts and forecast against `wall_clock − breaks` (active time) instead.
