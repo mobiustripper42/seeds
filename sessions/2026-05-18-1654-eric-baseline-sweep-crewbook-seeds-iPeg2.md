@@ -4,10 +4,10 @@ dev: eric
 slug: baseline-sweep-crewbook-seeds-iPeg2
 branch: claude/baseline-sweep-crewbook-seeds-iPeg2
 started: 2026-05-18T16:54:16Z
-ended:
-points:
+ended: 2026-05-18T17:26:06Z
+points: 0
 pr_numbers: []
-status: open
+status: closed
 transcript: /root/.claude/projects/-home-user/bc6bacab-9d03-46ac-ae65-3c0af14c0887.jsonl
 ---
 
@@ -16,6 +16,10 @@ transcript: /root/.claude/projects/-home-user/bc6bacab-9d03-46ac-ae65-3c0af14c08
 <!-- Task blocks appended by /kill-this, one per task. -->
 
 **Next Steps:**
+- Merge `mobiustripper42/crewbook#13` (the only PR this session produced).
+- Manually delete the 4 stranded remote branches listed under "Cleanup pending" below — proxy blocks `git push --delete`.
+- Optional: fire nightly-sync after the merge to validate the clean-state assertion (crewbook should produce 0 PRs in both directions; seeds depends on bushel/helm/captains-log/sailbook upstream activity).
+- Pre-existing cruft in `mobiustripper42/crewbook` sessions branch: legacy Session 2 file (`2026-05-13-…spink-…template-v3-l2zqw.md`) is still `status: open`, never closed via `/its-dead`. Close by hand or leave as historical.
 
 **Context:**
 - Multi-repo session: working in both `seeds` and `crewbook`. Seeds session opened first (this file); crewbook session-file setup deferred until we actually touch that repo (per user choice "Start in seeds, then crewbook").
