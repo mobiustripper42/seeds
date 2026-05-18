@@ -361,3 +361,29 @@ review_time  = Σ max(0, review_window_i − review_breaks_i) + trailing
 **Trade-offs.** More math, longer Step 2.5. Each PR contributes 2-3 sub-computations. Worth it: the headline numbers become trustworthy. The previous "use active as the headline" workaround was the skill apologizing for its own model — the model itself was the bug.
 
 **Migration.** No data migration. Pre-DEC-015 retros stay as-written; their notes already flag the artifact. Future retros use the per-PR formula automatically once this lands. Routine forward-ports to bushel, captains-log, helm, sailbook on next nightly run.
+
+---
+
+## DEC-016: ui-reviewer agent split — generic shell + project context file
+
+**Date:** 2026-05-18
+**Status:** Accepted
+**Applies to:** `[webapp]` projects only (tool projects don't use ui-reviewer).
+
+**Problem.** `dev/claude/agents/ui-reviewer.md` contained both the generic review structure (behavior rules, output format, severity rubric) and the project-specific design system (brand tokens, typography scale, surface rules). The moment a project filled in its brand content, the file became Both-modified relative to the seeds template — the nightly sync could never forward-port structural improvements without overwriting project brand content. Every webapp project that customized the agent was permanently orphaned from template updates.
+
+**Decision.** Split into two files:
+
+1. **`dev/claude/agents/ui-reviewer.md`** (seeds template) — the generic shell. Contains: the instruction to read the project context file, the How to Review procedure, output format, priority definitions, severity rubric, and behavior rules. No project-specific content. Syncs cleanly across all webapp projects via the nightly routine.
+
+2. **`.claude/ui-context.md`** (per project, never in seeds templates) — the project's design system reference. Contains: brand tokens, typography scale, surface descriptions (e.g. customer vs admin), component rules, and the project-specific review checklist. The nightly sync never touches this file.
+
+The agent shell opens with: "Read `.claude/ui-context.md`. It contains the project's brand tokens, surfaces, typography scale, component rules, and review checklist. Treat it as authoritative. If the file does not exist, stop and tell the user to create it."
+
+**Consequences.**
+- `ui-reviewer.md` becomes sync-clean: structural improvements to the shell (new behavior rules, checklist additions, output format changes) propagate to all webapp projects via the nightly routine.
+- Each project's full design system reference lives in one readable file (`.claude/ui-context.md`).
+- New webapp projects: copy the seeds shell, fill in `[Project]`, create `.claude/ui-context.md` with the design system.
+- Existing projects that have already customized their `ui-reviewer.md` (bushel, sailbook) need a one-time migration: extract the project-specific content to `ui-context.md`, slim the agent file back to match the shell.
+
+**Namespace note.** Seeds DEC-016 is a framework decision. Projects initialized before this decision may already use DEC-016 for a project-specific decision (e.g., bushel uses DEC-016 for Wave invoicing). Those project DECISIONS.md files are separate documents with independent numbering — no conflict. Future projects seeded from seeds v3+ should start their project-specific decisions at DEC-017.
