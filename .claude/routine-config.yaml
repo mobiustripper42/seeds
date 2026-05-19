@@ -57,3 +57,29 @@ branch_prefix:
   upstream: "auto-sync/upstream"
   downstream: "auto-sync/downstream"
 
+# File-class registry (DEC-018). Read by @sync-config at Step 1.4 before
+# hunk classification. Maps glob patterns to one of:
+#
+#   logic    — byte-identical-by-design across projects. Hash-compare only;
+#              drift produces a single Step 3 row, no LLM judgment.
+#   context  — project-specific. Dropped from diff scope entirely.
+#   hybrid   — generic shell + per-project context file. Only the shell
+#              participates in classification (DEC-019).
+#
+# Order matters — first matching glob wins. Files not matched here fall
+# back to the legacy hybrid-by-default behavior, so adding the registry
+# doesn't break sync for files yet to be classified.
+#
+# Seeds-side paths only. The agent maps to project-side paths using the
+# same rules as Step 1 (e.g. `dev/claude/skills/<name>/SKILL.md` matches
+# project `.claude/skills/<name>/SKILL.md`).
+file-classes:
+  - "dev/claude/skills/**": logic
+  - "dev/claude/agents/sync-config.md": logic
+  - "dev/claude/agents/tape-reader.md": logic
+  - "dev/claude/agents/ui-reviewer.md": hybrid
+  - "dev/claude/agents/architect.md": hybrid
+  - "dev/claude/agents/code-review.md": hybrid
+  - "dev/claude/CLAUDE.md": hybrid
+  - "dev/claude/docs/SPEC.md": context
+  - "dev/claude/docs/BRAND.md": context
