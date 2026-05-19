@@ -390,12 +390,39 @@ The agent shell opens with: "Read `.claude/ui-context.md`. It contains the proje
 
 ---
 
-## DEC-017: File-class registry for sync-config
+## DEC-017: Fact-check and structural-audit are separate reviewer concerns
+
+**Date:** 2026-05-19
+**Status:** Accepted
+**Applies to:** All project types.
+
+**Problem.** A casual "make sure the docs are consistent" prompt run in a brand-new crewbook checkout drifted from cross-reference fact-checking ("does CLAUDE.md's stack line agree with SPEC.md's?") into structural auditing ("DEC-007 references DEC-013 which isn't stubbed locally — should we add stubs for DEC-013/014/015, or restructure DEC numbering to put workflow DECs in seeds-only and project DECs at DEC-101+?"). Both kinds of review have value, but conflating them produced a wall-of-text response that buried the actual cross-doc finding (a stale version-bump trigger in the local DEC-007 stub) under a list of restructuring proposals the user hadn't asked for. The structural-audit framing also pulled the reviewer into "should we add stubs?" debates that aren't even consistency questions.
+
+**Decision.** Fact-checking and structural auditing are distinct concerns and live in distinct surfaces.
+
+- **Fact-checking** is the `@doc-consistency` agent (invoked via `/doc-consistency-check`). It cross-references claims across `docs/*.md` + root `CLAUDE.md`, flags mismatches with file:line refs and verbatim quotes, and flags unfilled template placeholders (literal `PLACEHOLDER`, bracketed leftover tokens). It produces no edits, no recommendations, no "should we restructure" prose. The agent spec carries an explicit out-of-scope list with the failure modes from the 2026-05-18 crewbook drift named directly: DEC numbering policy, file ownership, "this section should be added," stub strategy. If the reviewer notices an interesting structural concern, it gets one line in a tail "Out of scope (not investigated)" section and then the agent stops.
+
+- **Structural auditing** is `@architect` or `@sync-config` territory, depending on which axis is in question. `@architect` reviews proposed architectural decisions against `SPEC.md` and `DECISIONS.md`. `@sync-config` classifies template-vs-project drift across files. Neither agent is invoked by `/doc-consistency-check` — keeping them out of the fact-check surface is what prevents the drift this DEC addresses.
+
+**Project-type interaction (DEC-011).** `@doc-consistency` reads `.claude/project-type` to interpret `docs/BRAND.md`. For `webapp` projects, BRAND.md must declare theme/colors/typography/voice — an empty or template-stock file is a finding. For `tool` projects, BRAND.md is allowed to declare itself out of scope, but only with an explicit justification (e.g. "tool project — no end-user surface, so no visual brand"). A bare "not used" or any occurrence of the literal string `PLACEHOLDER` is a finding regardless of type. Projects without `.claude/project-type` are ungated and the report says so.
+
+**Consequences.**
+- The `/doc-consistency-check` surface produces predictable, scannable reports. Pass-with-zero-findings is a valid result; the report doesn't pad.
+- The agent will not surface DEC-numbering opinions, file-ownership opinions, or "you should add a section" prose. Future skills that want those concerns invoke `@architect` instead.
+- The skill is wireable into `/start-phase` (pre-phase clean-state check) and `/retro` (phase-end snapshot) without changing the agent — both wirings are deferred until the manual surface stabilizes.
+- The Routine forward-ports the skill + agent to bushel/captains-log/helm/sailbook/crewbook on the next sync.
+- Crewbook's 2026-05-18 stale-DEC-007 finding (the original signal) gets re-surfaced cleanly on the next `/doc-consistency-check` run there — no restructuring proposals attached.
+
+**Why not extend `@architect` to cover doc consistency.** Different output shape, different fences. `@architect` reviews proposed decisions and is expected to make recommendations. `@doc-consistency` reviews facts in already-written docs and is expected to make zero recommendations. Bundling them would dilute both agents' specs and reintroduce the drift this DEC names.
+
+---
+
+## DEC-018: File-class registry for sync-config
 
 **Date:** 2026-05-19
 **Status:** Accepted
 **Extends:** DEC-010, DEC-011
-**Related:** DEC-016 (concrete example), DEC-018 (depends on this), DEC-019 (deferred)
+**Related:** DEC-016 (concrete example), DEC-019 (depends on this), DEC-020 (deferred)
 
 ### Decision
 
@@ -424,7 +451,7 @@ The diagnosis is structural. Files under `.claude/` come in three shapes:
 
 - **Logic** — skills, sync-config agent, tape-reader agent. Byte-identical-by-design across projects. Hunk classification is wasted; hash comparison is sufficient.
 - **Context** — `docs/SPEC.md`, `docs/BRAND.md`, project's `CLAUDE.md` content. Pure project-specific. Comparing across projects is meaningless.
-- **Hybrid** — `CLAUDE.md` root, `agents/architect.md`, `agents/code-review.md`. Mix of generic shell and project context. DEC-016 already split `ui-reviewer.md` this way. The pattern generalizes (DEC-018).
+- **Hybrid** — `CLAUDE.md` root, `agents/architect.md`, `agents/code-review.md`. Mix of generic shell and project context. DEC-016 already split `ui-reviewer.md` this way. The pattern generalizes (DEC-019).
 
 DEC-011's type-gating drops whole files per project type, but treats every file identically once in scope. File-class is the missing per-file dimension.
 
@@ -458,7 +485,7 @@ Type-gate first because dropping a file entirely is cheaper than classifying it.
 ### What changes in sync-config.md
 
 - **Step 1.4 (new)**: Read `file-classes` from routine-config.yaml. For each file pair surviving Step 1, look up class. Drop context-class pairs from scope (log as `Class-gated: context`). Mark logic-class pairs for hash-only comparison.
-- **Step 2 (amended)**: For logic-class pairs, compare file hashes. If equal, emit no row. If unequal, emit a single row `logic-drift | <path> | hash mismatch | Flag` — no hunk breakdown, no LLM verdict. Hybrid-class pairs proceed to hunk classification but only against the shell portion (see DEC-018). Context-class pairs were already dropped at 1.4.
+- **Step 2 (amended)**: For logic-class pairs, compare file hashes. If equal, emit no row. If unequal, emit a single row `logic-drift | <path> | hash mismatch | Flag` — no hunk breakdown, no LLM verdict. Hybrid-class pairs proceed to hunk classification but only against the shell portion (see DEC-019). Context-class pairs were already dropped at 1.4.
 - **Step 3**: Logic-drift rows render as one row per file. Provenance column reads `Class: logic`. Hybrid rows read `Class: hybrid (shell only)`.
 
 ### Trade-offs
@@ -470,18 +497,18 @@ Type-gate first because dropping a file entirely is cheaper than classifying it.
 
 ### Forward references
 
-- **DEC-018** generalizes DEC-016's pattern to all hybrid files. Depends on this registry to mark them.
-- **DEC-019 (deferred)**: `settings.json` is a hybrid file but needs a JSON-merge strategy, not a shell+context split. Out of scope here. To be drafted after Phase 4 of the SPEC ships.
-- **DEC-020 (deferred)**: retro "prefer-apply for structural Both-modified diffs" heuristic. Independent of file-class. Not blocked by this.
+- **DEC-019** generalizes DEC-016's pattern to all hybrid files. Depends on this registry to mark them.
+- **DEC-020 (deferred)**: `settings.json` is a hybrid file but needs a JSON-merge strategy, not a shell+context split. Out of scope here. To be drafted after Phase 4 of the SPEC ships.
+- **DEC-021 (deferred)**: retro "prefer-apply for structural Both-modified diffs" heuristic. Independent of file-class. Not blocked by this.
 
 ---
 
-## DEC-018: Hybrid-file split pattern (generalization of DEC-016)
+## DEC-019: Hybrid-file split pattern (generalization of DEC-016)
 
 **Date:** 2026-05-19
 **Status:** Accepted
 **Generalizes:** DEC-016
-**Depends on:** DEC-017
+**Depends on:** DEC-018
 **Related:** DEC-010, DEC-011
 
 ### Decision
@@ -491,7 +518,7 @@ Every hybrid file gets split into two artifacts:
 1. A **seeds-managed shell** at the original path. Generic, cross-project, syncs through the Routine.
 2. A project-owned **context file** at `.claude/<basename>-context.{md,json}`. Project-specific. Never appears in seeds. Never syncs.
 
-The shell file opens with a load instruction pointing at its context file. The context file is implicitly `class: context` per DEC-017's registry — no explicit registry entry needed.
+The shell file opens with a load instruction pointing at its context file. The context file is implicitly `class: context` per DEC-018's registry — no explicit registry entry needed.
 
 This is DEC-016's pattern, lifted out of the ui-reviewer-specific case and applied to every hybrid file.
 
@@ -572,7 +599,7 @@ Context (`.claude/code-review-context.md`) holds:
 
 When Step 2 hits a hybrid file:
 - Diff only the seeds shell vs the project's shell file (same path)
-- The project's `.claude/<name>-context.{md,json}` is implicitly context-class (DEC-017) and never enters scope
+- The project's `.claude/<name>-context.{md,json}` is implicitly context-class (DEC-018) and never enters scope
 - No special hunk-level filtering needed — the shell file in the project repo only contains shell content by definition
 
 ### Migration ordering
