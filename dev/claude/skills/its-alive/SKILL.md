@@ -101,13 +101,11 @@ TIME_PART=$(date -u +%H%M)
 
 ## Step 2 — Resolve dev identity
 
-Use the **Read** tool on `~/.claude/devname`. If it succeeds, `DEV` = the trimmed file contents.
+Use the **Read** tool on `~/.claude/devname`. If it succeeds, `DEV` = the trimmed file contents. Done.
 
-If Read errors (file doesn't exist), fall back via Bash: `echo "$USER"`. Trim and assign to `DEV`.
+If Read errors (file does not exist), prompt the user once for their dev handle and offer to write `~/.claude/devname` via the **Write** tool. Once written, `DEV` = the handle. Done.
 
-If both are empty, prompt the user for their dev handle and offer to write `~/.claude/devname` via the **Write** tool.
-
-(Read + a single clean `echo` keeps the harness validator silent — no `||`, no `2>/dev/null`, no command substitution chain.)
+**Do NOT fall back to `echo "$USER"` or any other Bash-based identity probe.** The `$USER` branch was removed because: (a) the harness validator flags `$USER`-shaped Bash commands on a rolling cadence as new patterns land — so every fix to the validator-silence wording was only good until the next validator pattern landed; (b) `$USER` is unreliable in sandboxed environments where `~/.claude/devname` doesn't persist between sessions anyway, so the fallback was solving the wrong problem; (c) the prompt + Write path resolves to a real persistent value that future sessions read directly. The Read + Write path is the only path. If Read fails, the prompt is mandatory.
 
 ## Step 3 — Derive the slug
 
