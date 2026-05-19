@@ -6,7 +6,7 @@ branch: main
 started: 2026-05-19T02:14:33Z
 ended:
 points:
-pr_numbers: []
+pr_numbers: [52]
 status: open
 transcript: C:/Users/eric/.claude/projects/C--Users-eric-OneDrive-Documents-GitHub-seeds/6bff778e-c114-4927-8e57-87b5e4778c69.jsonl
 ---
@@ -14,6 +14,21 @@ transcript: C:/Users/eric/.claude/projects/C--Users-eric-OneDrive-Documents-GitH
 # Session 30 — doc-consistency-check
 
 <!-- Task blocks appended by /kill-this, one per task. -->
+
+## Task 1: `/doc-consistency-check` skill + `@doc-consistency` agent (DEC-017)
+
+**Completed:**
+- New `dev/claude/agents/doc-consistency.md` + `.claude/agents/doc-consistency.md` mirror (byte-identical)
+- New `dev/claude/skills/doc-consistency-check/SKILL.md` + `.claude/skills/doc-consistency-check/SKILL.md` mirror (byte-identical)
+- Registered in 4 enumeration surfaces: root `CLAUDE.md` Session Skills + Agents tables, `dev/claude/CLAUDE.md` Session Skills + Agent Workflow tables, `dev/claude/docs/AGENTS.md` per-agent §5 + Agent Summary rows (both agent + skill)
+- `docs/DECISIONS.md` — new DEC-017 ("Fact-check and structural-audit are separate reviewer concerns") with the crewbook drift named explicitly as the failure mode being fenced off
+- `docs/PROJECT_PLAN.md` — Task 36 row added (3 pts, `[ ]`), cosmetic blank line fix
+
+**Code review:** Clean on substance. One cosmetic nit (stray blank line above Task 36 row in PROJECT_PLAN.md) caught + fixed in follow-up commit.
+**PR:** [#52](https://github.com/mobiustripper42/seeds/pull/52)
+**Points:** 3
+**Branch:** task/36-doc-consistency-check
+**Opened at:** 2026-05-19T02:35:00Z
 
 **Next Steps:**
 
