@@ -387,3 +387,201 @@ The agent shell opens with: "Read `.claude/ui-context.md`. It contains the proje
 - Existing projects that have already customized their `ui-reviewer.md` (bushel, sailbook) need a one-time migration: extract the project-specific content to `ui-context.md`, slim the agent file back to match the shell.
 
 **Namespace note.** Seeds DEC-016 is a framework decision. Projects initialized before this decision may already use DEC-016 for a project-specific decision (e.g., bushel uses DEC-016 for Wave invoicing). Those project DECISIONS.md files are separate documents with independent numbering — no conflict. Future projects seeded from seeds v3+ should start their project-specific decisions at DEC-017.
+
+---
+
+## DEC-017: File-class registry for sync-config
+
+**Date:** 2026-05-19
+**Status:** Accepted
+**Extends:** DEC-010, DEC-011
+**Related:** DEC-016 (concrete example), DEC-018 (depends on this), DEC-019 (deferred)
+
+### Decision
+
+Add a `file-class` field to `.claude/routine-config.yaml` with three values: `logic`, `context`, `hybrid`. `@sync-config` reads this registry at Step 1.4 (new), before hunk classification. Behavior forks per class:
+
+- **logic**: hash-compare only. Drift = one row per file, no hunks, no LLM judgment. Either matches or doesn't.
+- **context**: excluded from diff scope entirely. Never compared.
+- **hybrid**: only the seeds-side shell file participates in classification. The project-side `<name>-context.{md,json}` file is implicitly `context`.
+
+Files not listed in the registry default to `hybrid` with the seeds file as shell — the legacy behavior. Unknown files don't break the routine; they just keep running through the LLM classifier as today.
+
+### Context
+
+The nightly Routine (DEC-010) produces PRs whose row counts don't match their signal counts. Empirical evidence:
+
+| PR | Rows | Real changes | Noise rows | Notes |
+|----|------|--------------|------------|-------|
+| seeds#36 | 16 | 5 | 11 | Pre-DEC-016. Most noise was project-name substitutions and filled placeholders. |
+| seeds#45 | 2 | 2 | 0 | Clean. |
+| bushel#124 | 6 | 2 | 4 | ui-reviewer row dropped from 6 to 1 after DEC-016 split. |
+| sailbook#58 | 9 | 4 | 5 | Three skips on hybrid files (architect.md, code-review.md, settings.json) wanting DEC-016 treatment. |
+
+Second problem: the LLM classifier is non-deterministic across nights. A hunk skipped Monday gets re-proposed Tuesday because the classifier has no memory of prior verdicts. For files that are byte-identical-by-design (skills, sync-config itself, tape-reader), running an LLM at all is wasted work — there's nothing to judge.
+
+The diagnosis is structural. Files under `.claude/` come in three shapes:
+
+- **Logic** — skills, sync-config agent, tape-reader agent. Byte-identical-by-design across projects. Hunk classification is wasted; hash comparison is sufficient.
+- **Context** — `docs/SPEC.md`, `docs/BRAND.md`, project's `CLAUDE.md` content. Pure project-specific. Comparing across projects is meaningless.
+- **Hybrid** — `CLAUDE.md` root, `agents/architect.md`, `agents/code-review.md`. Mix of generic shell and project context. DEC-016 already split `ui-reviewer.md` this way. The pattern generalizes (DEC-018).
+
+DEC-011's type-gating drops whole files per project type, but treats every file identically once in scope. File-class is the missing per-file dimension.
+
+### Config shape
+
+In `.claude/routine-config.yaml`, add a `file-classes` map keyed by glob, value is class name. Order matters — first match wins:
+
+```yaml
+file-classes:
+  - "dev/claude/skills/**": logic
+  - "dev/claude/agents/sync-config.md": logic
+  - "dev/claude/agents/tape-reader.md": logic
+  - "dev/claude/agents/ui-reviewer.md": hybrid
+  - "dev/claude/agents/architect.md": hybrid
+  - "dev/claude/agents/code-review.md": hybrid
+  - "dev/claude/CLAUDE.md": hybrid
+  - "dev/claude/docs/SPEC.md": context
+  - "dev/claude/docs/BRAND.md": context
+```
+
+Rejected: a separate `file-class-manifest.yaml` parallel to `type-manifest.yaml`. The registry is small, lives next to the rest of the routine config, and doesn't justify a second file.
+
+Globs are seeds-side paths. The agent maps to project-side paths using the same rules as today (Step 1 in sync-config.md).
+
+### Gate ordering
+
+Step 1 (DEC-011 type-gate, whole-file drop) → Step 1.4 (file-class lookup, behavior fork) → Step 1.5 (open-PR dedup) → Step 2 (hunk classification, only for hybrid shells and unclassified files).
+
+Type-gate first because dropping a file entirely is cheaper than classifying it. File-class second because it changes what "classify" means.
+
+### What changes in sync-config.md
+
+- **Step 1.4 (new)**: Read `file-classes` from routine-config.yaml. For each file pair surviving Step 1, look up class. Drop context-class pairs from scope (log as `Class-gated: context`). Mark logic-class pairs for hash-only comparison.
+- **Step 2 (amended)**: For logic-class pairs, compare file hashes. If equal, emit no row. If unequal, emit a single row `logic-drift | <path> | hash mismatch | Flag` — no hunk breakdown, no LLM verdict. Hybrid-class pairs proceed to hunk classification but only against the shell portion (see DEC-018). Context-class pairs were already dropped at 1.4.
+- **Step 3**: Logic-drift rows render as one row per file. Provenance column reads `Class: logic`. Hybrid rows read `Class: hybrid (shell only)`.
+
+### Trade-offs
+
+- Hand-maintained registry. Adding a new skill means updating one glob. Acceptable — skills are added rarely.
+- Glob patterns can drift. If someone adds a non-logic file under `dev/claude/skills/`, it gets hash-compared and flagged as drift. Forcing function: a hash mismatch on a logic file opens a PR immediately, no judgment, just "these drifted — sync them." Better than the LLM silently flip-flopping.
+- Logic files that grow project-specific sections become wrong loudly. Today they become wrong silently.
+- Wildcard collisions: first-match-wins handles this. The rule is documented in the agent.
+
+### Forward references
+
+- **DEC-018** generalizes DEC-016's pattern to all hybrid files. Depends on this registry to mark them.
+- **DEC-019 (deferred)**: `settings.json` is a hybrid file but needs a JSON-merge strategy, not a shell+context split. Out of scope here. To be drafted after Phase 4 of the SPEC ships.
+- **DEC-020 (deferred)**: retro "prefer-apply for structural Both-modified diffs" heuristic. Independent of file-class. Not blocked by this.
+
+---
+
+## DEC-018: Hybrid-file split pattern (generalization of DEC-016)
+
+**Date:** 2026-05-19
+**Status:** Accepted
+**Generalizes:** DEC-016
+**Depends on:** DEC-017
+**Related:** DEC-010, DEC-011
+
+### Decision
+
+Every hybrid file gets split into two artifacts:
+
+1. A **seeds-managed shell** at the original path. Generic, cross-project, syncs through the Routine.
+2. A project-owned **context file** at `.claude/<basename>-context.{md,json}`. Project-specific. Never appears in seeds. Never syncs.
+
+The shell file opens with a load instruction pointing at its context file. The context file is implicitly `class: context` per DEC-017's registry — no explicit registry entry needed.
+
+This is DEC-016's pattern, lifted out of the ui-reviewer-specific case and applied to every hybrid file.
+
+### Pattern shape
+
+What makes the split work:
+
+1. **Load instruction at the top of the shell.** Pattern: "Read `.claude/<name>-context.md`. If the file does not exist, stop and tell the user to create it." DEC-016's exact phrasing.
+2. **Predictable context path.** `.claude/<shell-basename>-context.{md,json}`. For `CLAUDE.md` (root) the context is `.claude/CLAUDE-context.md`. For `agents/architect.md` it's `.claude/architect-context.md`.
+3. **Registry marks the shell `hybrid`.** Context file path doesn't need a registry entry — anything under `.claude/` not listed is treated as project-owned.
+4. **One-time migration cost.** Per project, per hybrid file: extract project-specific content into the context file, replace shell with seeds version. After that, the two diverge cleanly forever.
+
+### Targets
+
+In priority order:
+
+- **P0: `CLAUDE.md`** (project root, sourced from `dev/claude/CLAUDE.md` in seeds). This is the biggest noise generator. Phase 2 of the SPEC.
+- **P1: `agents/architect.md`** — contains stack-specific examples ("Next.js, Supabase, shadcn/ui, Tailwind") that don't apply to tool projects. Phase 3.
+- **P2: `agents/code-review.md`** — same shape, stack-specific review checks. Phase 4.
+
+### CLAUDE.md split
+
+Section-by-section verdict against the current `dev/claude/CLAUDE.md` template. Validated against the user's worked example — diverges where the worked example was too aggressive.
+
+| Section | Verdict | Notes |
+|---------|---------|-------|
+| `# [Project Name]` heading + intro | context | Project name and one-liner description. |
+| `## What We're Building` | context | Pure project description. |
+| `## Stack` | context | Stack varies per project (webapp vs tool, Next.js version, etc.). |
+| `## Key Docs` | **split** | Universal rows (`docs/SPEC.md`, `docs/DECISIONS.md`, `docs/BRAND.md`, `CHANGELOG.md`) stay in shell as a baseline table. Project-specific docs go in context under a `## Additional Docs` subsection. |
+| `## Core Data Model` | context | Project schemas. |
+| `## Micro Workflow (DEC-013 + DEC-014)` | shell | The 12 steps are universal. If a project has step-specific overrides (e.g., "skip Supabase test db" for tool projects), they live in context under `## Workflow Overrides`. |
+| `## Migration Protocol` | **shell, with Supabase-specific subsections moved to context** | The discipline (every schema change = migration, never edit applied migrations) is universal. Supabase CLI specifics and `### Production write protection (DEC-009)` move to context. Tool projects without a database drop the whole section from their context. |
+| `## Commands` | context | Every project has different npm scripts. |
+| `## Conventions` | **split** | TypeScript strict, Server Components default, error handling philosophy, RLS-default, naming conventions — shell. Component dirs, specific lint configs, project-specific testing layouts — context under `## Conventions (project)`. |
+| `## Session Skills` table | shell | Universal slash command list. |
+| `## Agent Workflow` table | shell | Universal agent list. |
+| `## Model Selection` | shell | Opus vs Sonnet guidance is cross-project. |
+| `## PR Workflow (DEC-013 + DEC-014)` | shell | Branch/PR rules are universal. |
+| `### Staging vs no-staging (DEC-008)` | shell | Detection logic is universal; the project either has a staging branch or doesn't. Shell handles both cases. |
+| `## Versioning (DEC-007)` | **split** | Versioning policy and `### CHANGELOG.md` discipline — shell. `### <VersionTag />` component wiring and `### PR Review on Mobile` workflow — shell (universal). Project-specific version source paths — context. |
+| `## Workflow Notes` | **split** | "Never rebase a task branch", diagnostic vs env-changing distinction — shell. Project-specific debugging notes (bushel's stale `next start` on port 3001, no `source .envrc` for `npx playwright test`) — context under `## Workflow Notes (project)`. |
+| `## Approval Before Action` | shell |
+| `## Bug Reports & Questions` | shell |
+| `## Scope Discipline` | shell |
+| `## Tone` | shell |
+| `## Verbosity` | shell |
+| `## Cost and Waste` | shell |
+
+**Resolved ambiguities** (the sections that don't cleanly belong on one side):
+
+- `## Key Docs`: shell has baseline table; context appends. Not a clean split, but the alternative (context-only) means every project re-types the universal rows.
+- `## Migration Protocol`: shell holds the discipline, context holds the toolchain. Tool projects with no DB get a one-line context note saying "N/A".
+- `## Conventions`: shell holds principles, context holds locations. Same rationale.
+- `## Workflow Notes`: shell holds rules, context holds debugging gotchas. Bushel's three-line port-3001 note is the canonical example of context content.
+
+After the split, bushel's current `CLAUDE.md` (which today duplicates Tone / Verbosity / Cost and Waste verbatim from the template) loses ~60% of its bytes. Those sections live in shell, get read at session start, and stop drifting.
+
+### architect.md split
+
+Shell stays as today minus stack-specific examples. The "default to simpler option," "high bar for new patterns," "reference DEC IDs" rules are all universal.
+
+Context (`.claude/architect-context.md`) holds:
+- Project stack one-liner (so the architect can give stack-appropriate advice)
+- Project-specific patterns to prefer (e.g., bushel's "design folder is authoritative")
+- Project-specific anti-patterns
+
+### code-review.md split
+
+Shell stays as today minus stack-specific review checks (Supabase RLS checks, shadcn/ui usage patterns).
+
+Context (`.claude/code-review-context.md`) holds:
+- Stack-specific review checks
+- Project-specific lint rules to verify
+- Project-specific RLS or auth conventions
+
+### What changes in sync-config.md
+
+When Step 2 hits a hybrid file:
+- Diff only the seeds shell vs the project's shell file (same path)
+- The project's `.claude/<name>-context.{md,json}` is implicitly context-class (DEC-017) and never enters scope
+- No special hunk-level filtering needed — the shell file in the project repo only contains shell content by definition
+
+### Migration ordering
+
+Per the SPEC: Phase 2 = CLAUDE.md, Phase 3 = architect.md, Phase 4 = code-review.md. Each phase is one session. Each phase = update seeds shell + extract context per project. Scope per phase varies by file applicability (webapp-only vs all-projects).
+
+### Trade-offs
+
+- Two files to read at session start instead of one. Mitigated by the load instruction at the top of every shell — if Claude reads the shell first, it knows to read the context next.
+- One source of duplication risk: a project could fail to re-read shell after a sync. Mitigated by the Routine itself — if shell drifts, sync proposes a PR.
+- Migration is manual and per-project. Acceptable: it's a one-time cost. LLM-assisted extraction is fine; full automation is not in scope.
+- Context files have no version control across projects. By design — they're project-owned.
