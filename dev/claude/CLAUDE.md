@@ -22,13 +22,15 @@ Roles:
 | `docs/SPEC.md` | What we're building — scope, V1 vs V2 vs V3 |
 | `docs/DECISIONS.md` | Why we made each architectural choice |
 | `docs/USER_STORIES.md` | What each role does |
-| `docs/PROJECT_PLAN.md` | Phases, scope, velocity table — written at phase boundaries only. Current-phase tasks live in GitHub Issues. |
-| `docs/RETROSPECTIVES.md` | Phase-end retrospectives written by `/retro` |
-| `docs/AGENTS.md` | Agent and skill specs |
-| `docs/BRAND.md` | Philosophy, visual direction, voice |
-| `sessions/*.md` (on orphan `sessions` branch via `.sessions-worktree/`) | Per-session files — `YYYY-MM-DD-HHMM-<dev>-<slug>.md`. Atomic after `/its-dead` closes (DEC-013); lives on the orphan `sessions` branch decoupled from any code branch (DEC-014). |
+| `docs/PROJECT_PLAN.md` | Phases, scope, velocity. **Phase-boundary doc** — read at planning, written at retro. Current-phase tasks live in GitHub Issues. |
+| `docs/RETROSPECTIVES.md` | Phase-end retrospectives — written by `/retro` |
+| `docs/AGENTS.md` | Agent and skill specs (canonical). |
+| `docs/BRAND.md` | Voice, visual direction, philosophy |
+| `docs/VELOCITY_AND_POKER_GUIDE.md` | Estimation methodology |
+| `docs/CHEATSHEET.md` | One-page printable skill reference |
+| `sessions/*.md` (on orphan `sessions` branch via `.sessions-worktree/`) | Per-session files — `YYYY-MM-DD-HHMM-<dev>-<slug>.md`. Atomic after `/its-dead` closes (DEC-013); orphan branch decouples session log from any code branch (DEC-014). |
 | `.claude/seeds-version` | Schema version this project was last installed at. Used by `/pull-seeds` to gate template syncs. |
-| `.claude/project-type` | Project type — `webapp` or `tool`. Used by `@sync-config` to gate template files that don't apply to this project's type (DEC-011). Optional. |
+| `.claude/project-type` | Project type — `webapp` or `tool`. Used by `@sync-config` to gate template files that don't apply to this project's type. Optional. |
 
 ## Core Data Model
 ```
@@ -41,24 +43,21 @@ things → sub_things → line_items
        attendance (user × sub_thing)
 ```
 
-## Micro Workflow (per task, DEC-013 + DEC-014)
+## Micro Workflow (every task, no exceptions)
 
-1. **Spec it** — poker estimate, acceptance criteria
-2. **Plan it** — summarize files to create/edit + approach. Wait for explicit approval before writing code or running commands.
-3. **Cut the task branch** — once the plan is approved: `git checkout -b task/X.Y-short-description` (from the session anchor or main). One branch per task.
-4. **Build it** — implement the feature
-5. **Write the test** — Playwright integration test + pgTAP if RLS-touching
-6. **Run targeted tests** — `npx playwright test tests/foo.spec.ts --project=desktop`. `supabase test db` if RLS-touching. Do NOT run the full suite — that's the user's call.
+1. **Spec it** — poker estimate, acceptance criteria. Issue exists from `/start-phase`.
+2. **Plan it** — summarize what you're going to do. Wait for explicit approval before writing code or running commands.
+3. **Cut the branch** — once approved: `git checkout -b task/X.Y-short-description`.
+4. **Build it**
+5. **Write the test** — Playwright integration test + pgTAP if RLS-touching. Test-first when behavior is changing.
+6. **Run targeted tests** — `npx playwright test tests/foo.spec.ts --project=desktop`. `supabase test db` if RLS-touching. Do NOT run full suite — that's the user's call.
 7. **Mobile screenshot** — confirm 375px viewport passes
-8. **Ship the task** — `/kill-this`. Commits code on the task branch, opens PR, appends a `## Task <N>` block to the session file (on the orphan `sessions` branch via `.sessions-worktree/`).
-9. **Pick up another task** — start from step 1 again, with a new branch. `/its-alive` doesn't run again — same session.
-10. **Close the Claude window** — `/its-dead` once, at the end. Stamps `ended:`, displays wall_clock to screen for gut-check, closes the session file. No time math, no version bump (those run at `/retro`).
-11. **Merge PRs whenever** — order doesn't matter. PRs may merge mid-session, after `/its-dead`, or days later. Each merge deletes its task branch.
-12. **Phase boundary** — `/retro` reads each session's `started`/`ended`/transcript/PR-timestamps to compute per-session time. Aggregates phase velocity. Patches version per merged PR, minor-bumps at close.
+8. **Ship the task** — `/kill-this` commits, pushes, opens PR with `closes #<issue>`, appends a `## Task <N>` block to the session file (on the orphan `sessions` branch). Run per task; multiple per session.
+9. **Pick up another task or close out** — start step 1 with a new branch, or run `/its-dead` once at the end of the Claude window. Merge PRs whenever — order doesn't matter.
 
 **No test, no push.**
 
-**Full suite (`npx playwright test`) is never run automatically.** At the end of the session summary, ask: "Did you run the full Playwright suite yet?" and let the user decide.
+**Full suite (`npx playwright test`) is never run automatically.** Ask first.
 
 ## Migration Protocol
 
@@ -105,21 +104,22 @@ The wrapper only catches CLI ops. The following are **not** guarded — they rel
 ## Commands
 ```bash
 # Development
-npm run dev                    # local dev server (localhost:3000)
-npm run build                  # production build
-npm run lint                   # ESLint
+npm run dev
+npm run build
+npm run lint
 
 # Database (local Supabase)
-supabase start                 # start local Supabase (Docker)
-supabase stop                  # stop local Supabase
-supabase db reset              # wipe + replay all migrations + seed
-supabase migration new name    # create new migration file
-supabase db push               # apply migrations to remote project
+supabase start
+supabase stop
+supabase db reset
+supabase migration new <name>
+supabase db push
 
 # Testing
-supabase test db               # run pgTAP RLS tests
-npx playwright test            # run integration tests
-npx playwright test --ui       # run with browser UI
+supabase test db                                # pgTAP RLS
+npx playwright test                             # full suite (workers=1 by config — do not override)
+npx playwright test tests/foo.spec.ts --project=desktop  # targeted, dev mode
+npx playwright test --ui                        # browser UI
 
 # Types
 npx supabase gen types typescript --local > src/lib/supabase/types.ts
@@ -175,26 +175,27 @@ npx supabase gen types typescript --local > src/lib/supabase/types.ts
 - Every page works at 375px (Playwright screenshot confirms)
 
 ### Testing
-- pgTAP tests live in `supabase/tests/`
-- Playwright tests live in `tests/`
-- Playwright viewports: 375px (mobile), 768px (tablet), 1440px (desktop)
-- Mock external services in test mode
-- `NOTIFICATIONS_ENABLED=false` for test environment
+- **Test the user, not the function.** Heavy integration, light unit.
+- **Test-first when behavior changes.** Update the test, then the code.
+- pgTAP in `supabase/tests/`, Playwright in `tests/`.
+- Playwright viewports: 375px (mobile), 768px (tablet), 1440px (desktop).
+- Mock external services in test mode.
+- `NOTIFICATIONS_ENABLED=false` for test environment.
 - **During development:** run only the relevant file + desktop project — `npx playwright test tests/foo.spec.ts --project=desktop`
 - **Single test:** `npx playwright test -g "test name" --project=desktop`
-- **Before every commit:** full suite, all viewports — `npx playwright test` (workers=1 is the config default; do not override)
+- **Full suite:** `npx playwright test` (workers=1 is the config default; do not override)
 
 ## Session Skills
 
 | Skill | When | What |
 |-------|------|------|
-| `/its-alive` | Session start | Stamp time, ensure `.sessions-worktree/` exists, open per-session file on orphan `sessions` branch, capture transcript, read context, recommend task |
-| `/pause-this` | Mid-session break | Build check, commit WIP on the task branch, note pause in session file (on sessions branch) |
+| `/its-alive` | Session start | Ensure `.sessions-worktree/` exists, open per-session file on orphan `sessions` branch, capture transcript, read context, recommend task |
+| `/pause-this` | Mid-session break | Build check, commit WIP on task branch, note pause in session file (sessions branch) |
 | `/restart-this` | Resume from pause | Reload context, continue same session |
-| `/kill-this` | **Per task** (DEC-013) | Build check, commit code on task branch, open PR, append `## Task <N>` block to session file. Multiple runs per session — one per task. No time math. |
-| `/its-dead` | Session end (once per window) | Stamp `ended:`, tally points, display wall_clock to screen, close session file. No time math, no version bump (those moved to `/retro`). Merge PRs whenever — order doesn't matter. |
-| `/start-phase` | Phase boundary (start) | Materialize phase tasks from PROJECT_PLAN.md into Issues with phase:N + points:X labels |
-| `/retro` | Phase boundary (end) | Compute per-session wall/dev/review from `started`/`ended`/transcript/PR-timestamps. Aggregate phase velocity. Mark `[x]`, reconcile drift, append to RETROSPECTIVES.md, patch-bump per merged PR + minor-bump at close (dev projects). |
+| `/kill-this` | **Per task** (DEC-013) | Build check, commit code on task branch, open PR, append `## Task <N>` block to session file. Run N times per session — one per task. No time math. |
+| `/its-dead` | Session end (once per window) | Stamp `ended:`, tally points, display wall_clock to screen, close session file. No time math, no version bump (those moved to `/retro`). Merge PRs whenever. |
+| `/start-phase` | Phase boundary (start) | Materialize phase as Issues with `phase:N`, `points:X` labels |
+| `/retro` | Phase boundary (end) | Compute per-session wall/dev/review from `started`/`ended`/transcript/PR timestamps. Aggregate phase velocity. Mark `[x]`, write retro, patch-bump per merged PR + minor-bump at close. |
 | `/bump-major` | Breaking change | Manually bump major version. CHANGELOG.md entry + tag (on main) or deferred tag (on staging). Dev projects only |
 | `/promote-staging` | Ship staging to prod | ff-merge `staging` → `main`, tag the release with current `package.json` version, push both. Staging-flow projects only |
 | `/push-seeds` | After workflow improvements | Backport project-side improvements to the seeds templates via @sync-config |
@@ -202,17 +203,15 @@ npx supabase gen types typescript --local > src/lib/supabase/types.ts
 | `/read-the-tape` | After a session worth learning from | Audit JSONL transcript, find anti-patterns, propose skill improvements |
 | `/doc-consistency-check` | Mid-project, before phase boundaries, or after a session that touched multiple docs | Cross-reference factual claims across `docs/*.md` + root `CLAUDE.md`; flag mismatches + unfilled placeholders. Report-only via @doc-consistency |
 
-**Dev identity:** `~/.claude/devname` (one-line file with your handle). Set once per machine.
+**Dev identity:** `~/.claude/devname` (one-line file with handle, e.g. `eric`). Set once per machine.
 
-**Task model:** PROJECT_PLAN.md is read at planning, written at retro. Untouched mid-phase. Current-phase tasks live as GitHub Issues. The phase ends when its issues close.
-
-## Agent Workflow
+## Agents
 
 | Agent | Model | When | Purpose |
 |-------|-------|------|-------|
-| @architect | Opus | Before design decisions | Keep architecture coherent |
+| @architect | Opus | Before design decisions, new dependencies, scope creep | Coherence vs SPEC + DECISIONS |
 | @code-review | Sonnet | After every commit (wired into `/kill-this`) | Catch issues early |
-| @pm | Sonnet | Start/end of sessions (via skills) | Track progress, flag risks |
+| @pm | Sonnet | Start/end of sessions via skills | Track progress, flag risks |
 | @ui-reviewer | Sonnet | After UI work, phase boundaries | Design quality |
 | @sync-config | Sonnet | `/push-seeds` and `/pull-seeds` | Classifies template-vs-project diffs, gates structural backports |
 | @tape-reader | Sonnet | `/read-the-tape` | Audits session JSONL for workflow anti-patterns |
@@ -220,48 +219,42 @@ npx supabase gen types typescript --local > src/lib/supabase/types.ts
 
 ## Model Selection
 
-- **Main CC session:** Sonnet by default. Switch to Opus manually when you're stuck on something hard.
-- **Agents:** model is set in each agent's frontmatter. Don't override unless the task warrants it.
-- **New agents:** default to Sonnet. Add `model: opus` frontmatter only for architecture-level agents.
+- Main session: Sonnet by default. Switch to Opus when stuck.
+- Agents: model in agent frontmatter. Don't override unless task warrants.
 
-## PR Workflow (DEC-013 + DEC-014)
+## PR Workflow
 
-- Each **task** gets a branch (`git checkout -b task/X.Y-short-description`). Multiple tasks per session is normal.
-- `/kill-this` runs **per task** — opens a PR for the current task branch and appends a `## Task <N>` block to the session file (on the orphan `sessions` branch). Run it as many times as you have tasks.
-- `/its-dead` runs **once per Claude window**, at the end. Stamps `ended:`, no other writes to file beyond closing it. No version bump.
-- Merge each PR whenever convenient — before next `/kill-this`, after `/its-dead`, days later. Order doesn't matter; `/retro` reads merge timestamps from GitHub.
-- The session file is **atomic** after `/its-dead` writes `status: closed`. No skill modifies it again. `/retro` reads but doesn't write.
-- Keep no more than 3 open PRs at once. Prefer 1.
-- Never have two open PRs with migrations touching the same table — merge one first.
-- Self-approve unless a stakeholder review is explicitly needed.
+- Each task gets a branch: `git checkout -b task/X.Y-short-description`.
+- Issues assigned to phase via `phase:N` label (created by `/start-phase`).
+- PR title references issue: `closes #N`.
+- `/kill-this` opens PR. Self-merge after review unless stakeholder review needed.
+- Keep ≤3 open PRs. Prefer 1.
+- Never two open PRs with migrations on the same table — merge one first.
+- **Stacking PRs is preferred** when tasks depend on each other. Branch the next task off the previous task branch (`git checkout -b task/X.Y-next task/X.Y-prev`), not off main. Only wait for the previous PR to merge when there's a migration conflict on the same table.
 
-### Staging vs no-staging (DEC-008)
+### Staging vs no-staging
 
-If `origin/staging` exists, the project uses staging-flow:
-- `/kill-this` opens PRs into `staging`, not `main`.
-- `/its-dead` patch-bumps on `staging` (no tag — DEC-007 says tags only on `main`).
-- `/retro` minor-bumps on `staging` (no tag).
-- `/promote-staging` ff-merges `staging` → `main`, tags the release, pushes. **No PR for promotion** — the merge is already implicit in each task PR landing on staging.
-
-Without `origin/staging`, the project ships straight to `main`:
-- `/kill-this` opens PRs into `main`.
-- `/its-dead` patch-bumps on `main` and tags `vX.Y.Z` immediately.
+Without `origin/staging`, the project ships PRs straight to `main`:
+- `/kill-this` opens PRs into `main` per task.
+- `/retro` patch-bumps + tags on `main` at phase boundary (no per-PR bump from `/its-dead` post-DEC-013).
 - `/retro` minor-bumps on `main` and tags `vX.0.0` immediately.
 
-Adopting staging mid-project: cut `staging` from `main` (`git checkout -b staging main && git push -u origin staging`). All future skills will detect it automatically — no skill changes required.
+Adopting staging later: cut from `main` once and skills auto-detect.
+```
+git checkout -b staging main && git push -u origin staging
+```
+After that, `/kill-this` PRs into `staging`, bumps are untagged on `staging`, and `/promote-staging` ff-merges `staging` → `main` and tags the release. No skill changes required to opt in or out — staging existence (`git show-ref --verify --quiet refs/remotes/origin/staging`) is the only signal.
 
-## Versioning (DEC-007)
+## Versioning
 
-Every dev project carries a SemVer version in `package.json`, mirrored to a git tag (`vX.Y.Z`) on `main`.
+Every dev project carries a SemVer version in `package.json`, mirrored to a git tag (`vX.Y.Z`) on `main`. `/retro` is the sole place version bumps happen (DEC-013 moved patch bumps out of `/its-dead`).
 
-**Three triggers (DEC-013 — all bumps run at `/retro`):**
-- **Patch:** `/retro` Step 8.2 — one bump + CHANGELOG entry per PR merged during the phase window. Title pulled from GitHub.
-- **Minor:** `/retro` Step 8.3 — bumped at phase close after all patches land. CHANGELOG entry summarizes the phase.
+**Three triggers (all run at `/retro` per DEC-013):**
+- **Patch:** `/retro` Step 8.2 — one bump + CHANGELOG entry per PR merged in the phase window. Title pulled from GitHub.
+- **Minor:** `/retro` Step 8.3 — at phase close after all patches. CHANGELOG entry summarizes the phase.
 - **Major:** `/bump-major` manual. User supplies the breaking-change rationale.
 
-Pre-DEC-013, patch bumps ran at `/its-dead` per merge. That kept session files non-atomic (each session's close-out depended on whether the PR had merged yet). Moving all bumps to retro keeps session files clean and concentrates versioning at the phase boundary where the changelog story is most coherent.
-
-**Tag rule:** tags are only ever applied on `main`. In staging-flow projects, bumps on `staging` are untagged; the tag lands when `/promote-staging` ff-merges to `main`.
+**Tag rule:** tags only ever applied on `main`. In staging-flow projects, bumps on `staging` are untagged; the tag lands when `/promote-staging` ff-merges.
 
 **Detection:** these skills check `package.json` exists at the repo root before bumping. If it doesn't (template/markdown-only project), they no-op silently.
 
@@ -269,43 +262,22 @@ Pre-DEC-013, patch bumps ran at `/its-dead` per merge. That kept session files n
 
 Build-time version display, reads `process.env.NEXT_PUBLIC_APP_VERSION` + `process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA`. Renders e.g. `v1.2.3 (a1b2c3)`.
 
-Install:
-1. Copy `dev/claude/templates/VersionTag.tsx` from seeds to `src/components/VersionTag.tsx` (or wherever your component dir is).
-2. **One-time Next.js setup:** in `next.config.js` (or `next.config.mjs`), forward the npm-set version into the client-inlinable namespace:
-   ```js
-   module.exports = {
-     env: {
-       NEXT_PUBLIC_APP_VERSION: process.env.npm_package_version,
-     },
-   };
-   ```
-   Without this, `<VersionTag />` will silently render `v0.0.0` in any client component tree — Next.js only inlines `process.env.X` into the client bundle when `X` starts with `NEXT_PUBLIC_`.
-3. Wire into the login screen and footer:
-   ```tsx
-   import { VersionTag } from "@/components/VersionTag";
-   <VersionTag className="text-xs text-muted-foreground" />
-   ```
-4. No additional env-var setup — Vercel sets `NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA` automatically; the `next.config.js` forward handles the version.
-5. Local dev (`npm run dev` outside Vercel): commit hash is omitted, version shows alone. That's intentional.
+Wiring:
+- `next.config.ts` (or `next.config.js`) forwards `npm_package_version` → `NEXT_PUBLIC_APP_VERSION`. Critical — without `NEXT_PUBLIC_`, client trees silently render `v0.0.0`.
+- Wire into login screen and footer.
+- Vercel sets `NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA` automatically. Local `npm run dev` outside Vercel omits the commit hash — that's intentional.
+
+```tsx
+import { VersionTag } from "@/components/VersionTag";
+<VersionTag className="text-xs text-muted-foreground" />
+```
 
 ### CHANGELOG.md
 
-Auto-maintained by the version-bump skills. Don't edit by hand mid-flow — the skills always prepend after the `# Changelog` header. If the file doesn't exist, the first bump creates it.
-
-Format (Keep-a-Changelog inspired but simpler):
-```
-# Changelog
-
-## [1.2.3] - 2026-05-05
-- PR #42: Add login form
-
-## [1.2.2] - 2026-05-04
-- PR #41: Fix dashboard query
-```
+Auto-maintained by `/retro` and `/bump-major` (DEC-013 — `/its-dead` no longer touches it). Don't edit by hand mid-flow — the skills always prepend after the `# Changelog` header. The first bump creates the file if absent.
 
 ### PR Review on Mobile (developer notes)
 
-Doing PR reviews from your phone is tolerable if you structure for it:
 - **GitHub mobile app, not web.** The native app's diff + approve + merge flow is usable. The mobile web is not.
 - **Tap the preview URL first.** Vercel posts it as a comment. 60 seconds of clicking the actual feature catches more than reading the diff would.
 - **Enable auto-merge.** Repo Settings → enable auto-merge, then "Enable auto-merge" on each PR. Checks pass → it merges itself. One less thing to remember to do.
@@ -316,36 +288,36 @@ Doing PR reviews from your phone is tolerable if you structure for it:
 ## Workflow Notes
 - **Diagnostic commands** (build, lint, type check, test): run directly — see errors, fix them, don't bother the user.
 - **Environment-changing commands** (npm install, supabase migrations, git push, deploys): output these for the user to run.
-- **Never rebase a task branch that already has commits on origin.** If main has advanced while a PR branch is open, leave the branch as-is — GitHub's "Update branch" button handles this at merge time. Rebasing rewrites remote history and requires a force-push, which is blocked by policy. Use `git merge --ff-only` only if explicitly asked.
-- **Before starting `npm run dev`:** run `curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/` first. If it returns 200, skip the start — a server is already up. Only start a new one if the check fails.
+- **Never rebase a task branch that already has commits on origin.** Use GitHub's "Update branch" at merge time.
+- **Debugging CI failures:** Before any multi-step local debug (spawning servers, reading cookies, modifying middleware), confirm the environment is functional: "Can you run `npx playwright test` locally right now? What env vars are set?" One environmental check before any code change.
+- **Stale `next start` on port 3001:** Playwright's webServer config reuses an existing server on port 3001 when one is running. A `next start` left over from an earlier debug run will serve the previous build's bundle to every test in the new run, producing phantom failures. Before the first targeted `npx playwright test` invocation in a session — especially after build changes — kill any orphan: `lsof -ti:3001 | xargs -r kill -9` (or `pkill -f "next start"`). Re-check with `lsof -ti:3001` — empty output means the port is clean. Do this once per session, not per test run.
 - **JSON parsing in Bash:** Prefer `gh ... --jq '...'` (built-in jq via `gh`) or `jq` over `python3 -c "import json,sys; ..."` one-liners. The python invocations trigger per-pattern permission prompts (each unique argument list is a new allowlist entry), while `gh --jq` runs under the existing `Bash(gh ...)` allowance. For non-`gh` JSON, install/use `jq` directly. Reserve python for cases where the data shape genuinely needs control flow.
-- **Bug reports:** Create a GitHub issue (`gh issue create`), tag `bug`, add to current or next phase.
+- **Bug reports:** create a GitHub issue, label `bug`, add to current or next phase.
 
 ## Approval Before Action (all tasks)
-For every task — not just bugs — explain the plan and wait for approval before doing anything:
-1. State what files you'll create or modify and why
-2. Wait for "go", "do it", or equivalent
-3. Do not write code, create files, run tests, or execute any commands until approved
+For every task — explain the plan, wait for "go" or equivalent.
+1. State files you'll create/modify and why
+2. Wait for approval
+3. No code, files, or commands until approved
 
-**This includes the full test suite.** The database may be in use. Never run the full `npx playwright test` without telling the user first. Targeted test runs (`npx playwright test tests/foo.spec.ts --project=desktop`) are fine during active development without prior approval.
+**Includes the full test suite.** Database may be in use. Targeted runs OK during dev; full suite never automatic.
 
 ## Bug Reports & Questions
-When a bug is reported or a question is asked:
-1. Explain the cause and your proposed fix
-2. Wait for approval before making any changes
-3. Do not edit files, run commands, or implement fixes until given the go-ahead
+1. Explain cause + proposed fix
+2. Wait for approval
+3. No edits until go-ahead
 
 ## Scope Discipline
-Check `docs/SPEC.md` section "Not V1" before adding anything.
+Check `docs/SPEC.md` "Not V1" before adding anything.
 
-If a task starts feeling bigger than its estimate:
-1. Stop and re-estimate
-2. Update PROJECT_PLAN.md
-3. If it's now a 13, break it down
-4. If it's scope creep, flag it and move on
+If a task feels bigger than its estimate:
+1. Stop, re-estimate
+2. Update PROJECT_PLAN.md (at next phase boundary, or via Issue if mid-phase)
+3. If now a 13, break it down
+4. If scope creep, flag and move on
 
 ## Tone
-Occasional dry humor and sarcasm are welcome. Don't overdo it — one good line beats three forced ones.
+Occasional dry humor and sarcasm welcome. One good line beats three forced ones.
 
 ## Verbosity
 
