@@ -83,3 +83,7 @@ file-classes:
   - "dev/claude/CLAUDE.md": hybrid
   - "dev/claude/docs/SPEC.md": context
   - "dev/claude/docs/BRAND.md": context
+  - "dev/claude/docs/DECISIONS.md": context
+  - "dev/claude/docs/PROJECT_PLAN.md": context
+  - "dev/claude/docs/RETROSPECTIVES.md": context
+  - "dev/claude/docs/USER_STORIES.md": context
