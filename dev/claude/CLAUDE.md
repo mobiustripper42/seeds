@@ -193,7 +193,7 @@ npx supabase gen types typescript --local > src/lib/supabase/types.ts
 | `/pause-this` | Mid-session break | Build check, commit WIP on task branch, note pause in session file (sessions branch) |
 | `/restart-this` | Resume from pause | Reload context, continue same session |
 | `/kill-this` | **Per task** (DEC-013) | Build check, commit code on task branch, open PR, append `## Task <N>` block to session file. Run N times per session — one per task. No time math. |
-| `/its-dead` | Session end (once per window) | Stamp `ended:`, tally points, display wall_clock to screen, close session file. No time math, no version bump (those moved to `/retro`). Merge PRs whenever. |
+| `/its-dead` | Session end (once per window) | Stamp `ended:`, tally points, display wall_clock to screen, close session file. No time math, no version bump (those moved to `/retro`). Merge PRs whenever — order doesn't matter. |
 | `/start-phase` | Phase boundary (start) | Materialize phase as Issues with `phase:N`, `points:X` labels |
 | `/retro` | Phase boundary (end) | Compute per-session wall/dev/review from `started`/`ended`/transcript/PR timestamps. Aggregate phase velocity. Mark `[x]`, write retro, patch-bump per merged PR + minor-bump at close. |
 | `/bump-major` | Breaking change | Manually bump major version. CHANGELOG.md entry + tag (on main) or deferred tag (on staging). Dev projects only |
@@ -204,6 +204,8 @@ npx supabase gen types typescript --local > src/lib/supabase/types.ts
 | `/doc-consistency-check` | Mid-project, before phase boundaries, or after a session that touched multiple docs | Cross-reference factual claims across `docs/*.md` + root `CLAUDE.md`; flag mismatches + unfilled placeholders. Report-only via @doc-consistency |
 
 **Dev identity:** `~/.claude/devname` (one-line file with handle, e.g. `eric`). Set once per machine.
+
+**Task model:** PROJECT_PLAN.md is read at planning, written at retro. Untouched mid-phase. Current-phase tasks live as GitHub Issues. The phase ends when its issues close.
 
 ## Agents
 
@@ -221,6 +223,7 @@ npx supabase gen types typescript --local > src/lib/supabase/types.ts
 
 - Main session: Sonnet by default. Switch to Opus when stuck.
 - Agents: model in agent frontmatter. Don't override unless task warrants.
+- **New agents:** default to Sonnet. Add `model: opus` frontmatter only for architecture-level agents.
 
 ## PR Workflow
 
