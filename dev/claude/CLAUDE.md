@@ -279,8 +279,20 @@ import { VersionTag } from "@/components/VersionTag";
 
 Auto-maintained by `/retro` and `/bump-major` (DEC-013 — `/its-dead` no longer touches it). Don't edit by hand mid-flow — the skills always prepend after the `# Changelog` header. The first bump creates the file if absent.
 
+Format (Keep-a-Changelog inspired but simpler):
+```
+# Changelog
+
+## [1.2.3] - 2026-05-05
+- PR #42: Add login form
+
+## [1.2.2] - 2026-05-04
+- PR #41: Fix dashboard query
+```
+
 ### PR Review on Mobile (developer notes)
 
+Doing PR reviews from your phone is tolerable if you structure for it:
 - **GitHub mobile app, not web.** The native app's diff + approve + merge flow is usable. The mobile web is not.
 - **Tap the preview URL first.** Vercel posts it as a comment. 60 seconds of clicking the actual feature catches more than reading the diff would.
 - **Enable auto-merge.** Repo Settings → enable auto-merge, then "Enable auto-merge" on each PR. Checks pass → it merges itself. One less thing to remember to do.
@@ -292,6 +304,7 @@ Auto-maintained by `/retro` and `/bump-major` (DEC-013 — `/its-dead` no longer
 - **Diagnostic commands** (build, lint, type check, test): run directly — see errors, fix them, don't bother the user.
 - **Environment-changing commands** (npm install, supabase migrations, git push, deploys): output these for the user to run.
 - **Never rebase a task branch that already has commits on origin.** Use GitHub's "Update branch" at merge time.
+- **Before starting `npm run dev`:** run `curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/` first. If it returns 200, skip the start — a server is already up. Only start a new one if the check fails.
 - **Debugging CI failures:** Before any multi-step local debug (spawning servers, reading cookies, modifying middleware), confirm the environment is functional: "Can you run `npx playwright test` locally right now? What env vars are set?" One environmental check before any code change.
 - **Stale `next start` on port 3001:** Playwright's webServer config reuses an existing server on port 3001 when one is running. A `next start` left over from an earlier debug run will serve the previous build's bundle to every test in the new run, producing phantom failures. Before the first targeted `npx playwright test` invocation in a session — especially after build changes — kill any orphan: `lsof -ti:3001 | xargs -r kill -9` (or `pkill -f "next start"`). Re-check with `lsof -ti:3001` — empty output means the port is clean. Do this once per session, not per test run.
 - **No `source .envrc` for `npx playwright test`:** Playwright reads `.env.local` via `dotenv` in `playwright.config.ts` — it does not need `.envrc`. The `source .envrc &&` prefix is for CLI tools that need project-specific tokens (e.g. `supabase db push` when the global CLI is authed to a different account). Prefixing test commands with `source .envrc &&` triggers a permission prompt per invocation (the leading `source` falls outside `Bash(npx *)`), and each variation — different spec, project, or pipe target — is a new prompt. Run tests bare: `npx playwright test tests/foo.spec.ts --project=desktop`.
