@@ -193,7 +193,7 @@ npx supabase gen types typescript --local > src/lib/supabase/types.ts
 | `/pause-this` | Mid-session break | Build check, commit WIP on task branch, note pause in session file (sessions branch) |
 | `/restart-this` | Resume from pause | Reload context, continue same session |
 | `/kill-this` | **Per task** (DEC-013) | Build check, commit code on task branch, open PR, append `## Task <N>` block to session file. Run N times per session — one per task. No time math. |
-| `/its-dead` | Session end (once per window) | Stamp `ended:`, tally points, display wall_clock to screen, close session file. No time math, no version bump (those moved to `/retro`). Merge PRs whenever. |
+| `/its-dead` | Session end (once per window) | Stamp `ended:`, tally points, display wall_clock to screen, close session file. No time math, no version bump (those moved to `/retro`). Merge PRs whenever — order doesn't matter. |
 | `/start-phase` | Phase boundary (start) | Materialize phase as Issues with `phase:N`, `points:X` labels |
 | `/retro` | Phase boundary (end) | Compute per-session wall/dev/review from `started`/`ended`/transcript/PR timestamps. Aggregate phase velocity. Mark `[x]`, write retro, patch-bump per merged PR + minor-bump at close. |
 | `/bump-major` | Breaking change | Manually bump major version. CHANGELOG.md entry + tag (on main) or deferred tag (on staging). Dev projects only |
@@ -204,6 +204,8 @@ npx supabase gen types typescript --local > src/lib/supabase/types.ts
 | `/doc-consistency-check` | Mid-project, before phase boundaries, or after a session that touched multiple docs | Cross-reference factual claims across `docs/*.md` + root `CLAUDE.md`; flag mismatches + unfilled placeholders. Report-only via @doc-consistency |
 
 **Dev identity:** `~/.claude/devname` (one-line file with handle, e.g. `eric`). Set once per machine.
+
+**Task model:** PROJECT_PLAN.md is read at planning, written at retro. Untouched mid-phase. Current-phase tasks live as GitHub Issues. The phase ends when its issues close.
 
 ## Agents
 
@@ -221,7 +223,7 @@ npx supabase gen types typescript --local > src/lib/supabase/types.ts
 
 - Main session: Sonnet by default. Switch to Opus when stuck.
 - Agents: model in agent frontmatter. Don't override unless task warrants.
-- New agents: default to Sonnet. Add `model: opus` frontmatter only for architecture-level agents.
+- **New agents:** default to Sonnet. Add `model: opus` frontmatter only for architecture-level agents.
 
 ## PR Workflow
 
@@ -305,6 +307,7 @@ Doing PR reviews from your phone is tolerable if you structure for it:
 - **Before starting `npm run dev`:** run `curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/` first. If it returns 200, skip the start — a server is already up. Only start a new one if the check fails.
 - **Debugging CI failures:** Before any multi-step local debug (spawning servers, reading cookies, modifying middleware), confirm the environment is functional: "Can you run `npx playwright test` locally right now? What env vars are set?" One environmental check before any code change.
 - **Stale `next start` on port 3001:** Playwright's webServer config reuses an existing server on port 3001 when one is running. A `next start` left over from an earlier debug run will serve the previous build's bundle to every test in the new run, producing phantom failures. Before the first targeted `npx playwright test` invocation in a session — especially after build changes — kill any orphan: `lsof -ti:3001 | xargs -r kill -9` (or `pkill -f "next start"`). Re-check with `lsof -ti:3001` — empty output means the port is clean. Do this once per session, not per test run.
+- **No `source .envrc` for `npx playwright test`:** Playwright reads `.env.local` via `dotenv` in `playwright.config.ts` — it does not need `.envrc`. The `source .envrc &&` prefix is for CLI tools that need project-specific tokens (e.g. `supabase db push` when the global CLI is authed to a different account). Prefixing test commands with `source .envrc &&` triggers a permission prompt per invocation (the leading `source` falls outside `Bash(npx *)`), and each variation — different spec, project, or pipe target — is a new prompt. Run tests bare: `npx playwright test tests/foo.spec.ts --project=desktop`.
 - **JSON parsing in Bash:** Prefer `gh ... --jq '...'` (built-in jq via `gh`) or `jq` over `python3 -c "import json,sys; ..."` one-liners. The python invocations trigger per-pattern permission prompts (each unique argument list is a new allowlist entry), while `gh --jq` runs under the existing `Bash(gh ...)` allowance. For non-`gh` JSON, install/use `jq` directly. Reserve python for cases where the data shape genuinely needs control flow.
 - **Bug reports:** create a GitHub issue, label `bug`, add to current or next phase.
 
