@@ -101,6 +101,33 @@ The wrapper only catches CLI ops. The following are **not** guarded — they rel
 - Direct `psql` against the prod URL.
 - Any tool that doesn't go through the `supabase` binary.
 
+### Cross-environment env-var sync (Supabase ↔ Vercel)
+
+**Vercel env vars and Supabase project refs do not auto-sync.** Projects running separate dev/preview and production Supabase instances must wire Vercel's environment scopes to match: the three vars (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`) appear **twice** in Vercel — once per environment scope — with intentionally different values.
+
+When you rotate keys, switch project refs, or otherwise touch these vars, both scopes must stay coherent:
+- Vercel **Production** → matches prod project's URL + keys.
+- Vercel **Preview + Development** → matches dev/preview project's URL + keys, which is what `.env.local` has.
+
+Vercel does not redeploy on env-var change. After updating, trigger a redeploy of `main` (Deployments → ⋯ → Redeploy) or push any commit.
+
+Failure modes:
+- **Undefined values:** `createServerClient()` gets `undefined` for URL or key → `HTTP 500` site-wide. Local `npm run dev` keeps working because it reads `.env.local` directly, masking the regression until someone hits the deployed site.
+- **Swapped projects:** prod points at the dev DB or vice versa. Symptoms: prod login works but shows test fixtures, or real user data appears on a preview URL. Diff-check before assuming everything is wired correctly.
+- **Name typo:** a Vercel-side name like `SUPABASE_ANON_KEY` instead of `NEXT_PUBLIC_SUPABASE_ANON_KEY` produces the same 500 even when the value is correct.
+
+Diff-check ritual after any rotation:
+
+```bash
+vercel env pull --environment=production .env.production.tmp
+vercel env pull --environment=preview    .env.preview.tmp
+# Preview should match .env.local:
+diff <(grep -E "SUPABASE" .env.local       | sort) \
+     <(grep -E "SUPABASE" .env.preview.tmp | sort)
+# Production should NOT match .env.local — confirm it references the prod project ref:
+grep "SUPABASE_URL" .env.production.tmp
+```
+
 ## Commands
 ```bash
 # Development
@@ -308,6 +335,7 @@ Doing PR reviews from your phone is tolerable if you structure for it:
 - **Debugging CI failures:** Before any multi-step local debug (spawning servers, reading cookies, modifying middleware), confirm the environment is functional: "Can you run `npx playwright test` locally right now? What env vars are set?" One environmental check before any code change.
 - **Stale `next start` on port 3001:** Playwright's webServer config reuses an existing server on port 3001 when one is running. A `next start` left over from an earlier debug run will serve the previous build's bundle to every test in the new run, producing phantom failures. Before the first targeted `npx playwright test` invocation in a session — especially after build changes — kill any orphan: `lsof -ti:3001 | xargs -r kill -9` (or `pkill -f "next start"`). Re-check with `lsof -ti:3001` — empty output means the port is clean. Do this once per session, not per test run.
 - **No `source .envrc` for `npx playwright test`:** Playwright reads `.env.local` via `dotenv` in `playwright.config.ts` — it does not need `.envrc`. The `source .envrc &&` prefix is for CLI tools that need project-specific tokens (e.g. `supabase db push` when the global CLI is authed to a different account). Prefixing test commands with `source .envrc &&` triggers a permission prompt per invocation (the leading `source` falls outside `Bash(npx *)`), and each variation — different spec, project, or pipe target — is a new prompt. Run tests bare: `npx playwright test tests/foo.spec.ts --project=desktop`.
+- **Supabase OAuth redirect URLs — use `/**` not `/*`:** When adding allowed redirect URLs in the Supabase Dashboard (Authentication → URL Configuration → Redirect URLs), use a double-star glob (`https://[your-domain]/**`), not single-star. `/*` matches only one path segment — so `/auth/callback` fails to match — and Supabase silently falls back to Site URL on a non-match, landing the user on `/?code=...` with the callback route never running. The symptom is "auth almost works" but OAuth codes don't get exchanged.
 - **JSON parsing in Bash:** Prefer `gh ... --jq '...'` (built-in jq via `gh`) or `jq` over `python3 -c "import json,sys; ..."` one-liners. The python invocations trigger per-pattern permission prompts (each unique argument list is a new allowlist entry), while `gh --jq` runs under the existing `Bash(gh ...)` allowance. For non-`gh` JSON, install/use `jq` directly. Reserve python for cases where the data shape genuinely needs control flow.
 - **Bug reports:** create a GitHub issue, label `bug`, add to current or next phase.
 
