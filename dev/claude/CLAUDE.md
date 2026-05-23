@@ -311,18 +311,21 @@ Doing PR reviews from your phone is tolerable if you structure for it:
 - **JSON parsing in Bash:** Prefer `gh ... --jq '...'` (built-in jq via `gh`) or `jq` over `python3 -c "import json,sys; ..."` one-liners. The python invocations trigger per-pattern permission prompts (each unique argument list is a new allowlist entry), while `gh --jq` runs under the existing `Bash(gh ...)` allowance. For non-`gh` JSON, install/use `jq` directly. Reserve python for cases where the data shape genuinely needs control flow.
 - **Bug reports:** create a GitHub issue, label `bug`, add to current or next phase.
 
-## Approval Before Action (all tasks)
-For every task — explain the plan, wait for "go" or equivalent.
-1. State files you'll create/modify and why
-2. Wait for approval
-3. No code, files, or commands until approved
+## Approval Before Action
 
-**Includes the full test suite.** Database may be in use. Targeted runs OK during dev; full suite never automatic.
+For every task — not just bugs — explain the plan and wait for approval before
+doing anything:
+1. State what files you'll create or modify and why
+2. List commands you'll run, especially commits, pushes, package installs,
+   anything touching production
+3. Wait for "go", "do it", or equivalent
+4. Do not edit files or run commands until approved
 
 ## Bug Reports & Questions
-1. Explain cause + proposed fix
-2. Wait for approval
-3. No edits until go-ahead
+When a bug is reported or a question is asked:
+1. Explain the cause and your proposed fix
+2. Wait for approval before making any changes
+3. Do not edit files, run commands, or implement fixes until given the go-ahead
 
 ## Scope Discipline
 Check `docs/SPEC.md` "Not V1" before adding anything.
