@@ -30,7 +30,7 @@ Roles:
 | `docs/CHEATSHEET.md` | One-page printable skill reference |
 | `sessions/*.md` (on orphan `sessions` branch via `.sessions-worktree/`) | Per-session files — `YYYY-MM-DD-HHMM-<dev>-<slug>.md`. Atomic after `/its-dead` closes (DEC-013); orphan branch decouples session log from any code branch (DEC-014). |
 | `.claude/seeds-version` | Schema version this project was last installed at. Used by `/pull-seeds` to gate template syncs. |
-| `.claude/project-type` | Project type — `webapp` or `tool`. Used by `@sync-config` to gate template files that don't apply to this project's type. Optional. |
+| `.claude/project-type` | Project type — `webapp` or `tool`. Used by `@sync-config` to gate template files that don't apply to this project's type (DEC-011). Optional. |
 
 ## Core Data Model
 ```
@@ -330,7 +330,7 @@ Doing PR reviews from your phone is tolerable if you structure for it:
 ## Workflow Notes
 - **Diagnostic commands** (build, lint, type check, test): run directly — see errors, fix them, don't bother the user.
 - **Environment-changing commands** (npm install, supabase migrations, git push, deploys): output these for the user to run.
-- **Never rebase a task branch that already has commits on origin.** Use GitHub's "Update branch" at merge time.
+- **Never rebase a task branch that already has commits on origin.** If main has advanced while a PR branch is open, leave the branch as-is — GitHub's "Update branch" button handles this at merge time. Rebasing rewrites remote history and requires a force-push. Use `git merge --ff-only` only if explicitly asked.
 - **Before starting `npm run dev`:** run `curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/` first. If it returns 200, skip the start — a server is already up. Only start a new one if the check fails.
 - **Debugging CI failures:** Before any multi-step local debug (spawning servers, reading cookies, modifying middleware), confirm the environment is functional: "Can you run `npx playwright test` locally right now? What env vars are set?" One environmental check before any code change.
 - **Stale `next start` on port 3001:** Playwright's webServer config reuses an existing server on port 3001 when one is running. A `next start` left over from an earlier debug run will serve the previous build's bundle to every test in the new run, producing phantom failures. Before the first targeted `npx playwright test` invocation in a session — especially after build changes — kill any orphan: `lsof -ti:3001 | xargs -r kill -9` (or `pkill -f "next start"`). Re-check with `lsof -ti:3001` — empty output means the port is clean. Do this once per session, not per test run.
@@ -339,10 +339,9 @@ Doing PR reviews from your phone is tolerable if you structure for it:
 - **JSON parsing in Bash:** Prefer `gh ... --jq '...'` (built-in jq via `gh`) or `jq` over `python3 -c "import json,sys; ..."` one-liners. The python invocations trigger per-pattern permission prompts (each unique argument list is a new allowlist entry), while `gh --jq` runs under the existing `Bash(gh ...)` allowance. For non-`gh` JSON, install/use `jq` directly. Reserve python for cases where the data shape genuinely needs control flow.
 - **Bug reports:** create a GitHub issue, label `bug`, add to current or next phase.
 
-## Approval Before Action
+## Approval Before Action (all tasks)
 
-For every task — not just bugs — explain the plan and wait for approval before
-doing anything:
+For every task — not just bugs — explain the plan and wait for approval before doing anything:
 1. State what files you'll create or modify and why
 2. List commands you'll run, especially commits, pushes, package installs,
    anything touching production
