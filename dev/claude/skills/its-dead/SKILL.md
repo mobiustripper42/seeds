@@ -108,5 +108,5 @@ Phase progress: gh issue list --label phase:current --state open
 ## Notes
 
 - Sanity check at close: the displayed wall_clock is `ended − started`. If it includes overnight or away-from-desk time, that's correct — `/retro` will subtract break gaps later. The screen number isn't the final number.
-- No interactive merge handshake (DEC-012 had one). Under DEC-013, the user merges PRs whenever convenient — before `/its-dead`, after, doesn't matter. Retro reads GitHub for merge timestamps at retro time.
+- No interactive merge handshake (DEC-012 had one). Under DEC-013, the user merges PRs whenever convenient — before the next `/kill-this`, after `/its-dead`, days later. Retro reads GitHub at retro time and gets the merge timestamps regardless.
 - Atomicity guarantee: once `status: closed` is set and the file is pushed, this skill is done. No subsequent skill modifies this file. `/its-alive`'s old Step 7.5 backfill is gone (DEC-013).
