@@ -28,7 +28,7 @@ Several agents and slash-command skills support the development workflow. All ru
 **Purpose:** Lightweight post-commit review. Catches issues, inconsistencies, and potential bugs.
 
 **When to invoke:**
-- After completing a task or set of related commits
+- After completing a task or set of related commits (wired into `/kill-this`)
 - Before merging a phase
 - Optional — skip if it's slowing you down
 
@@ -54,7 +54,35 @@ Several agents and slash-command skills support the development workflow. All ru
 
 ---
 
-### 4. @ui-reviewer
+### 4. @sync-config
+
+**Purpose:** Maintains the seeds template ↔ project sync. Classifies diffs, proposes backports, flags cross-family patterns.
+
+**When to invoke:**
+- `/push-seeds` (project → seeds)
+- `/pull-seeds` (seeds → project, schema-version-gated)
+
+**Spec:** `.claude/agents/sync-config.md`
+
+**Output:** Diff report with proposed actions; user approves before any file changes (interactive mode) or auto-applies in nightly Routine.
+
+---
+
+### 5. @tape-reader
+
+**Purpose:** Audits a session's JSONL transcript for anti-patterns. Used by `/read-the-tape`.
+
+**When to invoke:**
+- After a rough session, to figure out what went sideways
+- After a good session, to bottle what worked
+
+**Spec:** `.claude/agents/tape-reader.md`
+
+**Output:** Findings + proposed skill or CLAUDE.md improvements.
+
+---
+
+### 6. @ui-reviewer
 
 **Purpose:** Reviews visual design quality against the project's design system.
 
@@ -63,13 +91,15 @@ Several agents and slash-command skills support the development workflow. All ru
 - At phase boundaries (formal review)
 - When something "looks off" but you can't say why
 
+**Note:** Type-gated — only applies to `webapp` projects per `.claude/type-manifest.yaml`. `tool` projects skip this agent.
+
 **Spec:** `.claude/agents/ui-reviewer.md`
 
 **Output:** Scored report (X/10) with prioritized issues and exact Tailwind class fixes.
 
 ---
 
-### 5. @doc-consistency
+### 7. @doc-consistency
 
 **Purpose:** Cross-references factual claims across the project's doc set and flags mismatches and unfilled template placeholders. Report-only.
 
@@ -99,9 +129,9 @@ Slash commands manage session lifecycle. Time tracking is automatic.
 
 **What it does:**
 1. Runs `date` to get current time
-2. Appends new open entry to top of `session-log.md`
-3. Reads last completed session's Next Steps / In Progress / Blocked / Context
-4. Reads PROJECT_PLAN.md for current phase and task state
+2. Opens a per-session file on the orphan `sessions` branch via `.sessions-worktree/`
+3. Reads last session's context and any open task/phase state
+4. Reads PROJECT_PLAN.md for current phase
 5. Presents briefing with recommended task
 6. Waits for confirmation before proceeding
 
@@ -114,9 +144,9 @@ Slash commands manage session lifecycle. Time tracking is automatic.
 **Purpose:** Safe pause point within a session. Use when you need to walk away but aren't done with the task.
 
 **What it does:**
-1. Runs `npm run build` — fixes errors before pausing
+1. Runs a build check — fixes errors before pausing
 2. Commits WIP with descriptive message
-3. Notes pause point in session-log.md (but doesn't close the entry)
+3. Notes pause point in session file
 
 **Spec:** `.claude/skills/pause-this/SKILL.md`
 
@@ -127,41 +157,34 @@ Slash commands manage session lifecycle. Time tracking is automatic.
 **Purpose:** Reload context after a mid-session break.
 
 **What it does:**
-1. Reads the pause note from session-log.md
-2. Reloads context from session-log.md and PROJECT_PLAN.md
+1. Reads the pause note from the session file
+2. Reloads context from session file and PROJECT_PLAN.md
 3. No new session number, no new timestamp — resuming same session
 
 **Spec:** `.claude/skills/restart-this/SKILL.md`
 
 ---
 
-### /kill-this — End Session (Part 1: Draft)
+### /kill-this — Per-Task PR + Log Append
 
-**Purpose:** First half of shutdown. Checks build, commits, runs code review, drafts session log.
+**Purpose:** Per task. Build check, commit code, push the task branch, run code review, open a PR, append a `## Task <N>` block to the session file.
 
 **What it does:**
-1. Runs `npm run build` — fixes errors before committing
-2. Commits all changes with phase/task prefix + Co-Authored-By
-3. Runs @code-review agent against HEAD
-4. Drafts session log entry (does NOT write yet)
-5. Shows draft and asks for review
+1. Runs the relevant tests for what changed
+2. Commits all changes with task prefix + Co-Authored-By
+3. Pushes the task branch and opens a PR via `gh pr create`
+4. Runs @code-review against the PR
+5. Appends a `## Task <N>` block to the session file (on the orphan `sessions` branch)
+
+May run multiple times in one session — once per task.
 
 **Spec:** `.claude/skills/kill-this/SKILL.md`
 
 ---
 
-### /its-dead — End Session (Part 2: Finalize)
+### /its-dead — Session End (Once Per Claude Window)
 
-**Purpose:** Second half of shutdown. Writes log, updates plan, pushes, runs PM.
-
-**What it does:**
-1. Calculates session duration from start timestamp + most recent commit time
-2. Applies any time adjustments from args
-3. Tallies effort points for completed tasks
-4. Writes approved session entry to `session-log.md`
-5. Marks completed tasks in PROJECT_PLAN.md with `[x]` and date
-6. Commits log + plan changes and pushes to remote
-7. Runs @pm for status assessment and next task recommendation
+**Purpose:** Stamps `ended:`, tallies points from per-task blocks, displays wall_clock for gut-check, commits + pushes the sessions branch. No time math (moved to `/retro` per DEC-013).
 
 **Spec:** `.claude/skills/its-dead/SKILL.md`
 
@@ -174,37 +197,37 @@ Slash commands manage session lifecycle. Time tracking is automatic.
 2. Confirm what you're working on
 
 **During a work session:**
-3. Spec → Build → Test → Verify mobile screenshot
+3. Spec → Plan → Approve → Build → Test → Manual smoke (if UI)
 4. If hitting an architectural question → `@architect`
 5. If session is getting long → `/pause-this` → break → `/restart-this`
+6. When a task is done → `/kill-this`. Repeat per task.
 
 **Ending a work session:**
-6. `/kill-this` → review draft
-7. `/its-dead` → finalize, push, get next recommendation
+7. `/its-dead` → close the session file. PRs can merge whenever.
 
 **End of a phase:**
-8. `@code-review` → review phase output
-9. `@ui-reviewer` → design review (if UI-heavy phase)
-10. Phase Boundary Checklist (pgTAP, Playwright, external audits)
+8. `/retro` → close phase, write retrospective, bump versions.
 
 ---
 
 ## Agent Summary
 
 | Agent/Skill | Model | When | Purpose |
-|-------------|-------|------|---------|
+|-------------|-------|------|----------|
 | @architect | Opus | Before design decisions | Keep architecture coherent |
-| @code-review | Sonnet | After commits, optional | Catch issues early |
+| @code-review | Sonnet | After commits (via `/kill-this`) | Catch issues early |
 | @pm | Sonnet | Start/end of sessions | Track progress, flag risks |
-| @ui-reviewer | Sonnet | After UI work, phase boundaries | Design quality |
+| @sync-config | Sonnet | `/push-seeds`, `/pull-seeds` | Template sync |
+| @tape-reader | Sonnet | `/read-the-tape` | Transcript audit |
+| @ui-reviewer | Sonnet | After UI work, phase boundaries (webapp only) | Design quality |
 | @doc-consistency | Sonnet | Via `/doc-consistency-check`, mid-project, before phase boundaries | Cross-reference facts across docs; flag mismatches + placeholders. Report-only |
-| /its-alive | — | Session start | Timestamp + open session file + briefing |
+| /its-alive | — | Session start | Stamp + open session file + briefing |
 | /pause-this | — | Mid-session break | Safe pause with commit |
 | /restart-this | — | Resume from pause | Reload context |
-| /kill-this | — | Session end (part 1) | Draft session file body |
-| /its-dead | — | Session end (part 2) | Finalize session file + push |
+| /kill-this | — | Per task | Build + commit + PR + log append |
+| /its-dead | — | Session end (once per window) | Close session file |
 | /start-phase | — | Phase boundary (start) | Materialize phase as Issues |
-| /retro | — | Phase boundary (end) | Close out phase, write retro, bump minor version |
+| /retro | — | Phase boundary (end) | Close out phase, write retro, bump versions |
 | /bump-major | — | Breaking change | Manual major version bump |
 | /promote-staging | — | Ship staging to prod | ff-merge `staging` → `main`, tag, push |
 | /doc-consistency-check | — | Mid-project, before phase boundaries | Invokes @doc-consistency; cross-refs `docs/*.md` + root `CLAUDE.md` |
@@ -212,6 +235,6 @@ Slash commands manage session lifecycle. Time tracking is automatic.
 | /pull-seeds | — | After seeds gets new improvements | Pull template changes into this project |
 | /read-the-tape | — | After a session worth learning from | Audit session JSONL for anti-patterns |
 
-**Per-session files:** the workflow uses `sessions/YYYY-MM-DD-HHMM-<dev>-<slug>.md` (one file per session) instead of a single monolithic `session-log.md`. `<dev>` comes from `~/.claude/devname` (one-line file, falls back to `$USER`). The slug is derived from the branch name (`task/X-foo` → `X-foo`, `main` → `main`, etc.). The active JSONL transcript path is captured in the file's frontmatter for later `/read-the-tape` audits.
+**Per-session files:** the workflow uses `sessions/YYYY-MM-DD-HHMM-<dev>-<slug>.md` (one file per session) on the orphan `sessions` branch via `.sessions-worktree/`. `<dev>` comes from `~/.claude/devname` (one-line file, falls back to `$USER`). The slug is derived from the branch name (`task/X-foo` → `X-foo`, `main` → `main`, etc.). The active JSONL transcript path is captured in the file's frontmatter for later `/read-the-tape` audits.
 
 **Task model (post phase-rituals rollout):** `PROJECT_PLAN.md` is a phase-boundary document — read at planning, written at retro. Current-phase tasks materialize as GitHub Issues with `phase:N` + `points:X` labels. The plan stays untouched mid-phase, eliminating merge contention with multiple devs.
