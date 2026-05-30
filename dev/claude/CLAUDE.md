@@ -26,7 +26,6 @@ Roles:
 | `docs/RETROSPECTIVES.md` | Phase-end retrospectives — written by `/retro` |
 | `docs/AGENTS.md` | Agent and skill specs (canonical). |
 | `docs/BRAND.md` | Voice, visual direction, philosophy |
-| `docs/TEST.md` | How to test the app (manual + automated flow). **Keep current** — update in the same PR as any change to the test path (env vars, auth, CI, staging). |
 | `docs/VELOCITY_AND_POKER_GUIDE.md` | Estimation methodology |
 | `docs/CHEATSHEET.md` | One-page printable skill reference |
 | `sessions/*.md` (on orphan `sessions` branch via `.sessions-worktree/`) | Per-session files — `YYYY-MM-DD-HHMM-<dev>-<slug>.md`. Atomic after `/its-dead` closes (DEC-013); orphan branch decouples session log from any code branch (DEC-014). |
