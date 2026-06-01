@@ -200,8 +200,7 @@ prized while eliminating the inter-PR conflict cost.
 
 The downstream pass remains one PR per project. Different projects
 receive different forward-ports (because each project has different
-gaps from the template) and have different bases (some on `main`, some
-on `staging` per DEC-008), so aggregation provides no benefit and would
+gaps from the template), so aggregation provides no benefit and would
 complicate per-project rollback.
 
 Skip Step 3b entirely if `directions:` in the config doesn't include
@@ -211,15 +210,19 @@ For each repo in the active set:
 
 1. The project repo is already cloned (from Step 3a, or clone it
    fresh if upstream was skipped).
-2. **Resolve PR base for this project.** Check whether the project has
-   an `origin/staging` branch (DEC-008 staging-flow detection):
+2. **Resolve PR base for this project.** Always the project's default
+   branch — the active trunk (DEC-022):
    ```
-   git -C <project-repo-path> ls-remote --heads origin staging
+   BASE=$(git -C <project-repo-path> remote show origin | sed -n 's/.*HEAD branch: //p')
+   [ -z "$BASE" ] && BASE=main
    ```
-   If the ref exists, set `BASE=staging`. Otherwise `BASE=` the
-   project's default branch (typically `main`). Downstream PRs target
-   staging when present so the propagation hits the project's normal
-   review surface before promotion to `main`.
+   Downstream PRs always target the trunk the project is actually worked
+   on. **Never target a `production` branch** — it is a downstream deploy
+   pointer, not a dev branch. (DEC-008 once targeted `staging` here; that
+   was the read-source/PR-target split that produced the sailbook noise
+   loop — the routine read the default branch but PR'd into `staging`,
+   so a stale-vs-active branch gap was re-proposed as drift every night.
+   DEC-022 retired it: trunk = default branch = what we diff and target.)
 3. In the project checkout, create a branch
    `{branch_prefix.downstream}/<DATE>` off `$BASE`.
 4. Invoke @sync-config with:
@@ -237,8 +240,8 @@ For each repo in the active set:
 7. Otherwise: push the branch to the project repo, open a PR against
    `$BASE` titled `{pr_title_prefix.downstream} — <DATE>`. The PR body
    includes the same sections as the upstream PR's per-source table (the
-   single project here is the "source") plus a `Base: <staging|main>`
-   note so the reviewer can confirm the right target was picked.
+   single project here is the "source") plus a `Base: <BASE>`
+   note so the reviewer can confirm the trunk was targeted.
 
 ## Step 4 — Per-run summary issue
 

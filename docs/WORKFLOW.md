@@ -30,8 +30,9 @@ cp <seeds>/dev/claude/templates/VersionTag.tsx src/components/VersionTag.tsx
 # Wire into next.config.js: env: { NEXT_PUBLIC_APP_VERSION: process.env.npm_package_version }
 # Drop <VersionTag /> into the login screen + footer
 
-# Staging (optional but recommended for webapps)
-git checkout -b staging main && git push -u origin staging
+# Production deploy branch (optional, deployable projects — DEC-022)
+git checkout -b production main && git push -u origin production
+# Then repoint the host's production branch (e.g. Vercel → Settings → Git) from main to production
 
 # Supabase prod-write guard (DEC-009)
 cp <seeds>/dev/claude/scripts/safe-supabase.sh scripts/safe-supabase.sh && chmod +x scripts/safe-supabase.sh
@@ -81,7 +82,7 @@ Confirm or redirect. **No work begins until you say go.**
 ### 2b. Ship task A
 
 ```
-git checkout -b task/X.Y-thing      # cut a task branch from main (or staging)
+git checkout -b task/X.Y-thing      # cut a task branch from main
 # ... build the feature, write the test, run targeted tests ...
 
 /kill-this
@@ -163,21 +164,19 @@ The headline number is **dev_time velocity** (h/pt). Use that for forecasting fu
 
 ---
 
-## 4. Release — staging → main (DEC-008)
+## 4. Release — main → production (DEC-022)
 
-If `origin/staging` exists, the project uses staging-flow. PRs target `staging`. Patch + minor bumps land on `staging` (untagged). To ship:
+`main` is the always-active trunk. PRs target `main`; patch + minor bumps land on `main` and are tagged there at bump time. Deployable projects add an optional `production` branch — a downstream deploy pointer. To ship:
 
 ```
-/promote-staging
+/promote-production
 ```
 
-- ff-merges `staging` → `main`.
-- Tags `vX.Y.Z` on `main` using the current `package.json` version.
-- Pushes both branches + the tag.
+- ff-merges `main` → `production`.
+- Pushes `production` (deploy-only — no tagging; the `vX.Y.Z` tag is already on the commit from the bump).
+- The host (Vercel) watches the `production` branch and deploys the advanced commit.
 
-Vercel deploys the tag.
-
-Without `origin/staging`, PRs target `main` directly and tags are applied on `main` at `/retro`.
+Without a `production` branch, the project deploys straight off `main` and there's nothing to promote.
 
 ---
 
@@ -224,11 +223,11 @@ Surfaces anti-patterns (verbose responses, missed context, retries instead of ro
 ## 6. Branch topology
 
 ```
-main          ← release branch. Protected on dev projects. Tags live here.
-  └─ staging  ← optional. ff-merge target for /kill-this PRs.
-       └─ task/X.Y-thing      ← one per task. Lifetime: one /kill-this through merge.
-       └─ task/X.Z-other      ← another per task.
-       └─ claude/<slug>       ← CC platform's auto-cut session anchor. Lives across the Claude window.
+main          ← active trunk. Protected on dev projects. Tags live here. ff-merge target for /kill-this PRs.
+  ├─ task/X.Y-thing      ← one per task. Lifetime: one /kill-this through merge.
+  ├─ task/X.Z-other      ← another per task.
+  └─ claude/<slug>       ← CC platform's auto-cut session anchor. Lives across the Claude window.
+       ⇒ production      ← optional downstream deploy branch. main ff-merges INTO it via /promote-production. Never a PR base.
 
 sessions      ← orphan. Zero shared history with main. Contains only sessions/.
               ← Checked out at .sessions-worktree/ (DEC-014).
@@ -266,6 +265,6 @@ This decoupling is what makes the session file atomic, the workflow stack-friend
 - **DEC-014** — sessions on orphan branch via `.sessions-worktree/`.
 - **DEC-012** — STATE-conditional close, `NO_PR`-on-protected-main fallback (still in force).
 - **DEC-007** — semver triggers (now all at `/retro`).
-- **DEC-008** — staging vs no-staging branching.
+- **DEC-022** — main is the active trunk; production is the deploy branch (replaces DEC-008).
 - **DEC-010** — nightly bi-directional Routine.
 - **DEC-011** — project-type gating.
