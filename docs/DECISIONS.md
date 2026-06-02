@@ -48,7 +48,7 @@ Decisions are numbered DEC-NNN. "DEC-TBD" means the decision is flagged but unre
 - **Minor:** bumped by `/retro` on phase close. CHANGELOG entry derived from phase summary.
 - **Major:** bumped manually by a new `/bump-major` skill. User supplies the rationale.
 
-Tags are only ever applied on `main`. In staging-flow projects (DEC-008), patch/minor bumps happen on `staging` without tagging; the tag is applied when `/promote-staging` ff-merges into `main`.
+Tags are applied on the active trunk (`main`) at bump time (DEC-022). Promotion to a `production` deploy branch (if the project has one) carries the already-tagged commit via ff-merge; `/promote-production` does not tag. (Under the retired DEC-008 staging model, bumps were untagged on `staging` and tagged at `/promote-staging` — no longer the case.)
 
 **Detection — "is this a dev project?":** presence of `package.json` at the repo root. Seeds + domain repos have no `package.json` → all version-bump steps no-op silently.
 
@@ -65,6 +65,8 @@ Tags are only ever applied on `main`. In staging-flow projects (DEC-008), patch/
 **Alternatives considered:** Standalone `VERSION` file (rejected — duplicates `package.json` for node projects, no benefit); date-based versioning like CalVer (rejected — communicates time-since-release, not change magnitude); auto-categorize PR titles into Added/Changed/Fixed (rejected — heuristic, would lie often, not worth the complexity for a solo dev's CHANGELOG).
 
 ## DEC-008: Staging promotion via ff-merge, not PR
+> **⚠ SUPERSEDED by DEC-022 (2026-06-01).** The staging-flow model made the *active* branch (`staging`) the *non-default* branch. The nightly sync reads each project's default branch (`main`) but PR'd downstream into `staging`, so on the one repo that adopted staging (sailbook) a permanent main↔staging gap was re-proposed as "drift" every night (sailbook PR #75). DEC-022 inverts the model: `main` is always the active trunk, and an optional `production` branch is the downstream deploy pointer. The text below is retained for history; the `origin/staging` detection it describes has been removed from `/kill-this`, `/retro`, `/bump-major`, `/its-alive`, and the nightly routine, and `/promote-staging` is replaced by `/promote-production`.
+
 **Decision:** When a project has a `staging` branch, `/kill-this` PRs into `staging` (not `main`). Promotion to `main` happens via `/promote-staging` which fast-forward-merges `staging` into `main`, tags the release with the version currently in `package.json`, and pushes both branches and the tag. No PR opens for the staging→main step.
 
 **Detection — "is staging in use?":** `git show-ref --verify --quiet refs/remotes/origin/staging` returns 0 if the local cache has the ref. Used by `/kill-this` (PR base), `/its-dead` (merge target detection), `/retro` and `/bump-major` (working branch resolution), and `/promote-staging` (gating). Local-cache check rather than `git ls-remote` so the skills work offline — `/its-alive` already fetched at session start, so the cache is fresh.
@@ -100,7 +102,7 @@ These rely on the discipline (no prod URL in local env, no prod password on disk
 ---
 
 ## DEC-010: Bi-directional nightly sync via Anthropic Routine
-**Decision:** Sync runs unattended nightly via a single Anthropic Routine (`dev/claude/routines/nightly-sync.md`) that handles BOTH directions per repo. The Routine reads `.claude/routine-config.yaml` for filter rules + direction config, enumerates the repos its MCP github session has access to (the **Routine form's repo chip area on claude.ai is the active-set source of truth**), filters by `exclude:` + `require:` + `.claude/seeds-version` presence and version match, and per (repo × direction) invokes `@sync-config` in `mode: auto`. Each invocation that produces non-empty changes opens its own PR — upstream PRs into `mobiustripper42/seeds:main`, downstream PRs into the project's default branch (or `staging` when present, DEC-008). Nothing merges automatically; the PR is the human-review checkpoint.
+**Decision:** Sync runs unattended nightly via a single Anthropic Routine (`dev/claude/routines/nightly-sync.md`) that handles BOTH directions per repo. The Routine reads `.claude/routine-config.yaml` for filter rules + direction config, enumerates the repos its MCP github session has access to (the **Routine form's repo chip area on claude.ai is the active-set source of truth**), filters by `exclude:` + `require:` + `.claude/seeds-version` presence and version match, and per (repo × direction) invokes `@sync-config` in `mode: auto`. Each invocation that produces non-empty changes opens its own PR — upstream PRs into `mobiustripper42/seeds:main`, downstream PRs into the project's default branch (the active trunk; never a `production` deploy branch — DEC-022). Nothing merges automatically; the PR is the human-review checkpoint.
 
 **Active-set source of truth = Routine form, not config.** The original design (PR #11, 2026-05-07) had `routine-config.yaml` carry an `orgs:` list and the Routine enumerated `<org>/*` via `repos.list`, then filtered. The first live run (2026-05-08) revealed the failure mode: GitHub OAuth scope is per-repo, not org-wide. Listing returned 18 repos; per-repo content reads denied 17 of them; the Routine aborted cleanly via the safety guardrail. Fix: the Routine form's chip area (the same surface that gates MCP access) is now the canonical active-set declaration. Adding a project to the active set = add it to the form. Removing = remove the chip. No config edit needed for either. The `orgs:` block was dropped from `routine-config.yaml`; `exclude:` stays as a second filter for the always-skip-anyway case (seeds-itself).
 
@@ -558,7 +560,7 @@ Section-by-section verdict against the current `dev/claude/CLAUDE.md` template. 
 | `## Agent Workflow` table | shell | Universal agent list. |
 | `## Model Selection` | shell | Opus vs Sonnet guidance is cross-project. |
 | `## PR Workflow (DEC-013 + DEC-014)` | shell | Branch/PR rules are universal. |
-| `### Staging vs no-staging (DEC-008)` | shell | Detection logic is universal; the project either has a staging branch or doesn't. Shell handles both cases. |
+| `### Production branch (DEC-022)` | shell | Universal: `main` is the active trunk; an optional `production` deploy branch is advanced by `/promote-production`. Shell handles both the has-production and deploys-off-main cases. |
 | `## Versioning (DEC-007)` | **split** | Versioning policy and `### CHANGELOG.md` discipline — shell. `### <VersionTag />` component wiring and `### PR Review on Mobile` workflow — shell (universal). Project-specific version source paths — context. |
 | `## Workflow Notes` | **split** | "Never rebase a task branch", diagnostic vs env-changing distinction — shell. Project-specific debugging notes (bushel's stale `next start` on port 3001, no `source .envrc` for `npx playwright test`) — context under `## Workflow Notes (project)`. |
 | `## Approval Before Action` | shell |
@@ -612,3 +614,26 @@ Per the SPEC: Phase 2 = CLAUDE.md, Phase 3 = architect.md, Phase 4 = code-review
 - One source of duplication risk: a project could fail to re-read shell after a sync. Mitigated by the Routine itself — if shell drifts, sync proposes a PR.
 - Migration is manual and per-project. Acceptable: it's a one-time cost. LLM-assisted extraction is fine; full automation is not in scope.
 - Context files have no version control across projects. By design — they're project-owned.
+
+---
+
+## DEC-022: `main` is the active trunk; `production` is the deploy branch (replaces DEC-008)
+**Decision:** Every project's **default branch (`main`) is the always-active development trunk**. Deployable projects add an optional **`production`** branch that the host (Vercel, etc.) watches; shipping is `main` → `production` via fast-forward merge through the new `/promote-production` skill. This replaces the DEC-008 staging-flow, where the active branch was `staging` (non-default) and `main` was the release branch.
+
+**Why (the bug it fixes):** the nightly sync Routine (DEC-010) and the dev skills read/operate on each project's **default branch**. DEC-008 made the *active* branch the *non-default* one, so the read-source (`main`) and the PR-target (`staging`) diverged. On sailbook — the only repo that adopted staging — `main` was frozen on an old workflow generation while `staging` carried the current one. Every nightly downstream run diffed stale `main` against seeds, generated a large "forward-port everything" plan, then opened the PR against `staging` (which already had that content), so the net diff collapsed to cosmetic regeneration noise that the next run re-detected — a self-perpetuating loop (sailbook PR #75, 2026-06-01). Aligning active = default eliminates the split at the source: the branch we diff is the branch we target.
+
+**The model:**
+- `main` — active trunk, in every project. `/kill-this` PRs here; `/retro`, `/bump-major`, `/its-alive` resolve `main` as the working branch. Identical dev workflow whether or not a project deploys.
+- `production` — optional downstream deploy pointer. Never read or targeted by sync; never a PR base. Adopt with `git checkout -b production main && git push -u origin production`, then point the host's production branch at it.
+- **Tags land on `main` at bump time** (uniform — DEC-007). Promotion carries the already-tagged commit; `/promote-production` does not tag.
+- **Sync always targets the default branch** — `origin/staging` detection removed from all skills + the routine.
+
+**Detection:** `/promote-production` gates on `origin/production` existing (the only skill that cares). No skill changes behavior based on branch topology otherwise — the trunk is always the default branch.
+
+**Anti-churn hardening (folded into `@sync-config`):** to stop a branch-gap or regeneration from ever manifesting as a noise PR again — (a) formatting-only hunks (whitespace, indentation, tabs/spaces, table-separator padding) are dropped before classification; (b) real applies are transcribed verbatim, never paraphrased; (c) a post-apply no-op guard reverts and stages nothing if the whitespace-ignored diff is empty; (d) PR/report tables are derived from the actual staged diff, not from intended changes.
+
+**Migration:** schema bump v3 → v4 (skill rename + branch-convention change). Per-project: rename `/promote-staging` → `/promote-production`, and for any project on the old staging-flow, promote `staging` content onto `main`, cut `production` off it, repoint the host's production branch, and delete `staging`. See `docs/SCHEMA_VERSIONS.md` § v3 → v4. Single-branch projects (no staging) are behaviorally unchanged — they already worked on `main`; they only pick up the skill rename.
+
+**Tradeoff:** `main` now receives every WIP commit, so on deployable projects the host's production branch **must** be repointed from `main` to `production` before `main` starts taking active work — otherwise WIP auto-deploys to prod. This is the one manual, host-side step the migration can't automate. Acceptable: it's a one-time per-deployable-project action, and it's exactly the trunk-based-development + release-branch pattern most teams already use.
+
+**Alternatives considered:** Make the sync resolve and target the active branch per-repo (rejected — keeps the non-default-active inversion and needs per-repo config; treats the symptom, not the cause). Keep `/promote-staging`'s name and only change its internals (rejected — the name would lie about what it does). Stay at schema v3 and let the rename flow unmanaged (rejected — a renamed skill pulled without migration leaves the old `/promote-staging` orphaned in projects).

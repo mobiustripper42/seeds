@@ -46,6 +46,7 @@ When in doubt, bump.
 |---------|-------------------|---------|
 | **1** | session-file, skill set | Original workflow. Monolithic `session-log.md`. No `~/.claude/devname`. No phase rituals (no `/start-phase`, no `/retro`). No dual-mode detection. |
 | **2** | session-file, skill set, skill API | Per-session files at `sessions/YYYY-MM-DD-HHMM-<dev>-<slug>.md` with YAML frontmatter. `~/.claude/devname` resolves dev identity. Phase rituals via GitHub Issues (`/start-phase` materializes a phase, `/retro` closes it). New skills: `/start-phase`, `/retro`, `/pause-this`, `/restart-this`, `/read-the-tape`, `/push-seeds`. Skills detect legacy projects (`session-log.md` present, `sessions/` absent) and run in legacy mode for backward compat. |
+| **4** | skill set, skill API, branch convention | Production-branch model replaces staging-flow (DEC-022, retires DEC-008). `main` is the always-active trunk in every project; an optional `production` branch is a downstream deploy pointer advanced by the new `/promote-production` skill (`main` → `production` ff-merge, deploy-only — no tagging). `/promote-staging` is removed. `origin/staging` detection removed from `/kill-this` (PR base), `/retro` + `/bump-major` (working branch), `/its-alive` (orphan-scan base), and the nightly routine (downstream PR base) — all now use the default branch. Tags land on `main` at bump time, uniformly. `@sync-config` gains anti-churn rules: drop formatting-only hunks, apply verbatim, post-apply no-op guard, report-from-staged-diff. Detection signal: `origin/production` (only `/promote-production` reads it). No new project-root files. |
 | **3** | skill set, skill API, project-root convention | Project semver workflow (DEC-007) + staging-flow conventions (DEC-008). New skills: `/bump-major`, `/promote-staging`. `/its-dead` patch-bumps on STATE=MERGED for dev projects. `/retro` minor-bumps at phase close on dev projects. `/kill-this` PRs into `staging` if `git show-ref --verify --quiet refs/remotes/origin/staging` succeeds, else `main`. `/its-dead` resolves the working branch from the same staging detection. New `dev/claude/templates/VersionTag.tsx` build-time component template. New `CHANGELOG.md` at the project root, auto-maintained by the bump skills. Detection signals: `package.json` (dev project) and local-cache `refs/remotes/origin/staging` (staging flow) — no new project-root files required, but skills now write `package.json` and `CHANGELOG.md` for dev projects. |
 
 ## Migration notes
@@ -88,6 +89,27 @@ A v2 project has no version skills installed and (if deployable) no version surf
 7. If shipping through a staging environment: `git checkout -b staging main && git push -u origin staging`. All skills auto-detect via `git ls-remote --heads origin staging`. No skill changes required to opt in or out — staging existence is the only signal.
 
 **No data migration required.** v3 changes are additive — existing session files, PROJECT_PLAN.md, RETROSPECTIVES.md formats are unchanged. v2-only projects (e.g. seeds itself, domain projects) skip steps 4–7 and only inherit the new skill bodies.
+
+### v3 → v4
+
+v4 replaces the DEC-008 staging-flow with the DEC-022 production-branch model. The change is a skill rename + branch-convention shift; **no data migration** (session files, PROJECT_PLAN.md, RETROSPECTIVES.md formats are unchanged).
+
+**All v3 projects:**
+1. Replace the skill directory: remove `<project>/.claude/skills/promote-staging/`, add `<project>/.claude/skills/promote-production/` (copy from `dev/claude/skills/promote-production/`). Easiest via `/pull-seeds` once it honors v4.
+2. Update existing skills with v4 changes (the `origin/staging` detection is gone — all resolve the default branch / always tag on `main`): `/kill-this`, `/retro`, `/bump-major`, `/its-alive`. Also pick up the `@sync-config` anti-churn rules.
+3. Update `<project>/.claude/seeds-version` to `4`.
+
+**Single-branch projects (no `staging` — the common case):**
+Behaviorally unchanged — they already shipped off `main`. Steps 1–3 are the whole migration; nothing about how they work changes. (This is the 7 of 8 family repos.)
+
+**Projects on the old staging-flow (had `origin/staging`):** do this carefully, in order — `main` is about to become the active trunk and the host's production branch must be repointed first or WIP auto-deploys to prod:
+1. Bring `main` current with `staging`: open/merge a PR of `staging` → `main` (or ff-merge if `main` is an ancestor) so `main` holds the latest workflow generation. Verify `main` and `staging` now match.
+2. Cut the deploy branch: `git checkout -b production main && git push -u origin production`.
+3. **Repoint the host's production branch** (Vercel dashboard → Settings → Git → Production Branch) from `main` to `production`. Confirm before continuing — this is the footgun.
+4. Delete `staging`: `git push origin --delete staging` (and `git branch -d staging` locally).
+5. From here, work on `main`; ship with `/promote-production`.
+
+**Why bump (not additive like v3):** a skill was renamed and a branch convention changed, so a v3 project pulling v4 templates without migrating would end up with both `/promote-staging` (orphaned) and `/promote-production`, and staging-flow projects would have skills that no longer detect their staging branch. The version gate forces the per-project migration above.
 
 ## How `/pull-seeds` (downstream sync) uses this
 
