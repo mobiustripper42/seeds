@@ -124,7 +124,7 @@ When done for the day (or the work block):
 
 The session file is now **atomic** — no skill modifies it again.
 
-`/its-dead` does NOT compute `dev_time` / `review_time` / `breaks`. It does NOT bump version. Those happen at `/retro`.
+`/its-dead` does NOT compute time math (`active` / `breaks`). It does NOT bump version. Those happen at `/retro`.
 
 ### 2e. Merge PRs whenever
 
@@ -150,9 +150,8 @@ When all phase Issues are closed (or you've called the phase done):
 2. **Per-session time math.** For each session in the phase window, it:
    - Reads `started`, `ended`, `pr_numbers`, `transcript` from the session frontmatter.
    - Reads the transcript JSONL for break gaps > 15 min.
-   - Queries GitHub for each PR's `opened_at` + `merged_at`.
-   - Computes `wall_clock`, `dev_time`, `review_time`, `breaks` per session.
-3. **Phase aggregation** — sums to phase totals; computes three velocities (wall/pt, dev/pt, review/pt).
+   - Computes `wall_clock` and `active` (= wall_clock − breaks) per session.
+3. **Phase aggregation** — sums to phase totals; computes the velocity (active h/pt).
 4. **PROJECT_PLAN.md update** — marks tasks `[x]`, appends velocity row.
 5. **Retro notes prompt** — user answers what-worked / what-didn't / changes-for-next-phase.
 6. **PM commentary** — `@pm` returns 3–5 paragraphs reacting to the user's answers, with cross-phase context.
@@ -160,7 +159,7 @@ When all phase Issues are closed (or you've called the phase done):
 8. **Version bumps** (dev projects with `package.json`) — patch per merged PR + minor at phase close, with CHANGELOG entries.
 9. **Hand-off to `/start-phase`** — optionally chains into the next phase.
 
-The headline number is **dev_time velocity** (h/pt). Use that for forecasting future phases.
+The headline number is **active velocity** — active h/pt, where active = wall_clock − breaks. Use that for forecasting future phases. (There is no dev/review split — retired; see `/retro` Step 2.4.)
 
 ---
 
