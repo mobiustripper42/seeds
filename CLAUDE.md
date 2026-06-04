@@ -75,13 +75,13 @@ This repo encodes a specific development workflow for solo Claude-assisted proje
 | `/kill-this` | Per-task (DEC-013) | Build check, code commit on the task branch, runs @code-review, opens a PR, appends a `## Task <N>` block to the running session file. May run multiple times per Claude window — one per task |
 | `/its-dead` | Session end (once per window) | Stamps `ended:`, tallies total points, displays wall_clock to screen for gut-check, closes the session file. No time math, no version bump — those moved to `/retro` (DEC-013) |
 | `/start-phase` | Phase boundary (start) | Reads next phase from PROJECT_PLAN.md, creates one Issue per task with `phase:N` and `points:X` labels, writes issue numbers back into the plan |
-| `/retro` | Phase boundary (end) | Computes per-session wall/dev/review times from each session's `started`/`ended`/transcript/PR timestamps. Aggregates to phase velocity. Marks tasks `[x]`, prompts retro notes, appends to RETROSPECTIVES.md, runs version bumps (patch per merged PR + minor at phase close), optionally chains into `/start-phase` (DEC-013) |
+| `/retro` | Phase boundary (end) | Computes per-session active time (wall − breaks, breaks inferred from the transcript) from each session's `started`/`ended`. Aggregates to one phase velocity (active h/pt). Marks tasks `[x]`, prompts retro notes, appends to RETROSPECTIVES.md, runs version bumps (patch per merged PR + minor at phase close), optionally chains into `/start-phase` (DEC-013) |
 | `/bump-major` | Breaking change | Manually bumps major version. CHANGELOG entry + tag on the trunk (`main`). Dev projects only |
 | `/promote-production` | Ship trunk to prod | ff-merges `main` → `production` (deploy-only; tag already on the commit), pushes. Projects with a `production` branch only |
 | `/push-seeds` | After workflow improvements | Invokes @sync-config to classify diffs and propose backports to seeds |
 | `/pull-seeds` | After seeds gets new improvements | Resolves seeds checkout, gates on `seeds-version` compatibility, invokes @sync-config in pull direction to apply approved changes to the project |
 | `/read-the-tape` | After a session worth learning from | Invokes @tape-reader to audit JSONL transcript, find anti-patterns, propose skill improvements |
-| `/doc-consistency-check` | Mid-project, before phase boundaries, or after a multi-doc session | Invokes @doc-consistency to cross-reference factual claims across `docs/*.md` + root `CLAUDE.md` and flag mismatches and unfilled placeholders. Report-only |
+| `/doc-consistency-check` | Ad-hoc, when docs feel drifted (no scheduled trigger) | Invokes @doc-consistency to cross-reference factual claims across `docs/*.md` + root `CLAUDE.md` and flag mismatches and unfilled placeholders. Report-only |
 
 **Dev identity:** skills resolve `DEV` from `~/.claude/devname` (one-line file) with `$USER` as fallback. Set once per machine. Used in session filenames so two devs never collide.
 

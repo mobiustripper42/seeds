@@ -660,3 +660,21 @@ Per the SPEC: Phase 2 = CLAUDE.md, Phase 3 = architect.md, Phase 4 = code-review
 **Schema:** additive within v4 — no skill requires the settings file. No version bump.
 
 **Alternatives considered:** gated allow-list of specific tools (rejected — produces rubber-stamped prompts; the operator doesn't read the commands). `bypassPermissions` mode (rejected — disables the deny list, the one thing we rely on). Auto-merge settings into `@sync-config` (rejected — security guardrails shouldn't be bot-edited; and default-allow makes per-repo allow churn rare anyway). Blanket `Read(**/.env.*)` deny (rejected — blocks `.env.example`, deny can't be carved back).
+
+## DEC-024: Retire the dev/review time split — active time is the single velocity (supersedes DEC-015, amends DEC-013)
+**Decision:** `/retro` no longer computes `dev_time` / `review_time`. The one velocity is **active = wall_clock − breaks** (breaks inferred from the transcript JSONL, gaps > 15 min) divided by points. The per-PR dev/review window math (DEC-015) and the single-seam model before it (DEC-013) are removed from the skill. No PR timestamps are fetched for time math.
+
+**Why:** the split was never trustworthy — every bushel retro since Phase 3 footnoted it "do not trust as headline" and forecast on active anyway. The DEC-015 per-PR model assumed each PR merged before the next opened; the actual workflow opens PRs in a burst and merges them whenever (DEC-022 + CLAUDE.md "merge PRs whenever — order doesn't matter"), so the dev-window anchor (`PR_{i-1}.mergedAt`) routinely lands *after* `PR_i.createdAt` and clamps every dev window after the first to zero, while the overlapping review windows get summed past wall-clock. Reproduced on bushel Session 25 (4 PRs): `dev_time` = 0.06 h/pt and `review_time` = 26.8h inside a 9.2h session — physically impossible. A real correctness bug, not tuning: the spec is internally consistent but built on a merge-ordering assumption the workflow contradicts by design.
+
+**Why not fix the split instead:** correctly attributing per-task time would require reconstructing keystroke spans from the transcript — which is exactly what `active = wall − breaks` already approximates. Two disclaimed numbers and one trusted one collapse to the one that was always the headline.
+
+**What changes:**
+- `/retro` Step 2: removed the PR-timestamp fetch + per-PR window math; new Step 2.4 = `active = max(0, wall_clock − breaks)`. Steps 2.5 / 3 / 4 / 6 / 7 / 8 / 10 + Notes updated. RETROSPECTIVES.md + PROJECT_PLAN.md velocity tables: `Dev` / `Review` columns → `Breaks` / `Active`; a single `h/pt (active)` velocity.
+- `VELOCITY_AND_POKER_GUIDE.md`: Parts 1 + 3 rewritten — retro-computed, nothing to log, active h/pt, `Σactive ÷ Σpoints` (never the average of per-phase ratios), pointing-consistency named as the real risk.
+- New standalone extractor `dev/claude/scripts/velocity.py` — reads each repo's RETROSPECTIVES.md and prints lifetime active h/pt, per-phase, per-session spread; cross-repo via args; `--issues` for a `points:N` histogram. Denominator = session-table points, not issue-label sums (those count moved/cut issues).
+
+**Historical retros stay as written.** Phase retros through Phase 7 keep their `Dev` / `Review` columns — method artifacts, flagged in the retro Notes and skipped by the extractor. Phases predating active time (0–2) carry only a legacy `Velocity: X hrs/pt` and are excluded from any active rollup — a different metric, never blended.
+
+**Schema:** additive within v4 — session frontmatter is unchanged (`/its-dead` already writes no time fields). No version bump.
+
+**Alternatives considered:** keep DEC-015 and footnote it forever (rejected — a permanently-disclaimed metric is just noise; the footnotes already proved nobody trusts it). Repair the windows by unioning overlaps + per-task transcript attribution (rejected — large effort to reconstruct what active already captures). Keep `wall/pt` as a second velocity (rejected — inflated by overnight gaps; one honest number beats two).
