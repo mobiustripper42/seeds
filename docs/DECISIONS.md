@@ -500,7 +500,7 @@ Type-gate first because dropping a file entirely is cheaper than classifying it.
 ### Forward references
 
 - **DEC-019** generalizes DEC-016's pattern to all hybrid files. Depends on this registry to mark them.
-- **DEC-020 (deferred)**: `settings.json` is a hybrid file but needs a JSON-merge strategy, not a shell+context split. Out of scope here. To be drafted after Phase 4 of the SPEC ships.
+- **DEC-020 (deferred → resolved by DEC-023)**: `settings.json` is a hybrid file but needs a JSON-merge strategy, not a shell+context split. Out of scope here. **Resolved by DEC-023: it ships as a manual-merge template, NOT auto-synced** — permission guardrails are security posture and shouldn't be union-merged by an unattended bot.
 - **DEC-021 (deferred)**: retro "prefer-apply for structural Both-modified diffs" heuristic. Independent of file-class. Not blocked by this.
 
 ---
@@ -637,3 +637,22 @@ Per the SPEC: Phase 2 = CLAUDE.md, Phase 3 = architect.md, Phase 4 = code-review
 **Tradeoff:** `main` now receives every WIP commit, so on deployable projects the host's production branch **must** be repointed from `main` to `production` before `main` starts taking active work — otherwise WIP auto-deploys to prod. This is the one manual, host-side step the migration can't automate. Acceptable: it's a one-time per-deployable-project action, and it's exactly the trunk-based-development + release-branch pattern most teams already use.
 
 **Alternatives considered:** Make the sync resolve and target the active branch per-repo (rejected — keeps the non-default-active inversion and needs per-repo config; treats the symptom, not the cause). Keep `/promote-staging`'s name and only change its internals (rejected — the name would lie about what it does). Stay at schema v3 and let the rename flow unmanaged (rejected — a renamed skill pulled without migration leaves the old `/promote-staging` orphaned in projects).
+
+---
+
+## DEC-023: Permission `settings.json` ships as a manual-merge template, not auto-synced (resolves DEC-020)
+**Decision:** A baseline Claude Code permission policy lives at `dev/claude/settings.json` and is installed/merged into each project's `.claude/settings.json` **by hand**. It is NOT propagated by `@sync-config` / the nightly Routine. `allow` = the common safe toolchain (`git`, `gh`, `npm`/`npx`, `jq`, `sed`/`awk`, `kill`/`pkill`/`lsof`/`ss`, `docker exec`, `psql`, file tools, etc.); `deny` = destructive + secret-exfil guardrails (`git push --force`/`-f`, `git reset --hard`, `git clean -f`, `git branch -D`, `rm -rf` of dangerous roots, `sudo rm`, `curl`, and reads of `.env*` secrets / `.ssh` / private keys).
+
+**Why manual (this is the DEC-020 resolution):** DEC-020 deferred settings sync pending a JSON-merge strategy. The resolution is to *not build it*. Permission `deny` rules are security posture, and an unattended nightly bot union-merging them is an anti-pattern: a bad merge silently weakens a guardrail, and the blast radius is "Claude can now read `.env` / force-push." Security config is applied deliberately by a human. The convenience `allow` entries alone don't justify auto-sync machinery.
+
+**Precedence gotcha (Claude Code):** `deny` beats `allow` — once a path/command is denied you cannot re-allow a subset. So the `.env` deny is **enumerated** (`.env`, `.env.local`, `.env.*.local`, `.env.{development,production,preview,staging,test}`, `.envrc`) rather than a blanket `Read(**/.env.*)`, which would also block `.env.example` with no way to carve it back. Trade-off: a novel `.env.<custom>` secret name isn't caught — add it explicitly if a project uses one.
+
+**Repo-level vs user-global (the real safety model):** the hand-merged template is **project-level** (`<project>/.claude/settings.json`, checked in → covers every machine that clones the repo, desktop included). But it only protects repos that carry it. The destructive + secret `deny` rules should ALSO live in each machine's **user-global `~/.claude/settings.json`** (mill-dev AND desktop), so every session — including ad-hoc dirs and non-seeds repos — is covered. Rule of thumb: **allows → repo template; denies → both repo template and every machine's global.** Per-machine globals don't propagate via git; they're set once per box.
+
+**`curl`:** moved to `deny` as a network-exfil guardrail and removed from `allow` where it previously sat (the two together are contradictory; deny wins anyway). Re-allow per-project in `.claude/settings.local.json` if a project genuinely needs it.
+
+**Untouched:** `.claude/settings.local.json` (per-machine, gitignored) is never templated, synced, or edited by skills — it's the user's per-box override surface (e.g., re-allowing `curl`, machine-specific MCP tools).
+
+**Schema:** additive within v4 — no skill requires the settings file, so projects without it keep working. No version bump.
+
+**Alternatives considered:** auto-merge into `@sync-config` (rejected — see "Why manual"; security guardrails shouldn't be bot-edited). Blanket `Read(**/.env.*)` deny (rejected — blocks `.env.example`, and `deny` can't be carved back). Global-only with no repo template (rejected — project-appropriate allows vary; the repo template gives sensible per-project defaults that travel with the repo).

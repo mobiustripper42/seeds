@@ -27,8 +27,7 @@
       "Bash(psql *)",
       "Bash(wsl *)",
       "Bash(wsl.exe *)",
-      "Bash(powershell.exe *)",
-      "mcp__ccd_session__mark_chapter"
+      "Bash(powershell.exe *)"
     ],
     "deny": [
       "Bash(git reset --hard*)",

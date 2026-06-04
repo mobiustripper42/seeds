@@ -40,6 +40,7 @@ dev/
     aliases.sh             # Shell aliases for Claude Code workflows (source from ~/.bashrc)
   claude/
     CLAUDE.md              # Project CLAUDE.md template (fill in project-specific sections)
+    settings.json          # Baseline CC permission policy (DEC-023). Merge by hand into <project>/.claude/settings.json — NOT auto-synced.
     session-log.md         # Blank session log (copy to project root)
     agents/                # Agent definition files — copy to .claude/agents/ in your project
       sync-config.md       # Template maintenance agent (see "Syncing improvements" below)
@@ -137,6 +138,8 @@ Effort uses Fibonacci points: 2, 3, 5, 8, 13. No 1s (just do it), no 13s if avoi
 11. **VersionTag (deployable projects)** — copy `dev/claude/templates/VersionTag.tsx` to `<project>/src/components/VersionTag.tsx`. Wire into login screen + footer per `dev/claude/CLAUDE.md §Versioning`. Skip for non-deployable projects.
 12. **Production branch (optional, deployable projects)** — if the project deploys, add a downstream `production` branch: `git checkout -b production main && git push -u origin production`, then repoint the host's production branch (e.g. Vercel → Settings → Git → Production Branch) from `main` to `production` **before** `main` takes active work (otherwise WIP auto-deploys to prod). `main` stays the active trunk; `/promote-production` ff-merges `main` → `production` to ship. See DEC-022.
 13. **Supabase prod-write guard (Supabase projects)** — copy `dev/claude/scripts/safe-supabase.sh` to `<project>/scripts/safe-supabase.sh`, `chmod +x`, then `mkdir -p .claude && echo "<your-prod-ref>" > .claude/prod-supabase-refs && echo ".claude/prod-supabase-refs" >> .gitignore`. Optional alias: `alias supabase='./scripts/safe-supabase.sh'`. See DEC-009 + `dev/claude/CLAUDE.md §Migration Protocol`.
+
+14. **Permission settings (DEC-023)** — merge `dev/claude/settings.json` into `<project>/.claude/settings.json` **by hand** (union the `allow`/`deny` arrays; don't clobber project-specific entries). This is NOT auto-synced — permission guardrails are security posture, not bot-merged. Then, **once per machine** (mill-dev, desktop, any box you run CC on), copy the destructive + secret `deny` rules into your user-global `~/.claude/settings.json` so every session is covered, not just repos carrying the template. Leave `.claude/settings.local.json` alone — it's your per-box override (e.g. re-allowing `curl`). CC rule to remember: **`deny` beats `allow`** — you can't re-allow a path once it's denied.
 
 After setup, run `/its-alive` in the new project to start the first session.
 
