@@ -500,7 +500,7 @@ Type-gate first because dropping a file entirely is cheaper than classifying it.
 ### Forward references
 
 - **DEC-019** generalizes DEC-016's pattern to all hybrid files. Depends on this registry to mark them.
-- **DEC-020 (deferred)**: `settings.json` is a hybrid file but needs a JSON-merge strategy, not a shell+context split. Out of scope here. To be drafted after Phase 4 of the SPEC ships.
+- **DEC-020 (deferred → resolved by DEC-023)**: `settings.json` is a hybrid file but needs a JSON-merge strategy, not a shell+context split. Out of scope here. **Resolved by DEC-023: it ships as a manual-merge template, NOT auto-synced** — permission guardrails are security posture and shouldn't be union-merged by an unattended bot.
 - **DEC-021 (deferred)**: retro "prefer-apply for structural Both-modified diffs" heuristic. Independent of file-class. Not blocked by this.
 
 ---
@@ -637,3 +637,26 @@ Per the SPEC: Phase 2 = CLAUDE.md, Phase 3 = architect.md, Phase 4 = code-review
 **Tradeoff:** `main` now receives every WIP commit, so on deployable projects the host's production branch **must** be repointed from `main` to `production` before `main` starts taking active work — otherwise WIP auto-deploys to prod. This is the one manual, host-side step the migration can't automate. Acceptable: it's a one-time per-deployable-project action, and it's exactly the trunk-based-development + release-branch pattern most teams already use.
 
 **Alternatives considered:** Make the sync resolve and target the active branch per-repo (rejected — keeps the non-default-active inversion and needs per-repo config; treats the symptom, not the cause). Keep `/promote-staging`'s name and only change its internals (rejected — the name would lie about what it does). Stay at schema v3 and let the rename flow unmanaged (rejected — a renamed skill pulled without migration leaves the old `/promote-staging` orphaned in projects).
+
+---
+
+## DEC-023: Permission policy — default-allow with a deny guardrail; master in seeds, distributed by hand (resolves DEC-020)
+**Decision:** The Claude Code permission posture is **default-allow**: `allow` carries `Bash(*)` (plus `Read`/`Edit`/`Write`/`Glob`/`Grep`), and a **deny list is the only seatbelt**. `deny` beats `allow`, so destructive/secret commands are blocked and everything else runs without prompting. The canonical "master" lives at `dev/claude/settings.json` in seeds. It is **NOT auto-synced** by `@sync-config`/the Routine — it's distributed by hand (see procedure in seeds `README.md` § Permission settings).
+
+**Why default-allow:** the operator isn't reading long concatenated shell commands and wouldn't action them anyway, so a gated allow-list just produces prompts that get rubber-stamped — security theater. Flipping to `Bash(*)` + a solid deny list removes the noise and concentrates the protection where it's read: the deny list. (Use `defaultMode: default`, NOT `bypassPermissions` — bypass would disable the deny list too.)
+
+**The deny list is therefore load-bearing** and a bit hardened beyond the obvious: destructive git (`push --force`/`-f`, `reset --hard`, `clean -f`, `branch -D`), `rm -rf` of dangerous roots + `.git*`, `dd`, `mkfs*`, `truncate`, recursive/`777` chmod, redirects to `/dev/*` (best-effort — CC's matcher is unreliable on redirections), all `sudo`, network-exfil (`curl`/`wget`/`nc`), and reads of `.env` secrets / `.envrc` / `.ssh/**` / private keys.
+
+**Precedence gotcha (Claude Code):** `deny` beats `allow` — once denied you cannot re-allow a subset. So the `.env` deny is **enumerated** (`.env`, `.env.local`, `.env.*.local`, `.env.{development,production,preview,staging,test}`, `.envrc`) not a blanket `Read(**/.env.*)`, so `.env.example`/`.env.sample` stay readable. Trade-off: a novel `.env.<custom>` secret name isn't caught — add it explicitly.
+
+**Distribution — master → machines (the real model):**
+- **Real machines (windows laptop, mill-dev, bee-grace — distinct boxes):** copy the master into each machine's **user-global** `~/.claude/settings.json` (Windows: `%USERPROFILE%\.claude\settings.json`). One global file = every repo + every ad-hoc dir on that box. Globals don't travel via git; set once per machine.
+- **Phone (CC on web — ephemeral container):** no editable global. Covered only by the **committed per-repo `.claude/settings.json`** (cloned with the repo). Reminder lives in the README: before a code-heavy phone session, confirm that repo's committed file matches the master.
+
+**Updating the allowlist:** not self-service. The recurring trigger is never a simple missing command (default-allow covers those) — it's something gnarly that got denied. Procedure: bring it to a Claude session in seeds, which edits the master + emits the redistribute steps. No `/permissions` muscle-memory to maintain.
+
+**`.claude/settings.local.json`** (per-machine, gitignored) is never templated, synced, or edited by skills — the user's per-box override surface. Under default-allow most accumulated local "always-allow" entries become redundant; a cleanup prompt lives in the README (preserves any personal `deny`, strips redundant/stale allows).
+
+**Schema:** additive within v4 — no skill requires the settings file. No version bump.
+
+**Alternatives considered:** gated allow-list of specific tools (rejected — produces rubber-stamped prompts; the operator doesn't read the commands). `bypassPermissions` mode (rejected — disables the deny list, the one thing we rely on). Auto-merge settings into `@sync-config` (rejected — security guardrails shouldn't be bot-edited; and default-allow makes per-repo allow churn rare anyway). Blanket `Read(**/.env.*)` deny (rejected — blocks `.env.example`, deny can't be carved back).

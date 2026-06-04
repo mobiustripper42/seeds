@@ -7,8 +7,7 @@
       "Write",
       "Glob",
       "Grep",
-      "Bash(*)",
-      "mcp__ccd_session__mark_chapter"
+      "Bash(*)"
     ],
     "deny": [
       "Bash(git reset --hard*)",
