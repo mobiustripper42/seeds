@@ -12,7 +12,7 @@ Personal templates and workflow tooling for Claude Code projects. Two families:
 
 ### `dev/claude/`
 - `CLAUDE.md` — project CLAUDE.md template (fill in project-specific sections)
-- `settings.json` — **master Claude Code permission policy** (default-allow + deny guardrail). Source of truth; distributed by hand — see § Permission settings (DEC-023).
+- `settings.json` — **master Claude Code permission policy** (default-allow + deny guardrail). Source of truth; distributed by hand — see § Permission settings (DEC-S023).
 - `session-log.md` — blank session log (copy to project root)
 - `agents/` — Claude Code agent definitions (copy to `.claude/agents/` in your project)
   - `architect.md` — architectural decision reviewer
@@ -52,7 +52,7 @@ Non-dev domain templates. Nothing here yet — populated as domains get scaffold
 
 After setup, run `/its-alive` in the new project to start your first session.
 
-## Permission settings (DEC-023)
+## Permission settings (DEC-S023)
 
 **Posture: default-allow.** `dev/claude/settings.json` is the **master** — `allow` carries `Bash(*)`, and the **deny list is the only seatbelt** (`deny` beats `allow`, so dangerous/secret commands are blocked and everything else runs without prompting). Use `defaultMode: default`, never `bypassPermissions` (that turns the deny list off too).
 

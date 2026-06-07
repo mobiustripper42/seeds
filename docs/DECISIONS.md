@@ -4,29 +4,29 @@ Decisions are numbered DEC-NNN. "DEC-TBD" means the decision is flagged but unre
 
 ---
 
-## DEC-001: Two template families (`dev/` and `domain/`)
+## DEC-S001: Two template families (`dev/` and `domain/`)
 **Decision:** Templates are organized by project kind, not by component type. `dev/` holds everything for software projects; `domain/<name>/` holds everything for non-dev domains (bread, tomatoes, ops, etc.).
 **Why:** Session workflow is shaped by the kind of work, not the kind of file. A farm repo and a Next.js repo both need `/kill-this`, but the build-check step differs fundamentally. Per-family bundles keep that difference explicit.
 **Tradeoff:** Duplication across families when skills converge. If a pattern emerges in both, `@sync-config` flags it for potential extraction — but extraction is never automatic.
 
-## DEC-002: Skills live project-level, not user-global
+## DEC-S002: Skills live project-level, not user-global
 **Decision:** Session skills (`/its-alive`, `/kill-this`, etc.) live in `<project>/.claude/skills/`, checked into each project's repo. Not in `~/.claude/skills/` (user-global).
 **Why:** Skills are project-shaped, not device-shaped — `/kill-this` in a Next.js repo runs `npm run build`; in a farm repo it doesn't. Project-level skills ride along with the git checkout, so they're automatically consistent across laptop, headless box, and mobile — no separate device-sync mechanism needed.
 **Verified (2026-04-22):** Mobile CC auto-discovers `<project>/.claude/skills/` from a cloned repo. Confirmed via `mobile-test` probe skill.
 **Tradeoff:** Setup step per new project (seed the skills from seeds). `~/.claude/skills/` becomes empty or holds only truly cross-project skills.
 
-## DEC-003: One sync concept, two directions, same classifier
+## DEC-S003: One sync concept, two directions, same classifier
 **Decision:** Sync-config is one system running in two directions — **upstream** (project → seeds, opens PR) and **downstream** (seeds → project, pulls updates). Both invocations pass diffs through the same `@sync-config` agent to classify changes as "generic improvement" vs. "project-specific tweak."
 **Why:** The classification logic is the hard part and doesn't depend on direction. Treating sync as two features would duplicate the hardest piece.
 **Tradeoff:** None material. Invocation paths (nightly Routine vs. manual skill) differ, but the core logic is shared.
 
-## DEC-004: Upstream = nightly remote Routine, downstream = manual skill
+## DEC-S004: Upstream = nightly remote Routine, downstream = manual skill
 **Decision:** Upstream sync runs on a schedule via Anthropic Routines (remote, nightly). Downstream sync is manual via a `/pull-seeds` skill the user runs inside a project when they want updates.
 **Why:** Upstream catches improvements automatically without cluttering mid-task flow. Downstream is rare enough and disruptive enough (could introduce conflicts mid-work) that the user explicitly wants it on-demand only — no "session start" nag reminders.
-**Tradeoff:** Two different invocation mechanisms to maintain. Offset by them sharing the classifier (DEC-003).
+**Tradeoff:** Two different invocation mechanisms to maintain. Offset by them sharing the classifier (DEC-S003).
 **Revisit if:** User ends up never running `/pull-seeds` manually — means downstream needs a gentler reminder mechanism, or the update frequency doesn't justify downstream sync at all.
 
-## DEC-005: Branch model — task/* branches + PR flow
+## DEC-S005: Branch model — task/* branches + PR flow
 **Decision:** All work happens on `task/*` branches, same as any other project using this workflow. `/its-alive` starts on `main`, cuts a branch; `/kill-this` pushes and opens a PR; `/its-dead` commits the session log to `main` after merge and deletes the branch.
 **Why:** Seeds was on `main` (solo, no review surface) but this caused a recurring problem: skill copies in the seeds repo never got properly pushed, so `git pull` on other machines returned "already up to date." The PR merge acts as the natural forcing function — work isn't done until the PR merges, which guarantees everything is pushed. Also: seeds should eat its own dogfood. If the PR workflow is good enough to recommend, it's good enough to use here.
 **Changed from:** Always on `main`. Changed 2026-05-01 after observing the push-discipline failure in practice.
@@ -34,7 +34,7 @@ Decisions are numbered DEC-NNN. "DEC-TBD" means the decision is flagged but unre
 
 ---
 
-## DEC-006: Schema versioning — single global integer at `seeds-version`
+## DEC-S006: Schema versioning — single global integer at `seeds-version`
 **Decision:** The seeds workflow is versioned as a single integer (V1, V2, …) stored at the seeds repo root in `seeds-version` and at each project root in `.claude/seeds-version`. One number covers `PROJECT_PLAN.md` format, session-file format, and the skill set + API as one bundle. `/pull-seeds` (and any future seeds ↔ project sync) compares the two files; mismatch → STOP and require an explicit migration (documented in `docs/SCHEMA_VERSIONS.md`). Never auto-migrate.
 **Why:** Without versioning, `/pull-seeds` into a project on an older convention (e.g. sailbook still on monolithic `session-log.md`) would silently install incompatible skills and corrupt the project's session history. A single integer is enough — the three surfaces are coupled in practice (a skill API change usually implies a session-file change), so independent counters add complexity without clarity. Plain text in a bare file is grep-able by shell tooling without parsing markdown or JSON.
 **Tradeoff:** Bumps are coarse — adding one new optional skill could trigger a version bump even if existing projects keep working. Acceptable: when in doubt, bump, and document the migration as a no-op if nothing requires action.
@@ -42,13 +42,13 @@ Decisions are numbered DEC-NNN. "DEC-TBD" means the decision is flagged but unre
 
 ---
 
-## DEC-007: Project semver — `package.json` + git tag, three triggers, dev projects only
+## DEC-S007: Project semver — `package.json` + git tag, three triggers, dev projects only
 **Decision:** Dev projects carry a SemVer version (`MAJOR.MINOR.PATCH`) stored in `package.json` and mirrored to a git tag (`vX.Y.Z`) on `main`. Three triggers move it:
 - **Patch:** bumped by `/its-dead` on every PR merge to the working branch. CHANGELOG entry derived from PR title.
 - **Minor:** bumped by `/retro` on phase close. CHANGELOG entry derived from phase summary.
 - **Major:** bumped manually by a new `/bump-major` skill. User supplies the rationale.
 
-Tags are applied on the active trunk (`main`) at bump time (DEC-022). Promotion to a `production` deploy branch (if the project has one) carries the already-tagged commit via ff-merge; `/promote-production` does not tag. (Under the retired DEC-008 staging model, bumps were untagged on `staging` and tagged at `/promote-staging` — no longer the case.)
+Tags are applied on the active trunk (`main`) at bump time (DEC-S022). Promotion to a `production` deploy branch (if the project has one) carries the already-tagged commit via ff-merge; `/promote-production` does not tag. (Under the retired DEC-S008 staging model, bumps were untagged on `staging` and tagged at `/promote-staging` — no longer the case.)
 
 **Detection — "is this a dev project?":** presence of `package.json` at the repo root. Seeds + domain repos have no `package.json` → all version-bump steps no-op silently.
 
@@ -64,8 +64,8 @@ Tags are applied on the active trunk (`main`) at bump time (DEC-022). Promotion 
 
 **Alternatives considered:** Standalone `VERSION` file (rejected — duplicates `package.json` for node projects, no benefit); date-based versioning like CalVer (rejected — communicates time-since-release, not change magnitude); auto-categorize PR titles into Added/Changed/Fixed (rejected — heuristic, would lie often, not worth the complexity for a solo dev's CHANGELOG).
 
-## DEC-008: Staging promotion via ff-merge, not PR
-> **⚠ SUPERSEDED by DEC-022 (2026-06-01).** The staging-flow model made the *active* branch (`staging`) the *non-default* branch. The nightly sync reads each project's default branch (`main`) but PR'd downstream into `staging`, so on the one repo that adopted staging (sailbook) a permanent main↔staging gap was re-proposed as "drift" every night (sailbook PR #75). DEC-022 inverts the model: `main` is always the active trunk, and an optional `production` branch is the downstream deploy pointer. The text below is retained for history; the `origin/staging` detection it describes has been removed from `/kill-this`, `/retro`, `/bump-major`, `/its-alive`, and the nightly routine, and `/promote-staging` is replaced by `/promote-production`.
+## DEC-S008: Staging promotion via ff-merge, not PR
+> **⚠ SUPERSEDED by DEC-S022 (2026-06-01).** The staging-flow model made the *active* branch (`staging`) the *non-default* branch. The nightly sync reads each project's default branch (`main`) but PR'd downstream into `staging`, so on the one repo that adopted staging (sailbook) a permanent main↔staging gap was re-proposed as "drift" every night (sailbook PR #75). DEC-S022 inverts the model: `main` is always the active trunk, and an optional `production` branch is the downstream deploy pointer. The text below is retained for history; the `origin/staging` detection it describes has been removed from `/kill-this`, `/retro`, `/bump-major`, `/its-alive`, and the nightly routine, and `/promote-staging` is replaced by `/promote-production`.
 
 **Decision:** When a project has a `staging` branch, `/kill-this` PRs into `staging` (not `main`). Promotion to `main` happens via `/promote-staging` which fast-forward-merges `staging` into `main`, tags the release with the version currently in `package.json`, and pushes both branches and the tag. No PR opens for the staging→main step.
 
@@ -77,7 +77,7 @@ Tags are applied on the active trunk (`main`) at bump time (DEC-022). Promotion 
 
 **Alternatives considered:** Open a staging→main PR and self-merge (rejected — empty ceremony, every promotion would auto-approve); merge commit instead of ff (rejected — adds a "Merge branch 'staging'" commit on every promotion that conveys nothing).
 
-## DEC-009: Supabase prod-write guard — discipline + wrapper script
+## DEC-S009: Supabase prod-write guard — discipline + wrapper script
 **Decision:** Two-layer defense against destructive Supabase CLI ops landing on production:
 - **Discipline:** never `supabase link` to a prod project ref from a dev box. Production reads its `SUPABASE_URL` + service-role key from Vercel env vars; there is no reason for a local link to prod.
 - **Wrapper script:** `scripts/safe-supabase.sh` (template at `dev/claude/scripts/safe-supabase.sh`) reads the linked ref from `supabase/.temp/project-ref` and a per-project prod-ref allowlist from `.claude/prod-supabase-refs` (gitignored). For destructive subcommands, if the linked ref is in the prod list, refuses the operation and prints a remediation hint. Pass-through for everything else. The matcher walks adjacent argument pairs (not just `$1 $2`), so leading global flags don't shift the destructive subcommand out of view.
@@ -101,12 +101,12 @@ These rely on the discipline (no prod URL in local env, no prod password on disk
 
 ---
 
-## DEC-010: Bi-directional nightly sync via Anthropic Routine
-**Decision:** Sync runs unattended nightly via a single Anthropic Routine (`dev/claude/routines/nightly-sync.md`) that handles BOTH directions per repo. The Routine reads `.claude/routine-config.yaml` for filter rules + direction config, enumerates the repos its MCP github session has access to (the **Routine form's repo chip area on claude.ai is the active-set source of truth**), filters by `exclude:` + `require:` + `.claude/seeds-version` presence and version match, and per (repo × direction) invokes `@sync-config` in `mode: auto`. Each invocation that produces non-empty changes opens its own PR — upstream PRs into `mobiustripper42/seeds:main`, downstream PRs into the project's default branch (the active trunk; never a `production` deploy branch — DEC-022). Nothing merges automatically; the PR is the human-review checkpoint.
+## DEC-S010: Bi-directional nightly sync via Anthropic Routine
+**Decision:** Sync runs unattended nightly via a single Anthropic Routine (`dev/claude/routines/nightly-sync.md`) that handles BOTH directions per repo. The Routine reads `.claude/routine-config.yaml` for filter rules + direction config, enumerates the repos its MCP github session has access to (the **Routine form's repo chip area on claude.ai is the active-set source of truth**), filters by `exclude:` + `require:` + `.claude/seeds-version` presence and version match, and per (repo × direction) invokes `@sync-config` in `mode: auto`. Each invocation that produces non-empty changes opens its own PR — upstream PRs into `mobiustripper42/seeds:main`, downstream PRs into the project's default branch (the active trunk; never a `production` deploy branch — DEC-S022). Nothing merges automatically; the PR is the human-review checkpoint.
 
 **Active-set source of truth = Routine form, not config.** The original design (PR #11, 2026-05-07) had `routine-config.yaml` carry an `orgs:` list and the Routine enumerated `<org>/*` via `repos.list`, then filtered. The first live run (2026-05-08) revealed the failure mode: GitHub OAuth scope is per-repo, not org-wide. Listing returned 18 repos; per-repo content reads denied 17 of them; the Routine aborted cleanly via the safety guardrail. Fix: the Routine form's chip area (the same surface that gates MCP access) is now the canonical active-set declaration. Adding a project to the active set = add it to the form. Removing = remove the chip. No config edit needed for either. The `orgs:` block was dropped from `routine-config.yaml`; `exclude:` stays as a second filter for the always-skip-anyway case (seeds-itself).
 
-**Supersedes the upstream-only stance in DEC-004.** That decision treated downstream as manual-only because mid-task conflicts were the worst-case. The Routine's "open a PR, never apply directly" pattern bounds that risk: a bad downstream sync lands as a PR sitting in a project's queue, not as a destructive merge. Manual `/pull-seeds` still exists for the "I want it now" case.
+**Supersedes the upstream-only stance in DEC-S004.** That decision treated downstream as manual-only because mid-task conflicts were the worst-case. The Routine's "open a PR, never apply directly" pattern bounds that risk: a bad downstream sync lands as a PR sitting in a project's queue, not as a destructive merge. Manual `/pull-seeds` still exists for the "I want it now" case.
 
 **Auto mode on `@sync-config`:** the agent now accepts `mode: interactive` (default, used by `/push-seeds` and `/pull-seeds`) and `mode: auto` (used by the Routine). Auto mode applies every backport/forward-port without prompting, defaults to skip on ambiguity (the PR is the safety net), and never acts on pattern flags — those go in the report only.
 
@@ -136,10 +136,10 @@ These rely on the discipline (no prod URL in local env, no prod password on disk
 
 ---
 
-## DEC-011: Project-type gating for template files
+## DEC-S011: Project-type gating for template files
 **Decision:** Each project declares its type in a single-line `<project>/.claude/project-type` file (currently `webapp` or `tool`). A manifest at `<seeds>/.claude/type-manifest.yaml` lists the small subset of `dev/claude/` template files that don't apply to every type — e.g. `agents/ui-reviewer.md` is `[webapp]` only because it's built around shadcn UI conventions. `@sync-config` reads both before scoping its diff: any gated file whose allowed-types list doesn't include the project's type is dropped from scope and surfaces in the PR body as a `Type-gated` Provenance row. Projects without `.claude/project-type` are treated as **ungated** — every template file is diffed (legacy behavior preserved); the Step 6 report carries a one-liner so the absent file doesn't go unnoticed.
 
-**Why a separate file, not a field on `seeds-version`.** Two reasons. (1) Read precision — `seeds-version` is parsed as an integer by every consumer (skills, the Routine, `@sync-config`'s own gate). Mixing in a string field would force every reader to grow a parser. (2) Scope clarity — `seeds-version` controls schema-compatibility gating (DEC-006), `project-type` controls file-applicability gating. Different concerns, different lifetimes (a project's type rarely changes; its schema version migrates each cycle). One file per concern is the convention here (`devname`, `seeds-version`, `prod-supabase-refs` all follow it).
+**Why a separate file, not a field on `seeds-version`.** Two reasons. (1) Read precision — `seeds-version` is parsed as an integer by every consumer (skills, the Routine, `@sync-config`'s own gate). Mixing in a string field would force every reader to grow a parser. (2) Scope clarity — `seeds-version` controls schema-compatibility gating (DEC-S006), `project-type` controls file-applicability gating. Different concerns, different lifetimes (a project's type rarely changes; its schema version migrates each cycle). One file per concern is the convention here (`devname`, `seeds-version`, `prod-supabase-refs` all follow it).
 
 **Why a manifest, not per-file frontmatter.** A YAML manifest at the seeds root makes the gating list visible in one place, easy to audit, and easy to extend. Per-file frontmatter (e.g. a `# project-types: [webapp]` header inside `ui-reviewer.md`) would scatter the policy across the template tree and require every file consumer to parse it. Since most template files apply to all types — only listed files are gated — a single deny-list-style manifest keeps the common case overhead-free.
 
@@ -149,7 +149,7 @@ These rely on the discipline (no prod URL in local env, no prod password on disk
 
 **Backfill:** existing projects (bushel, sailbook → `webapp`; helm, captains-log → `tool`) get the file written manually as part of Task 28. New projects get it during `/web-setup` per CLAUDE.md Setup step 9a.
 
-**Forcing function:** the 2026-05-09 nightly sync run surfaced two related failures. (a) helm#5's pattern flag fired only because helm has *no* `ui-reviewer.md` — the absence triggered the flag. captains-log was created from seeds the day before, so it *has* `ui-reviewer.md` even though it's a tool project; the SHA matched and no flag fired. Same architectural fact (both projects are tool-type), inconsistent classifier output. (b) The Routine had no way to express "this template file applies only to certain projects" — the `@sync-config` contract was either "all template files diff against all projects" or "the human reviewer figures it out per file." DEC-011 makes the distinction explicit and source-controlled.
+**Forcing function:** the 2026-05-09 nightly sync run surfaced two related failures. (a) helm#5's pattern flag fired only because helm has *no* `ui-reviewer.md` — the absence triggered the flag. captains-log was created from seeds the day before, so it *has* `ui-reviewer.md` even though it's a tool project; the SHA matched and no flag fired. Same architectural fact (both projects are tool-type), inconsistent classifier output. (b) The Routine had no way to express "this template file applies only to certain projects" — the `@sync-config` contract was either "all template files diff against all projects" or "the human reviewer figures it out per file." DEC-S011 makes the distinction explicit and source-controlled.
 
 **Tradeoff:** the manifest is a hand-maintained list. Adding a new template file that's type-specific requires editing two files (the file itself, plus the manifest). The same applies to type-renames or splits. Acceptable — the alternative is per-file frontmatter, which scales worse on the read path.
 
@@ -158,22 +158,22 @@ These rely on the discipline (no prod URL in local env, no prod password on disk
 ---
 
 ## DEC-TBD: Fate of `scripts/nightly-sync.sh` — RESOLVED 2026-05-14
-**Resolution:** Retired. The remote Routine (DEC-010) has run cleanly for ~5 days. `scripts/nightly-sync.sh` and its docs are removed. Task 8 closed.
+**Resolution:** Retired. The remote Routine (DEC-S010) has run cleanly for ~5 days. `scripts/nightly-sync.sh` and its docs are removed. Task 8 closed.
 
 ---
 
-## DEC-012: Session-end flow — `/its-dead` first, merge last; PR-flow default on protected `$WORKING_BRANCH`
+## DEC-S012: Session-end flow — `/its-dead` first, merge last; PR-flow default on protected `$WORKING_BRANCH`
 
 **Date:** 2026-05-12
 **Status:** Accepted
 
-**Context.** Three concrete failures from the post-DEC-005 era forced a clean redesign of the session-end sequence:
+**Context.** Three concrete failures from the post-DEC-S005 era forced a clean redesign of the session-end sequence:
 
 1. **Stranded session logs.** `/its-dead` Step 5.2 had two paths for `STATE=MERGED` (user merged the PR between `/kill-this` and `/its-dead`) — both required pushing the finalize commit somewhere. On protected `$WORKING_BRANCH` (the post-merge target), the direct push returned 403; the session log got pushed to the just-merged-and-orphaned branch, where it sat forever (S15, Task 19). The `STATE=MERGED`-mid-session path was always a special case for a sequence the workflow shouldn't recommend in the first place.
 
 2. **Cheerful close on `STATE=OPEN`.** The closing summary said "Session N closed" identically whether the PR was MERGED, OPEN, or NO_PR. Users read success and walked away, leaving PRs sitting overnight (S22 → PR #24, merged 36+ hours late after the next session caught it).
 
-3. **`NO_PR` legacy path on protected main.** DEC-005's "always on main while solo" pre-dates branch protection. When a session ran without a PR (e.g. `/kill-this` Step 4.2 skipped due to missing `gh` + MCP), `/its-dead`'s NO_PR cleanup tried to direct-push to `$WORKING_BRANCH`, got 403, and had no in-flow fallback (PR #24 documented this verbatim).
+3. **`NO_PR` legacy path on protected main.** DEC-S005's "always on main while solo" pre-dates branch protection. When a session ran without a PR (e.g. `/kill-this` Step 4.2 skipped due to missing `gh` + MCP), `/its-dead`'s NO_PR cleanup tried to direct-push to `$WORKING_BRANCH`, got 403, and had no in-flow fallback (PR #24 documented this verbatim).
 
 **The reordered flow.**
 
@@ -188,7 +188,7 @@ The user merging AFTER `/its-dead` is the keystone. It eliminates the `STATE=MER
 
 **The `NO_PR`-on-protected-main fallback.** When `/its-dead` Step 5.2 enters the legacy NO_PR path, it probes `$WORKING_BRANCH` protection first. If protected, the skill opens a "Session N close-out" PR from the session branch instead of trying to direct-push. The session effectively ends in `STATE=OPEN` regardless of how it started — protected `$WORKING_BRANCH` makes PR-flow the only viable shape.
 
-**What DEC-005 still covers.** DEC-005 (always on main while solo) is now scoped to projects where `$WORKING_BRANCH` is unprotected. The CC platform's `claude/<slug>` auto-branching + protected `main` + branch protection rules on org repos means the de-facto default has already shifted to PR-flow. DEC-005's direct-push is the unprotected-main fallback, not the primary path.
+**What DEC-S005 still covers.** DEC-S005 (always on main while solo) is now scoped to projects where `$WORKING_BRANCH` is unprotected. The CC platform's `claude/<slug>` auto-branching + protected `main` + branch protection rules on org repos means the de-facto default has already shifted to PR-flow. DEC-S005's direct-push is the unprotected-main fallback, not the primary path.
 
 **Wall clock / dev time / review time.** The reordering created the seam to capture three time fields rather than one. The session splits in two at `pr_opened_at`:
 
@@ -200,7 +200,7 @@ Break inference walks the transcript JSONL(s) and counts any gap > 15 min as idl
 
 If `pr_opened_at` is unset (`STATE=NO_PR` — `/kill-this` never opened a PR), the session is treated as one window: `dev_time = wall_clock - all_breaks`, `review_time = 0`.
 
-The merge happens AFTER `/its-dead` (the DEC-012 reorder) — so merge time is *not* part of `review_time`. `review_time` here measures in-session review work (addressing `@code-review` findings, drafting the log, running `/its-dead`), not GitHub-PR-pending-merge wall time.
+The merge happens AFTER `/its-dead` (the DEC-S012 reorder) — so merge time is *not* part of `review_time`. `review_time` here measures in-session review work (addressing `@code-review` findings, drafting the log, running `/its-dead`), not GitHub-PR-pending-merge wall time.
 
 All three fields are populated at `/its-dead` close, no backfill needed. `duration:` stays as a synonym for `dev_time:` for legacy velocity-table readers.
 
@@ -212,19 +212,19 @@ All three fields are populated at `/its-dead` close, no backfill needed. `durati
 
 **Trade-offs.** The user is on the hook for one extra step (merge after /its-dead) that the original convention had them do mid-session. The benefit: no orphaned commits, no overnight-PR surprises, no "everything is closed" misreports. The cost: a 5-second `gh pr merge` after `/its-dead` prints its closing line.
 
-**Migration.** Existing projects pick up DEC-012 via the nightly Routine (forward-port of the four skill files + this CLAUDE.md template change). No data migration — the new frontmatter fields are additive and optional; sessions written before DEC-012 stay readable.
+**Migration.** Existing projects pick up DEC-S012 via the nightly Routine (forward-port of the four skill files + this CLAUDE.md template change). No data migration — the new frontmatter fields are additive and optional; sessions written before DEC-S012 stay readable.
 
-**Supersedes:** DEC-005's direct-push convention (now scoped to unprotected `$WORKING_BRANCH` only).
+**Supersedes:** DEC-S005's direct-push convention (now scoped to unprotected `$WORKING_BRANCH` only).
 
 ---
 
-## DEC-013: Per-task `/kill-this`, single `/its-dead`, all time math at `/retro`
+## DEC-S013: Per-task `/kill-this`, single `/its-dead`, all time math at `/retro`
 
 **Date:** 2026-05-14
 **Status:** Accepted
-**Supersedes:** DEC-012's three-time-fields-at-close and the `/its-alive` Step 7.5 backfill.
+**Supersedes:** DEC-S012's three-time-fields-at-close and the `/its-alive` Step 7.5 backfill.
 
-**Context.** DEC-012 introduced `pr_opened_at` as the seam for `dev_time` / `review_time` splits, plus a backfill in `/its-alive` that wrote `review_time` into the *previous* session's frontmatter once that PR merged. Two problems surfaced in dogfooding:
+**Context.** DEC-S012 introduced `pr_opened_at` as the seam for `dev_time` / `review_time` splits, plus a backfill in `/its-alive` that wrote `review_time` into the *previous* session's frontmatter once that PR merged. Two problems surfaced in dogfooding:
 
 1. **Backfill violates atomicity.** A session file that was supposed to be closed kept getting mutated by the next session. The closing summary said "everything is clean," but it wasn't — the next `/its-alive` would reach back and rewrite. The user surfaced this directly: "session_log needs to be atomic to the claude session."
 2. **One Claude session usually has multiple tasks.** The skill names imply pairing (`/kill-this` ↔ `/its-dead`), but the actual workflow opens N PRs across one Claude window — `/kill-this` runs per task while waiting on CI / walking away / context-switching, and `/its-dead` only runs once at the very end. Stacked tasks on the old model left earlier commits uncounted and stranded the prior session's `status: open`.
@@ -238,7 +238,7 @@ All three fields are populated at `/its-dead` close, no backfill needed. `durati
 - `/its-alive` Step 7.5 (backfill) — **deleted**.
 - `/retro` — new responsibilities. For each session in the closing phase: reads `started`, `ended`, `transcript`, `pr_numbers`. Queries GitHub for each PR's `opened_at` / `merged_at`. Walks the transcript JSONL for break gaps. Computes per-session `wall_clock`, `dev_time`, `review_time`, and the three phase-level velocities (points / each).
 
-**Session file schema after DEC-013.**
+**Session file schema after DEC-S013.**
 
 Frontmatter (atomic — written once, never mutated):
 - `session:` `dev:` `slug:` `branch:` — unchanged.
@@ -255,26 +255,26 @@ Frontmatter (atomic — written once, never mutated):
 
 **Sanity check at close.** `/its-dead` displays "Wall clock: Nh Mm" to screen *only*. Lets the user spot anomalies ("that can't be right, I was here way less than that") and apply manual adjustments before walking away. The displayed number is not persisted to the file — the user's instinct to verify gets served, atomicity holds.
 
-**Migration.** Existing session files (DEC-012-era) keep their old fields — the new schema is forward-only. `/retro` tolerates old-schema sessions: if `wall_clock`/`dev_time`/`review_time` are pre-filled, it uses them; otherwise it computes. No mass rewrite.
+**Migration.** Existing session files (DEC-S012-era) keep their old fields — the new schema is forward-only. `/retro` tolerates old-schema sessions: if `wall_clock`/`dev_time`/`review_time` are pre-filled, it uses them; otherwise it computes. No mass rewrite.
 
 **Trade-offs.**
 - Per-task velocity fidelity is lost when a session bundles multiple tasks of different sizes. Session-total velocity still works; per-task velocity would need either separate sessions per task (back to the old model) or tagging each commit with a task ID. Not worth the friction.
-- Phase-end velocity reports require GitHub API access at `/retro` time. If `gh` + MCP are both unavailable, `/retro` skips `review_time` and reports only wall_clock + dev_time with a note. Same fallback discipline as DEC-012's STATE checks.
+- Phase-end velocity reports require GitHub API access at `/retro` time. If `gh` + MCP are both unavailable, `/retro` skips `review_time` and reports only wall_clock + dev_time with a note. Same fallback discipline as DEC-S012's STATE checks.
 - The "wall clock seems wrong at close" case has no path to silently fix the file. The user adjusts via manual notes in the session body (`Context:` section) or waits for `/retro` to surface the anomaly across the phase.
 
-**Why merge ordering is now free.** Pre-DEC-013, merge-before-/its-dead was a problem because the session file's `review_time` couldn't be computed without the merge timestamp, and merge-after-/its-dead needed the backfill hack. With math at retro: GitHub has both timestamps no matter what order things happened in, so retro just queries and computes. Neither ordering is privileged.
+**Why merge ordering is now free.** Pre-DEC-S013, merge-before-/its-dead was a problem because the session file's `review_time` couldn't be computed without the merge timestamp, and merge-after-/its-dead needed the backfill hack. With math at retro: GitHub has both timestamps no matter what order things happened in, so retro just queries and computes. Neither ordering is privileged.
 
-**Paired with DEC-014.** DEC-013's per-task `/kill-this` creates an immediate question: which branch does the appended session file get committed to? DEC-014 answers that — an orphan `sessions` branch via a dedicated worktree, decoupled from any task branch. The two ship together.
+**Paired with DEC-S014.** DEC-S013's per-task `/kill-this` creates an immediate question: which branch does the appended session file get committed to? DEC-S014 answers that — an orphan `sessions` branch via a dedicated worktree, decoupled from any task branch. The two ship together.
 
 ---
 
-## DEC-014: Session files on orphan `sessions` branch via dedicated worktree
+## DEC-S014: Session files on orphan `sessions` branch via dedicated worktree
 
 **Date:** 2026-05-14
 **Status:** Accepted
-**Depends on:** DEC-013 (per-task `/kill-this` semantics).
+**Depends on:** DEC-S013 (per-task `/kill-this` semantics).
 
-**Context.** DEC-013 made `/kill-this` per-task, opening N PRs per session. Each `/kill-this` writes to the session file. The file therefore needs commits on N different task branches — and those branches get squashed/merged/deleted at PR merge. The session file would either fragment across merged-and-deleted branches or pile up on whichever branch happened to be current at each `/kill-this` invocation. Both shapes are broken.
+**Context.** DEC-S013 made `/kill-this` per-task, opening N PRs per session. Each `/kill-this` writes to the session file. The file therefore needs commits on N different task branches — and those branches get squashed/merged/deleted at PR merge. The session file would either fragment across merged-and-deleted branches or pile up on whichever branch happened to be current at each `/kill-this` invocation. Both shapes are broken.
 
 The fix is to remove the session file from the task-branch lifecycle entirely.
 
@@ -304,31 +304,31 @@ The fix is to remove the session file from the task-branch lifecycle entirely.
 2. Switch back to `main`: `git checkout main`.
 3. Remove `sessions/` from `main`: `git rm -r sessions/`.
 4. Add `.sessions-worktree/` to `.gitignore`.
-5. Commit on `main`: `git commit -m "Move sessions to orphan sessions branch (DEC-014)"`.
+5. Commit on `main`: `git commit -m "Move sessions to orphan sessions branch (DEC-S014)"`.
 6. Create the worktree: `git worktree add .sessions-worktree sessions`.
 
 Existing session files preserved verbatim — they live on the new branch from commit 1.
 
 **Trade-offs.**
 - `ls sessions/` from `main` returns "no such directory" — muscle memory breaks. Quick peek workaround: `cat .sessions-worktree/sessions/<file>.md`.
-- The Routine (DEC-010) doesn't currently know about the `sessions` branch. Sessions are project-local; only skill templates sync via the Routine. No change needed there.
+- The Routine (DEC-S010) doesn't currently know about the `sessions` branch. Sessions are project-local; only skill templates sync via the Routine. No change needed there.
 - A user who manually `git checkout sessions` lands in a working tree with no code. Recovery: `git checkout main`. Not a hazard unless deliberately invoked.
 
 **Why orphan rather than long-lived feature-branch.** Long-lived parallel branches accumulate merge debt against main forever. Orphan branches have zero shared history — they can't conflict, can't drift, can't fall behind. Sessions are not source code; treating them as a sibling timeline is the honest shape.
 
 ---
 
-## DEC-015: Per-PR dev/review windows in retro time math
+## DEC-S015: Per-PR dev/review windows in retro time math
 
 **Date:** 2026-05-17
 **Status:** Accepted
-**Supersedes the math** introduced in `/retro` Step 2.5 by DEC-013 (single-seam at `min(pr.createdAt)`) and amended by the 2026-05-15 fix (single-seam at `max(pr.createdAt)`).
+**Supersedes the math** introduced in `/retro` Step 2.5 by DEC-S013 (single-seam at `min(pr.createdAt)`) and amended by the 2026-05-15 fix (single-seam at `max(pr.createdAt)`).
 
-**Context.** Under DEC-013, multi-PR sessions are the norm — a single Claude window may ship 8–10 PRs via N `/kill-this` calls. The original Step 2.5 collapsed the session to a single dev/review seam, first at `min(pr.createdAt)` (first `/kill-this`), then after the 2026-05-15 fix at `max(pr.createdAt)` (last `/kill-this`). Both versions had the same structural flaw: there is no single moment where "dev" ends and "review" begins in a multi-PR session. PRs 1..N-1 are reviewed and merged while PR_N is being built.
+**Context.** Under DEC-S013, multi-PR sessions are the norm — a single Claude window may ship 8–10 PRs via N `/kill-this` calls. The original Step 2.5 collapsed the session to a single dev/review seam, first at `min(pr.createdAt)` (first `/kill-this`), then after the 2026-05-15 fix at `max(pr.createdAt)` (last `/kill-this`). Both versions had the same structural flaw: there is no single moment where "dev" ends and "review" begins in a multi-PR session. PRs 1..N-1 are reviewed and merged while PR_N is being built.
 
 Bushel Phase 3 surfaced the symptom under the `min` formula (dev_time grossly under-counted, review_time over-counted). Phase 4+ retros under the `max` formula showed the inverse: dev_time = 0.035 h/pt is implausibly fast because the formula stuffed all post-last-PR time into review and treated all pre-last-PR time as dev, including the time spent reviewing PRs 1..N-1.
 
-The retro skill correctly self-flagged the artifact ("DEC-013 method artifact (10 PRs in 2 sessions); do not trust as headline") and pointed users at `Active = wall_clock − breaks` as the honest headline. But that's a workaround, not a fix — `dev_time/pt` and `review_time/pt` should both be meaningful.
+The retro skill correctly self-flagged the artifact ("DEC-S013 method artifact (10 PRs in 2 sessions); do not trust as headline") and pointed users at `Active = wall_clock − breaks` as the honest headline. But that's a workaround, not a fix — `dev_time/pt` and `review_time/pt` should both be meaningful.
 
 **Decision.** Each PR gets its own dev_window and review_window. Sum across all PRs in the session.
 
@@ -356,17 +356,17 @@ review_time  = Σ max(0, review_window_i − review_breaks_i) + trailing
 
 **Consequences.**
 - `dev_time/pt` and `review_time/pt` become trustworthy as headline numbers for forecasting (no more "do not trust" caveat in the retro PM commentary).
-- Historical retro numbers run under the single-seam formula are method artifacts. Pre-DEC-015 multi-PR sessions have under-reported (or over-reported, depending on the version) dev_time/review_time. The notes in `/retro` flag this; cross-phase comparisons should normalize against `Active = wall_clock − breaks` for any pre-DEC-015 phase.
+- Historical retro numbers run under the single-seam formula are method artifacts. Pre-DEC-S015 multi-PR sessions have under-reported (or over-reported, depending on the version) dev_time/review_time. The notes in `/retro` flag this; cross-phase comparisons should normalize against `Active = wall_clock − breaks` for any pre-DEC-S015 phase.
 - One additional `mergedAt` lookup per PR at retro time. Already fetched by Step 2 for `review_time` purposes — no new API calls.
-- The retro skill PM commentary no longer needs the "DEC-013 method artifact" caveat once all sessions in a phase are post-DEC-015.
+- The retro skill PM commentary no longer needs the "DEC-S013 method artifact" caveat once all sessions in a phase are post-DEC-S015.
 
 **Trade-offs.** More math, longer Step 2.5. Each PR contributes 2-3 sub-computations. Worth it: the headline numbers become trustworthy. The previous "use active as the headline" workaround was the skill apologizing for its own model — the model itself was the bug.
 
-**Migration.** No data migration. Pre-DEC-015 retros stay as-written; their notes already flag the artifact. Future retros use the per-PR formula automatically once this lands. Routine forward-ports to bushel, captains-log, helm, sailbook on next nightly run.
+**Migration.** No data migration. Pre-DEC-S015 retros stay as-written; their notes already flag the artifact. Future retros use the per-PR formula automatically once this lands. Routine forward-ports to bushel, captains-log, helm, sailbook on next nightly run.
 
 ---
 
-## DEC-016: ui-reviewer agent split — generic shell + project context file
+## DEC-S016: ui-reviewer agent split — generic shell + project context file
 
 **Date:** 2026-05-18
 **Status:** Accepted
@@ -388,11 +388,11 @@ The agent shell opens with: "Read `.claude/ui-context.md`. It contains the proje
 - New webapp projects: copy the seeds shell, fill in `[Project]`, create `.claude/ui-context.md` with the design system.
 - Existing projects that have already customized their `ui-reviewer.md` (bushel, sailbook) need a one-time migration: extract the project-specific content to `ui-context.md`, slim the agent file back to match the shell.
 
-**Namespace note.** Seeds DEC-016 is a framework decision. Projects initialized before this decision may already use DEC-016 for a project-specific decision (e.g., bushel uses DEC-016 for Wave invoicing). Those project DECISIONS.md files are separate documents with independent numbering — no conflict. Future projects seeded from seeds v3+ should start their project-specific decisions at DEC-017.
+**Namespace note.** This is a framework decision — numbered `DEC-S016` under the `DEC-S` prefix convention (see DEC-S025). A project's own `docs/DECISIONS.md` uses plain `DEC-NNN` with independent numbering (e.g., bushel uses DEC-016 for Wave invoicing) — a separate document, no conflict. The `DEC-S` prefix exists precisely so a seeds-workflow decision can never be mistaken for a project's own `DEC-NNN`, and vice versa.
 
 ---
 
-## DEC-017: Fact-check and structural-audit are separate reviewer concerns
+## DEC-S017: Fact-check and structural-audit are separate reviewer concerns
 
 **Date:** 2026-05-19
 **Status:** Accepted
@@ -406,25 +406,25 @@ The agent shell opens with: "Read `.claude/ui-context.md`. It contains the proje
 
 - **Structural auditing** is `@architect` or `@sync-config` territory, depending on which axis is in question. `@architect` reviews proposed architectural decisions against `SPEC.md` and `DECISIONS.md`. `@sync-config` classifies template-vs-project drift across files. Neither agent is invoked by `/doc-consistency-check` — keeping them out of the fact-check surface is what prevents the drift this DEC addresses.
 
-**Project-type interaction (DEC-011).** `@doc-consistency` reads `.claude/project-type` to interpret `docs/BRAND.md`. For `webapp` projects, BRAND.md must declare theme/colors/typography/voice — an empty or template-stock file is a finding. For `tool` projects, BRAND.md is allowed to declare itself out of scope, but only with an explicit justification (e.g. "tool project — no end-user surface, so no visual brand"). A bare "not used" or any occurrence of the literal string `PLACEHOLDER` is a finding regardless of type. Projects without `.claude/project-type` are ungated and the report says so.
+**Project-type interaction (DEC-S011).** `@doc-consistency` reads `.claude/project-type` to interpret `docs/BRAND.md`. For `webapp` projects, BRAND.md must declare theme/colors/typography/voice — an empty or template-stock file is a finding. For `tool` projects, BRAND.md is allowed to declare itself out of scope, but only with an explicit justification (e.g. "tool project — no end-user surface, so no visual brand"). A bare "not used" or any occurrence of the literal string `PLACEHOLDER` is a finding regardless of type. Projects without `.claude/project-type` are ungated and the report says so.
 
 **Consequences.**
 - The `/doc-consistency-check` surface produces predictable, scannable reports. Pass-with-zero-findings is a valid result; the report doesn't pad.
 - The agent will not surface DEC-numbering opinions, file-ownership opinions, or "you should add a section" prose. Future skills that want those concerns invoke `@architect` instead.
 - The skill is wireable into `/start-phase` (pre-phase clean-state check) and `/retro` (phase-end snapshot) without changing the agent — both wirings are deferred until the manual surface stabilizes.
 - The Routine forward-ports the skill + agent to bushel/captains-log/helm/sailbook/crewbook on the next sync.
-- Crewbook's 2026-05-18 stale-DEC-007 finding (the original signal) gets re-surfaced cleanly on the next `/doc-consistency-check` run there — no restructuring proposals attached.
+- Crewbook's 2026-05-18 stale-DEC-S007 finding (the original signal) gets re-surfaced cleanly on the next `/doc-consistency-check` run there — no restructuring proposals attached.
 
 **Why not extend `@architect` to cover doc consistency.** Different output shape, different fences. `@architect` reviews proposed decisions and is expected to make recommendations. `@doc-consistency` reviews facts in already-written docs and is expected to make zero recommendations. Bundling them would dilute both agents' specs and reintroduce the drift this DEC names.
 
 ---
 
-## DEC-018: File-class registry for sync-config
+## DEC-S018: File-class registry for sync-config
 
 **Date:** 2026-05-19
 **Status:** Accepted
-**Extends:** DEC-010, DEC-011
-**Related:** DEC-016 (concrete example), DEC-019 (depends on this), DEC-020 (deferred)
+**Extends:** DEC-S010, DEC-S011
+**Related:** DEC-S016 (concrete example), DEC-S019 (depends on this), DEC-S020 (deferred)
 
 ### Decision
 
@@ -438,14 +438,14 @@ Files not listed in the registry default to `hybrid` with the seeds file as shel
 
 ### Context
 
-The nightly Routine (DEC-010) produces PRs whose row counts don't match their signal counts. Empirical evidence:
+The nightly Routine (DEC-S010) produces PRs whose row counts don't match their signal counts. Empirical evidence:
 
 | PR | Rows | Real changes | Noise rows | Notes |
 |----|------|--------------|------------|-------|
-| seeds#36 | 16 | 5 | 11 | Pre-DEC-016. Most noise was project-name substitutions and filled placeholders. |
+| seeds#36 | 16 | 5 | 11 | Pre-DEC-S016. Most noise was project-name substitutions and filled placeholders. |
 | seeds#45 | 2 | 2 | 0 | Clean. |
-| bushel#124 | 6 | 2 | 4 | ui-reviewer row dropped from 6 to 1 after DEC-016 split. |
-| sailbook#58 | 9 | 4 | 5 | Three skips on hybrid files (architect.md, code-review.md, settings.json) wanting DEC-016 treatment. |
+| bushel#124 | 6 | 2 | 4 | ui-reviewer row dropped from 6 to 1 after DEC-S016 split. |
+| sailbook#58 | 9 | 4 | 5 | Three skips on hybrid files (architect.md, code-review.md, settings.json) wanting DEC-S016 treatment. |
 
 Second problem: the LLM classifier is non-deterministic across nights. A hunk skipped Monday gets re-proposed Tuesday because the classifier has no memory of prior verdicts. For files that are byte-identical-by-design (skills, sync-config itself, tape-reader), running an LLM at all is wasted work — there's nothing to judge.
 
@@ -453,9 +453,9 @@ The diagnosis is structural. Files under `.claude/` come in three shapes:
 
 - **Logic** — skills, sync-config agent, tape-reader agent. Byte-identical-by-design across projects. Hunk classification is wasted; hash comparison is sufficient.
 - **Context** — `docs/SPEC.md`, `docs/BRAND.md`, project's `CLAUDE.md` content. Pure project-specific. Comparing across projects is meaningless.
-- **Hybrid** — `CLAUDE.md` root, `agents/architect.md`, `agents/code-review.md`. Mix of generic shell and project context. DEC-016 already split `ui-reviewer.md` this way. The pattern generalizes (DEC-019).
+- **Hybrid** — `CLAUDE.md` root, `agents/architect.md`, `agents/code-review.md`. Mix of generic shell and project context. DEC-S016 already split `ui-reviewer.md` this way. The pattern generalizes (DEC-S019).
 
-DEC-011's type-gating drops whole files per project type, but treats every file identically once in scope. File-class is the missing per-file dimension.
+DEC-S011's type-gating drops whole files per project type, but treats every file identically once in scope. File-class is the missing per-file dimension.
 
 ### Config shape
 
@@ -480,14 +480,14 @@ Globs are seeds-side paths. The agent maps to project-side paths using the same 
 
 ### Gate ordering
 
-Step 1 (DEC-011 type-gate, whole-file drop) → Step 1.4 (file-class lookup, behavior fork) → Step 1.5 (open-PR dedup) → Step 2 (hunk classification, only for hybrid shells and unclassified files).
+Step 1 (DEC-S011 type-gate, whole-file drop) → Step 1.4 (file-class lookup, behavior fork) → Step 1.5 (open-PR dedup) → Step 2 (hunk classification, only for hybrid shells and unclassified files).
 
 Type-gate first because dropping a file entirely is cheaper than classifying it. File-class second because it changes what "classify" means.
 
 ### What changes in sync-config.md
 
 - **Step 1.4 (new)**: Read `file-classes` from routine-config.yaml. For each file pair surviving Step 1, look up class. Drop context-class pairs from scope (log as `Class-gated: context`). Mark logic-class pairs for hash-only comparison.
-- **Step 2 (amended)**: For logic-class pairs, compare file hashes. If equal, emit no row. If unequal, emit a single row `logic-drift | <path> | hash mismatch | Flag` — no hunk breakdown, no LLM verdict. Hybrid-class pairs proceed to hunk classification but only against the shell portion (see DEC-019). Context-class pairs were already dropped at 1.4.
+- **Step 2 (amended)**: For logic-class pairs, compare file hashes. If equal, emit no row. If unequal, emit a single row `logic-drift | <path> | hash mismatch | Flag` — no hunk breakdown, no LLM verdict. Hybrid-class pairs proceed to hunk classification but only against the shell portion (see DEC-S019). Context-class pairs were already dropped at 1.4.
 - **Step 3**: Logic-drift rows render as one row per file. Provenance column reads `Class: logic`. Hybrid rows read `Class: hybrid (shell only)`.
 
 ### Trade-offs
@@ -499,19 +499,19 @@ Type-gate first because dropping a file entirely is cheaper than classifying it.
 
 ### Forward references
 
-- **DEC-019** generalizes DEC-016's pattern to all hybrid files. Depends on this registry to mark them.
-- **DEC-020 (deferred → resolved by DEC-023)**: `settings.json` is a hybrid file but needs a JSON-merge strategy, not a shell+context split. Out of scope here. **Resolved by DEC-023: it ships as a manual-merge template, NOT auto-synced** — permission guardrails are security posture and shouldn't be union-merged by an unattended bot.
-- **DEC-021 (deferred)**: retro "prefer-apply for structural Both-modified diffs" heuristic. Independent of file-class. Not blocked by this.
+- **DEC-S019** generalizes DEC-S016's pattern to all hybrid files. Depends on this registry to mark them.
+- **DEC-S020 (deferred → resolved by DEC-S023)**: `settings.json` is a hybrid file but needs a JSON-merge strategy, not a shell+context split. Out of scope here. **Resolved by DEC-S023: it ships as a manual-merge template, NOT auto-synced** — permission guardrails are security posture and shouldn't be union-merged by an unattended bot.
+- **DEC-S021 (deferred)**: retro "prefer-apply for structural Both-modified diffs" heuristic. Independent of file-class. Not blocked by this.
 
 ---
 
-## DEC-019: Hybrid-file split pattern (generalization of DEC-016)
+## DEC-S019: Hybrid-file split pattern (generalization of DEC-S016)
 
 **Date:** 2026-05-19
 **Status:** Accepted
-**Generalizes:** DEC-016
-**Depends on:** DEC-018
-**Related:** DEC-010, DEC-011
+**Generalizes:** DEC-S016
+**Depends on:** DEC-S018
+**Related:** DEC-S010, DEC-S011
 
 ### Decision
 
@@ -520,15 +520,15 @@ Every hybrid file gets split into two artifacts:
 1. A **seeds-managed shell** at the original path. Generic, cross-project, syncs through the Routine.
 2. A project-owned **context file** at `.claude/<basename>-context.{md,json}`. Project-specific. Never appears in seeds. Never syncs.
 
-The shell file opens with a load instruction pointing at its context file. The context file is implicitly `class: context` per DEC-018's registry — no explicit registry entry needed.
+The shell file opens with a load instruction pointing at its context file. The context file is implicitly `class: context` per DEC-S018's registry — no explicit registry entry needed.
 
-This is DEC-016's pattern, lifted out of the ui-reviewer-specific case and applied to every hybrid file.
+This is DEC-S016's pattern, lifted out of the ui-reviewer-specific case and applied to every hybrid file.
 
 ### Pattern shape
 
 What makes the split work:
 
-1. **Load instruction at the top of the shell.** Pattern: "Read `.claude/<name>-context.md`. If the file does not exist, stop and tell the user to create it." DEC-016's exact phrasing.
+1. **Load instruction at the top of the shell.** Pattern: "Read `.claude/<name>-context.md`. If the file does not exist, stop and tell the user to create it." DEC-S016's exact phrasing.
 2. **Predictable context path.** `.claude/<shell-basename>-context.{md,json}`. For `CLAUDE.md` (root) the context is `.claude/CLAUDE-context.md`. For `agents/architect.md` it's `.claude/architect-context.md`.
 3. **Registry marks the shell `hybrid`.** Context file path doesn't need a registry entry — anything under `.claude/` not listed is treated as project-owned.
 4. **One-time migration cost.** Per project, per hybrid file: extract project-specific content into the context file, replace shell with seeds version. After that, the two diverge cleanly forever.
@@ -552,16 +552,16 @@ Section-by-section verdict against the current `dev/claude/CLAUDE.md` template. 
 | `## Stack` | context | Stack varies per project (webapp vs tool, Next.js version, etc.). |
 | `## Key Docs` | **split** | Universal rows (`docs/SPEC.md`, `docs/DECISIONS.md`, `docs/BRAND.md`, `CHANGELOG.md`) stay in shell as a baseline table. Project-specific docs go in context under a `## Additional Docs` subsection. |
 | `## Core Data Model` | context | Project schemas. |
-| `## Micro Workflow (DEC-013 + DEC-014)` | shell | The 12 steps are universal. If a project has step-specific overrides (e.g., "skip Supabase test db" for tool projects), they live in context under `## Workflow Overrides`. |
-| `## Migration Protocol` | **shell, with Supabase-specific subsections moved to context** | The discipline (every schema change = migration, never edit applied migrations) is universal. Supabase CLI specifics and `### Production write protection (DEC-009)` move to context. Tool projects without a database drop the whole section from their context. |
+| `## Micro Workflow (DEC-S013 + DEC-S014)` | shell | The 12 steps are universal. If a project has step-specific overrides (e.g., "skip Supabase test db" for tool projects), they live in context under `## Workflow Overrides`. |
+| `## Migration Protocol` | **shell, with Supabase-specific subsections moved to context** | The discipline (every schema change = migration, never edit applied migrations) is universal. Supabase CLI specifics and `### Production write protection (DEC-S009)` move to context. Tool projects without a database drop the whole section from their context. |
 | `## Commands` | context | Every project has different npm scripts. |
 | `## Conventions` | **split** | TypeScript strict, Server Components default, error handling philosophy, RLS-default, naming conventions — shell. Component dirs, specific lint configs, project-specific testing layouts — context under `## Conventions (project)`. |
 | `## Session Skills` table | shell | Universal slash command list. |
 | `## Agent Workflow` table | shell | Universal agent list. |
 | `## Model Selection` | shell | Opus vs Sonnet guidance is cross-project. |
-| `## PR Workflow (DEC-013 + DEC-014)` | shell | Branch/PR rules are universal. |
-| `### Production branch (DEC-022)` | shell | Universal: `main` is the active trunk; an optional `production` deploy branch is advanced by `/promote-production`. Shell handles both the has-production and deploys-off-main cases. |
-| `## Versioning (DEC-007)` | **split** | Versioning policy and `### CHANGELOG.md` discipline — shell. `### <VersionTag />` component wiring and `### PR Review on Mobile` workflow — shell (universal). Project-specific version source paths — context. |
+| `## PR Workflow (DEC-S013 + DEC-S014)` | shell | Branch/PR rules are universal. |
+| `### Production branch (DEC-S022)` | shell | Universal: `main` is the active trunk; an optional `production` deploy branch is advanced by `/promote-production`. Shell handles both the has-production and deploys-off-main cases. |
+| `## Versioning (DEC-S007)` | **split** | Versioning policy and `### CHANGELOG.md` discipline — shell. `### <VersionTag />` component wiring and `### PR Review on Mobile` workflow — shell (universal). Project-specific version source paths — context. |
 | `## Workflow Notes` | **split** | "Never rebase a task branch", diagnostic vs env-changing distinction — shell. Project-specific debugging notes (bushel's stale `next start` on port 3001, no `source .envrc` for `npx playwright test`) — context under `## Workflow Notes (project)`. |
 | `## Approval Before Action` | shell |
 | `## Bug Reports & Questions` | shell |
@@ -601,7 +601,7 @@ Context (`.claude/code-review-context.md`) holds:
 
 When Step 2 hits a hybrid file:
 - Diff only the seeds shell vs the project's shell file (same path)
-- The project's `.claude/<name>-context.{md,json}` is implicitly context-class (DEC-018) and never enters scope
+- The project's `.claude/<name>-context.{md,json}` is implicitly context-class (DEC-S018) and never enters scope
 - No special hunk-level filtering needed — the shell file in the project repo only contains shell content by definition
 
 ### Migration ordering
@@ -617,15 +617,15 @@ Per the SPEC: Phase 2 = CLAUDE.md, Phase 3 = architect.md, Phase 4 = code-review
 
 ---
 
-## DEC-022: `main` is the active trunk; `production` is the deploy branch (replaces DEC-008)
-**Decision:** Every project's **default branch (`main`) is the always-active development trunk**. Deployable projects add an optional **`production`** branch that the host (Vercel, etc.) watches; shipping is `main` → `production` via fast-forward merge through the new `/promote-production` skill. This replaces the DEC-008 staging-flow, where the active branch was `staging` (non-default) and `main` was the release branch.
+## DEC-S022: `main` is the active trunk; `production` is the deploy branch (replaces DEC-S008)
+**Decision:** Every project's **default branch (`main`) is the always-active development trunk**. Deployable projects add an optional **`production`** branch that the host (Vercel, etc.) watches; shipping is `main` → `production` via fast-forward merge through the new `/promote-production` skill. This replaces the DEC-S008 staging-flow, where the active branch was `staging` (non-default) and `main` was the release branch.
 
-**Why (the bug it fixes):** the nightly sync Routine (DEC-010) and the dev skills read/operate on each project's **default branch**. DEC-008 made the *active* branch the *non-default* one, so the read-source (`main`) and the PR-target (`staging`) diverged. On sailbook — the only repo that adopted staging — `main` was frozen on an old workflow generation while `staging` carried the current one. Every nightly downstream run diffed stale `main` against seeds, generated a large "forward-port everything" plan, then opened the PR against `staging` (which already had that content), so the net diff collapsed to cosmetic regeneration noise that the next run re-detected — a self-perpetuating loop (sailbook PR #75, 2026-06-01). Aligning active = default eliminates the split at the source: the branch we diff is the branch we target.
+**Why (the bug it fixes):** the nightly sync Routine (DEC-S010) and the dev skills read/operate on each project's **default branch**. DEC-S008 made the *active* branch the *non-default* one, so the read-source (`main`) and the PR-target (`staging`) diverged. On sailbook — the only repo that adopted staging — `main` was frozen on an old workflow generation while `staging` carried the current one. Every nightly downstream run diffed stale `main` against seeds, generated a large "forward-port everything" plan, then opened the PR against `staging` (which already had that content), so the net diff collapsed to cosmetic regeneration noise that the next run re-detected — a self-perpetuating loop (sailbook PR #75, 2026-06-01). Aligning active = default eliminates the split at the source: the branch we diff is the branch we target.
 
 **The model:**
 - `main` — active trunk, in every project. `/kill-this` PRs here; `/retro`, `/bump-major`, `/its-alive` resolve `main` as the working branch. Identical dev workflow whether or not a project deploys.
 - `production` — optional downstream deploy pointer. Never read or targeted by sync; never a PR base. Adopt with `git checkout -b production main && git push -u origin production`, then point the host's production branch at it.
-- **Tags land on `main` at bump time** (uniform — DEC-007). Promotion carries the already-tagged commit; `/promote-production` does not tag.
+- **Tags land on `main` at bump time** (uniform — DEC-S007). Promotion carries the already-tagged commit; `/promote-production` does not tag.
 - **Sync always targets the default branch** — `origin/staging` detection removed from all skills + the routine.
 
 **Detection:** `/promote-production` gates on `origin/production` existing (the only skill that cares). No skill changes behavior based on branch topology otherwise — the trunk is always the default branch.
@@ -640,7 +640,7 @@ Per the SPEC: Phase 2 = CLAUDE.md, Phase 3 = architect.md, Phase 4 = code-review
 
 ---
 
-## DEC-023: Permission policy — default-allow with a deny guardrail; master in seeds, distributed by hand (resolves DEC-020)
+## DEC-S023: Permission policy — default-allow with a deny guardrail; master in seeds, distributed by hand (resolves DEC-S020)
 **Decision:** The Claude Code permission posture is **default-allow**: `allow` carries `Bash(*)` (plus `Read`/`Edit`/`Write`/`Glob`/`Grep`), and a **deny list is the only seatbelt**. `deny` beats `allow`, so destructive/secret commands are blocked and everything else runs without prompting. The canonical "master" lives at `dev/claude/settings.json` in seeds. It is **NOT auto-synced** by `@sync-config`/the Routine — it's distributed by hand (see procedure in seeds `README.md` § Permission settings).
 
 **Why default-allow:** the operator isn't reading long concatenated shell commands and wouldn't action them anyway, so a gated allow-list just produces prompts that get rubber-stamped — security theater. Flipping to `Bash(*)` + a solid deny list removes the noise and concentrates the protection where it's read: the deny list. (Use `defaultMode: default`, NOT `bypassPermissions` — bypass would disable the deny list too.)
@@ -661,10 +661,10 @@ Per the SPEC: Phase 2 = CLAUDE.md, Phase 3 = architect.md, Phase 4 = code-review
 
 **Alternatives considered:** gated allow-list of specific tools (rejected — produces rubber-stamped prompts; the operator doesn't read the commands). `bypassPermissions` mode (rejected — disables the deny list, the one thing we rely on). Auto-merge settings into `@sync-config` (rejected — security guardrails shouldn't be bot-edited; and default-allow makes per-repo allow churn rare anyway). Blanket `Read(**/.env.*)` deny (rejected — blocks `.env.example`, deny can't be carved back).
 
-## DEC-024: Retire the dev/review time split — active time is the single velocity (supersedes DEC-015, amends DEC-013)
-**Decision:** `/retro` no longer computes `dev_time` / `review_time`. The one velocity is **active = wall_clock − breaks** (breaks inferred from the transcript JSONL, gaps > 15 min) divided by points. The per-PR dev/review window math (DEC-015) and the single-seam model before it (DEC-013) are removed from the skill. No PR timestamps are fetched for time math.
+## DEC-S024: Retire the dev/review time split — active time is the single velocity (supersedes DEC-S015, amends DEC-S013)
+**Decision:** `/retro` no longer computes `dev_time` / `review_time`. The one velocity is **active = wall_clock − breaks** (breaks inferred from the transcript JSONL, gaps > 15 min) divided by points. The per-PR dev/review window math (DEC-S015) and the single-seam model before it (DEC-S013) are removed from the skill. No PR timestamps are fetched for time math.
 
-**Why:** the split was never trustworthy — every bushel retro since Phase 3 footnoted it "do not trust as headline" and forecast on active anyway. The DEC-015 per-PR model assumed each PR merged before the next opened; the actual workflow opens PRs in a burst and merges them whenever (DEC-022 + CLAUDE.md "merge PRs whenever — order doesn't matter"), so the dev-window anchor (`PR_{i-1}.mergedAt`) routinely lands *after* `PR_i.createdAt` and clamps every dev window after the first to zero, while the overlapping review windows get summed past wall-clock. Reproduced on bushel Session 25 (4 PRs): `dev_time` = 0.06 h/pt and `review_time` = 26.8h inside a 9.2h session — physically impossible. A real correctness bug, not tuning: the spec is internally consistent but built on a merge-ordering assumption the workflow contradicts by design.
+**Why:** the split was never trustworthy — every bushel retro since Phase 3 footnoted it "do not trust as headline" and forecast on active anyway. The DEC-S015 per-PR model assumed each PR merged before the next opened; the actual workflow opens PRs in a burst and merges them whenever (DEC-S022 + CLAUDE.md "merge PRs whenever — order doesn't matter"), so the dev-window anchor (`PR_{i-1}.mergedAt`) routinely lands *after* `PR_i.createdAt` and clamps every dev window after the first to zero, while the overlapping review windows get summed past wall-clock. Reproduced on bushel Session 25 (4 PRs): `dev_time` = 0.06 h/pt and `review_time` = 26.8h inside a 9.2h session — physically impossible. A real correctness bug, not tuning: the spec is internally consistent but built on a merge-ordering assumption the workflow contradicts by design.
 
 **Why not fix the split instead:** correctly attributing per-task time would require reconstructing keystroke spans from the transcript — which is exactly what `active = wall − breaks` already approximates. Two disclaimed numbers and one trusted one collapse to the one that was always the headline.
 
@@ -677,4 +677,22 @@ Per the SPEC: Phase 2 = CLAUDE.md, Phase 3 = architect.md, Phase 4 = code-review
 
 **Schema:** additive within v4 — session frontmatter is unchanged (`/its-dead` already writes no time fields). No version bump.
 
-**Alternatives considered:** keep DEC-015 and footnote it forever (rejected — a permanently-disclaimed metric is just noise; the footnotes already proved nobody trusts it). Repair the windows by unioning overlaps + per-task transcript attribution (rejected — large effort to reconstruct what active already captures). Keep `wall/pt` as a second velocity (rejected — inflated by overnight gaps; one honest number beats two).
+**Alternatives considered:** keep DEC-S015 and footnote it forever (rejected — a permanently-disclaimed metric is just noise; the footnotes already proved nobody trusts it). Repair the windows by unioning overlaps + per-task transcript attribution (rejected — large effort to reconstruct what active already captures). Keep `wall/pt` as a second velocity (rejected — inflated by overnight gaps; one honest number beats two).
+
+## DEC-S025: Seeds-workflow DECs carry the `DEC-S` prefix; project DECs stay plain
+**Decision:** Every seeds-workflow decision is named `DEC-S<NNN>` (this file's own IDs were renumbered `DEC-001…024` → `DEC-S001…S024`). A project's `docs/DECISIONS.md` keeps plain `DEC-<NNN>` for its own decisions. A reference to a seeds-workflow decision uses the `DEC-S` form **everywhere it appears** — including inside a project's files (CLAUDE.md, skills, docs) — so it is unmistakable and can never collide with that project's own `DEC-NNN`.
+
+**Why:** seeds DECs and every project's DECs both started at `DEC-001`, sharing the `DEC-NNN` namespace — same string, different meaning per repo. The collision was real and recurring: bushel `DEC-008` ("Fulfillment") vs seeds `DEC-008` (staging) clashed during the v4 migration. The danger is two-sided — a blind `DEC-NNN` rewrite during a sync mangles a project's own decisions, and a human cross-references the wrong DEC. The old DEC-S016 "Namespace note" punted with "future projects start at DEC-017," which never worked (seeds ran past 017) and didn't help projects already numbered. Prefixing the framework side resolves it permanently: the prefix lives on the smaller, centrally-controlled set (seeds), and projects need no renumbering of their own DECs.
+
+**Scope of the rename:**
+- **Seeds:** `docs/DECISIONS.md` definitions + all references in propagating templates (`dev/claude/**`), the dogfooded live install (`.claude/**`), `CLAUDE.md`, `README.md`, `docs/SCHEMA_VERSIONS.md`, `docs/WORKFLOW.md`, `docs/CHEATSHEET.md`.
+- **Fleet:** each project's `CLAUDE.md` / skills / docs references to seeds-workflow DECs convert to `DEC-S…` as a standalone per-repo sweep (it could not piggyback on the v4 muster, which predated this).
+
+**Not a blind find-replace — these stay plain `DEC-NNN`:**
+- A project's own DECs (e.g. the example `DEC-001…004` in `dev/claude/docs/DECISIONS.md`; bushel's `DEC-016` for Wave invoicing).
+- Illustrative / numbering-scheme prose: "architectural decisions log (starts with standard DEC-001–004)", "this contradicts DEC-007" as a generic example, the "project DECs at DEC-101+" story.
+- In a project file, a bare `DEC-013` may mean the seeds-workflow DEC **or** the project's own — judge per line.
+
+**Scoped out:** historical archives where a rewrite risks mangling narrative for no benefit — `session-log.md`, `docs/SPECS/`, the completed `PROJECT_PLAN.md` ledger, `RETROSPECTIVES.md`. Their plain `DEC-NNN` references are frozen records, not live template surface.
+
+**Schema:** labeling-only — no skill contract, file path, or frontmatter changes. No version bump (consistent with DEC-S023/DEC-S024). The fleet sweep is manual, not a `/pull-seeds` migration.

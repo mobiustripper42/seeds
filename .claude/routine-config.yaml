@@ -3,7 +3,7 @@
 # Lives in the seeds repo so it's source-controlled and editable in PRs.
 # The Routine fetches this file from `main` at the start of each run.
 #
-# Direction model (DEC-003, DEC-010):
+# Direction model (DEC-S003, DEC-S010):
 #   upstream   = project → seeds (backport improvements that emerged in projects)
 #   downstream = seeds → project (propagate template changes outward)
 #
@@ -41,7 +41,7 @@ require:
 
 # Which directions to run nightly. Comment one out to disable that direction.
 # Both run in the same Routine session; per-direction PRs are opened
-# independently per repo (see DEC-010).
+# independently per repo (see DEC-S010).
 directions:
   - upstream
   - downstream
@@ -57,14 +57,14 @@ branch_prefix:
   upstream: "auto-sync/upstream"
   downstream: "auto-sync/downstream"
 
-# File-class registry (DEC-018). Read by @sync-config at Step 1.4 before
+# File-class registry (DEC-S018). Read by @sync-config at Step 1.4 before
 # hunk classification. Maps glob patterns to one of:
 #
 #   logic    — byte-identical-by-design across projects. Hash-compare only;
 #              drift produces a single Step 3 row, no LLM judgment.
 #   context  — project-specific. Dropped from diff scope entirely.
 #   hybrid   — generic shell + per-project context file. Only the shell
-#              participates in classification (DEC-019).
+#              participates in classification (DEC-S019).
 #
 # Order matters — first matching glob wins. Files not matched here fall
 # back to the legacy hybrid-by-default behavior, so adding the registry

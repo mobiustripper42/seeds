@@ -1,6 +1,6 @@
 # Workflow — webapp dev project, start to end
 
-The full lifecycle of a Claude-assisted webapp project, as encoded by the seeds template family. Reflects DEC-013 + DEC-014.
+The full lifecycle of a Claude-assisted webapp project, as encoded by the seeds template family. Reflects DEC-S013 + DEC-S014.
 
 ---
 
@@ -25,22 +25,22 @@ cp -r <seeds>/dev/claude/skills       .claude/skills
 cp <seeds>/seeds-version .claude/seeds-version
 echo "webapp" > .claude/project-type
 
-# VersionTag (DEC-007)
+# VersionTag (DEC-S007)
 cp <seeds>/dev/claude/templates/VersionTag.tsx src/components/VersionTag.tsx
 # Wire into next.config.js: env: { NEXT_PUBLIC_APP_VERSION: process.env.npm_package_version }
 # Drop <VersionTag /> into the login screen + footer
 
-# Production deploy branch (optional, deployable projects — DEC-022)
+# Production deploy branch (optional, deployable projects — DEC-S022)
 git checkout -b production main && git push -u origin production
 # Then repoint the host's production branch (e.g. Vercel → Settings → Git) from main to production
 
-# Supabase prod-write guard (DEC-009)
+# Supabase prod-write guard (DEC-S009)
 cp <seeds>/dev/claude/scripts/safe-supabase.sh scripts/safe-supabase.sh && chmod +x scripts/safe-supabase.sh
 mkdir -p .claude && echo "<prod-project-ref>" > .claude/prod-supabase-refs
 echo ".claude/prod-supabase-refs" >> .gitignore
 ```
 
-The orphan **`sessions` branch** + `.sessions-worktree/` (DEC-014) are created automatically by `/its-alive` on first run — no manual step needed.
+The orphan **`sessions` branch** + `.sessions-worktree/` (DEC-S014) are created automatically by `/its-alive` on first run — no manual step needed.
 
 ---
 
@@ -63,7 +63,7 @@ After this, `PROJECT_PLAN.md` is read-only until `/retro` at phase end.
 
 ---
 
-## 2. Daily flow — one Claude window, multiple tasks (DEC-013)
+## 2. Daily flow — one Claude window, multiple tasks (DEC-S013)
 
 ### 2a. Start a session
 
@@ -136,7 +136,7 @@ Before `/its-dead`, after, days later — doesn't matter. The merge timestamp li
 
 ---
 
-## 3. Phase boundary — `/retro` (DEC-013 + DEC-014)
+## 3. Phase boundary — `/retro` (DEC-S013 + DEC-S014)
 
 When all phase Issues are closed (or you've called the phase done):
 
@@ -163,7 +163,7 @@ The headline number is **active velocity** — active h/pt, where active = wall_
 
 ---
 
-## 4. Release — main → production (DEC-022)
+## 4. Release — main → production (DEC-S022)
 
 `main` is the always-active trunk. PRs target `main`; patch + minor bumps land on `main` and are tagged there at bump time. Deployable projects add an optional `production` branch — a downstream deploy pointer. To ship:
 
@@ -200,7 +200,7 @@ When the workflow gets better mid-flight:
 /pull-seeds       # pull seeds template updates into this project
 ```
 
-The nightly Anthropic Routine (DEC-010) runs both directions automatically across registered repos. Manual skills are for "I want it now."
+The nightly Anthropic Routine (DEC-S010) runs both directions automatically across registered repos. Manual skills are for "I want it now."
 
 ### Audit a session for anti-patterns
 
@@ -229,7 +229,7 @@ main          ← active trunk. Protected on dev projects. Tags live here. ff-me
        ⇒ production      ← optional downstream deploy branch. main ff-merges INTO it via /promote-production. Never a PR base.
 
 sessions      ← orphan. Zero shared history with main. Contains only sessions/.
-              ← Checked out at .sessions-worktree/ (DEC-014).
+              ← Checked out at .sessions-worktree/ (DEC-S014).
               ← Skills commit session files here. Never merges to main.
 ```
 
@@ -260,10 +260,10 @@ This decoupling is what makes the session file atomic, the workflow stack-friend
 
 ## 9. References
 
-- **DEC-013** — per-task `/kill-this`, single `/its-dead`, time math at `/retro`.
-- **DEC-014** — sessions on orphan branch via `.sessions-worktree/`.
-- **DEC-012** — STATE-conditional close, `NO_PR`-on-protected-main fallback (still in force).
-- **DEC-007** — semver triggers (now all at `/retro`).
-- **DEC-022** — main is the active trunk; production is the deploy branch (replaces DEC-008).
-- **DEC-010** — nightly bi-directional Routine.
-- **DEC-011** — project-type gating.
+- **DEC-S013** — per-task `/kill-this`, single `/its-dead`, time math at `/retro`.
+- **DEC-S014** — sessions on orphan branch via `.sessions-worktree/`.
+- **DEC-S012** — STATE-conditional close, `NO_PR`-on-protected-main fallback (still in force).
+- **DEC-S007** — semver triggers (now all at `/retro`).
+- **DEC-S022** — main is the active trunk; production is the deploy branch (replaces DEC-S008).
+- **DEC-S010** — nightly bi-directional Routine.
+- **DEC-S011** — project-type gating.

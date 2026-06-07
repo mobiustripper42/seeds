@@ -6,7 +6,7 @@ This directory holds source-controlled prompt bodies for scheduled
 A Routine is a scheduled CC session: configured once via the `/web-setup`
 skill flow on claude.ai, it fires on its schedule, opens an unattended CC
 session with the configured prompt + GitHub OAuth grants, and exits. Pro
-plan limit is 5 runs per day across all your Routines (DEC-010).
+plan limit is 5 runs per day across all your Routines (DEC-S010).
 
 ## Why prompts live here
 
@@ -24,7 +24,7 @@ the PR.
 
 ## Routines defined here
 
-### `nightly-sync.md` — bi-directional sync (DEC-010)
+### `nightly-sync.md` — bi-directional sync (DEC-S010)
 
 Runs nightly. For every project repo this Routine has access to, runs
 `@sync-config` in both directions (upstream and downstream) and opens a PR
@@ -40,7 +40,7 @@ chip. No edits to `routine-config.yaml` are needed for either operation.
 **filter** rules (exclude list — at minimum `mobiustripper42/seeds`
 itself — and `require:` block) and the **direction** config (which sync
 directions to run, per-direction PR + branch prefixes). It does NOT carry
-an `orgs:` list or active-repo list — see DEC-010 for the post-mortem.
+an `orgs:` list or active-repo list — see DEC-S010 for the post-mortem.
 
 **Schema-version gating:** repos on a different `seeds-version` than seeds
 itself are skipped and rolled into a single `routine: migration backlog`
@@ -49,7 +49,7 @@ they migrate.
 
 **Provenance labeling:** `@sync-config` Step 3 tags each diff hunk with
 `Project-only` / `Template-only` / `Both-modified` (Step 2 hunk rubric)
-or `Type-gated` (whole-file scoping per DEC-011 — file dropped because
+or `Type-gated` (whole-file scoping per DEC-S011 — file dropped because
 the project's `.claude/project-type` doesn't match the manifest's
 allowed list). Every PR body the Routine opens shows where each change
 came from at a glance. See the agent file
