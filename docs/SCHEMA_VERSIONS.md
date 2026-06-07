@@ -115,6 +115,20 @@ Behaviorally unchanged — they already shipped off `main`. Steps 1–3 are the 
 
 Seeds-workflow decisions carry the `DEC-S` prefix (DEC-S025); a project's own decisions in its `docs/DECISIONS.md` stay plain `DEC-NNN`. When a sync or migration touches DEC references — in either direction — convert **only** seeds-workflow refs (`DEC-013` → `DEC-S013`). Never blind-`s/DEC-NNN/DEC-SNNN/` a project file: a bare `DEC-008` may be the project's own decision (e.g. bushel `DEC-008` = "Fulfillment", not seeds' staging DEC), and prefixing it would mangle the project's record and break its cross-references. Judge ambiguous refs per line by what the surrounding text is about. This is not a versioned migration — the `DEC-S` sweep is a standalone per-repo pass, no `seeds-version` bump.
 
+### Per-repo DEC-S sweep runbook (one-time, DEC-S025 rollout)
+
+Every fleet project needs this once. It cannot ride the nightly Routine: `@sync-config` applies template hunks verbatim and only touches the seeds-mirrored files (`.claude/skills/**`, `.claude/agents/*.md`), and it can't make the per-line "seeds vs. project-own" call the project-specific files require. So it's manual, per repo. The helper `dev/claude/scripts/dec_s_sweep.py` does the safe conversions and surfaces the rest.
+
+1. **Branch.** In the project: `git checkout -b chore/dec-s-sweep`.
+2. **Find the ceiling.** The project's own DECs live in its `docs/DECISIONS.md` (`## DEC-NNN` headers). The highest is the "own ceiling" — refs *above* it are unambiguously seeds. The helper reads this automatically.
+3. **Dry run.** `python3 <seeds>/dev/claude/scripts/dec_s_sweep.py` from the project root. It prints (a) `WOULD CONVERT` — the safe seeds refs (mirrored files in full; project files above the ceiling), and (b) `NEEDS REVIEW` — every ref at/below the ceiling.
+4. **Judge the review list.** It always includes the project's own DECs (expected — leave those plain). Hunt it for *seeds* refs hiding at/below the ceiling — a bare `DEC-005` (branch model), `DEC-007` (semver), `DEC-008` (staging), `DEC-010` (Routine), etc. that the project's `CLAUDE.md`/docs cite. Hand-convert only those.
+5. **Keep plain (DEC-S025 exception list):** the project's own DECs; bushel's `DEC-016`/`DEC-008`/etc. when this project's file cites *another* project; illustrative `e.g.` examples ("this contradicts DEC-007"); `docs/DECISIONS.md` definitions and the `architect.md` example (the helper never touches these).
+6. **Apply + verify.** `python3 …/dec_s_sweep.py --apply`, then re-run with no flag — the `NEEDS REVIEW` list should now contain only refs you've confirmed are project-own or illustrative. Spot-check combined shorthand (`DEC-S013/S014`) and `.gitignore`.
+7. **Ship.** Commit (`DEC-S namespace sweep (seeds#101)`), push, open a PR to the project's default branch. No `seeds-version` bump.
+
+Worked example: **tinkle** (own ceiling `DEC-010`) — every `DEC-011/013/014/015` was seeds; `DEC-001…010` everywhere (hardware/firmware) stayed plain.
+
 ## How `/pull-seeds` (downstream sync) uses this
 
 When `/pull-seeds` runs in a project, it compares versions:
