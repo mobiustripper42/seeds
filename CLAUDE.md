@@ -15,7 +15,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | `docs/CHEATSHEET.md` | One-page printable skill reference |
 | `docs/SCHEMA_VERSIONS.md` | Schema versioning policy + version history (V1, V2, …) + migration notes. The contract that `/pull-seeds` enforces. |
 | `seeds-version` | Single line at repo root — the latest published schema version. Compared against `<project>/.claude/seeds-version` by `/pull-seeds`. |
-| `sessions/*.md` (on orphan `sessions` branch) | Per-session files (one per session). Filename: `YYYY-MM-DD-HHMM-<dev>-<slug>.md`. Lives on the orphan `sessions` branch, accessed via `.sessions-worktree/` (DEC-014). Atomic after `/its-dead` writes `status: closed` (DEC-013). |
+| `sessions/*.md` (on orphan `sessions` branch) | Per-session files (one per session). Filename: `YYYY-MM-DD-HHMM-<dev>-<slug>.md`. Lives on the orphan `sessions` branch, accessed via `.sessions-worktree/` (DEC-S014). Atomic after `/its-dead` writes `status: closed` (DEC-S013). |
 | `session-log.md` | Legacy archive — pre-rollout sessions only. New sessions write to the orphan `sessions` branch. |
 
 ## What This Repo Is
@@ -32,27 +32,27 @@ Two template families:
 seeds-version            # Single line — current schema version (integer, no `v` prefix)
 
 .claude/
-  routine-config.yaml      # Routine config — exclude list, directions, per-direction PR/branch prefixes (DEC-010)
-  type-manifest.yaml       # Project-type gating manifest read by @sync-config (DEC-011)
+  routine-config.yaml      # Routine config — exclude list, directions, per-direction PR/branch prefixes (DEC-S010)
+  type-manifest.yaml       # Project-type gating manifest read by @sync-config (DEC-S011)
 
 dev/
   bash/
     aliases.sh             # Shell aliases for Claude Code workflows (source from ~/.bashrc)
   claude/
     CLAUDE.md              # Project CLAUDE.md template (fill in project-specific sections)
-    settings.json          # Baseline CC permission policy (DEC-023). Merge by hand into <project>/.claude/settings.json — NOT auto-synced.
+    settings.json          # Baseline CC permission policy (DEC-S023). Merge by hand into <project>/.claude/settings.json — NOT auto-synced.
     session-log.md         # Blank session log (copy to project root)
     agents/                # Agent definition files — copy to .claude/agents/ in your project
       sync-config.md       # Template maintenance agent (see "Syncing improvements" below)
     skills/                # Session lifecycle skills — copy to .claude/skills/ in your project
       push-seeds/          # Invokes @sync-config agent to push improvements to seeds
     routines/              # Source-controlled prompts for scheduled Anthropic Routines
-      nightly-sync.md      # Nightly bi-directional sync Routine (DEC-010)
+      nightly-sync.md      # Nightly bi-directional sync Routine (DEC-S010)
       README.md            # How to deploy + update Routines via /web-setup
     templates/             # Code templates — copy individually as needed
-      VersionTag.tsx       # Build-time version display (DEC-007). Wire into login + footer.
+      VersionTag.tsx       # Build-time version display (DEC-S007). Wire into login + footer.
     scripts/               # Per-project scripts — copy individually as needed
-      safe-supabase.sh     # Supabase prod-write guard (DEC-009). Wrap with shell alias.
+      safe-supabase.sh     # Supabase prod-write guard (DEC-S009). Wrap with shell alias.
     docs/
       AGENTS.md            # Reference doc explaining the full agent + skill workflow
       VELOCITY_AND_POKER_GUIDE.md  # Estimation and velocity tracking methodology
@@ -69,13 +69,13 @@ This repo encodes a specific development workflow for solo Claude-assisted proje
 
 | Skill | When | What it does |
 |-------|------|--------------|
-| `/its-alive` | Session start | Ensures `.sessions-worktree/` exists, stamps time, opens a per-session file on the orphan `sessions` branch, captures the active JSONL transcript path, reads last session context, recommends task (DEC-014) |
+| `/its-alive` | Session start | Ensures `.sessions-worktree/` exists, stamps time, opens a per-session file on the orphan `sessions` branch, captures the active JSONL transcript path, reads last session context, recommends task (DEC-S014) |
 | `/pause-this` | Mid-session break | Runs build check, commits WIP on the task branch, notes pause in the session file on the sessions branch |
 | `/restart-this` | Resume from pause | Reloads context from the open session file — no new session number |
-| `/kill-this` | Per-task (DEC-013) | Build check, code commit on the task branch, runs @code-review, opens a PR, appends a `## Task <N>` block to the running session file. May run multiple times per Claude window — one per task |
-| `/its-dead` | Session end (once per window) | Stamps `ended:`, tallies total points, displays wall_clock to screen for gut-check, closes the session file. No time math, no version bump — those moved to `/retro` (DEC-013) |
+| `/kill-this` | Per-task (DEC-S013) | Build check, code commit on the task branch, runs @code-review, opens a PR, appends a `## Task <N>` block to the running session file. May run multiple times per Claude window — one per task |
+| `/its-dead` | Session end (once per window) | Stamps `ended:`, tallies total points, displays wall_clock to screen for gut-check, closes the session file. No time math, no version bump — those moved to `/retro` (DEC-S013) |
 | `/start-phase` | Phase boundary (start) | Reads next phase from PROJECT_PLAN.md, creates one Issue per task with `phase:N` and `points:X` labels, writes issue numbers back into the plan |
-| `/retro` | Phase boundary (end) | Computes per-session active time (wall − breaks, breaks inferred from the transcript) from each session's `started`/`ended`. Aggregates to one phase velocity (active h/pt). Marks tasks `[x]`, prompts retro notes, appends to RETROSPECTIVES.md, runs version bumps (patch per merged PR + minor at phase close), optionally chains into `/start-phase` (DEC-013) |
+| `/retro` | Phase boundary (end) | Computes per-session active time (wall − breaks, breaks inferred from the transcript) from each session's `started`/`ended`. Aggregates to one phase velocity (active h/pt). Marks tasks `[x]`, prompts retro notes, appends to RETROSPECTIVES.md, runs version bumps (patch per merged PR + minor at phase close), optionally chains into `/start-phase` (DEC-S013) |
 | `/bump-major` | Breaking change | Manually bumps major version. CHANGELOG entry + tag on the trunk (`main`). Dev projects only |
 | `/promote-production` | Ship trunk to prod | ff-merges `main` → `production` (deploy-only; tag already on the commit), pushes. Projects with a `production` branch only |
 | `/push-seeds` | After workflow improvements | Invokes @sync-config to classify diffs and propose backports to seeds |
@@ -107,14 +107,14 @@ This repo encodes a specific development workflow for solo Claude-assisted proje
 
 The skills and agents expect these files to exist in the project root:
 
-- **orphan `sessions` branch + `.sessions-worktree/`** (DEC-014) — per-session files live here, not on `main`. `/its-alive` Step 0.6 auto-creates the worktree (and the branch on first run). `.sessions-worktree/` should be `.gitignore`d from `main`.
+- **orphan `sessions` branch + `.sessions-worktree/`** (DEC-S014) — per-session files live here, not on `main`. `/its-alive` Step 0.6 auto-creates the worktree (and the branch on first run). `.sessions-worktree/` should be `.gitignore`d from `main`.
 - `docs/PROJECT_PLAN.md` — phases, tasks, estimates, velocity table
 - `docs/RETROSPECTIVES.md` — phase-end retros (created by `/retro` if missing)
 - `docs/SPEC.md` — scope (V1 vs later) and "Not V1" list
 - `docs/DECISIONS.md` — architectural decisions with IDs (e.g. DEC-001)
 - `docs/AGENTS.md` — adapted from `dev/claude/docs/AGENTS.md` in this repo
 - `.claude/seeds-version` — single line containing the schema version this project was last installed at (e.g. `2`). Read by `/pull-seeds`. See `docs/SCHEMA_VERSIONS.md`.
-- `.claude/project-type` — single line naming the project's type: `webapp` (Next.js + Supabase shape) or `tool` (CLI / agent / library shape). Read by `@sync-config` to gate template files that don't apply to the project's type (DEC-011). Optional but recommended; without it, `@sync-config` skips type-gating and diffs every template file.
+- `.claude/project-type` — single line naming the project's type: `webapp` (Next.js + Supabase shape) or `tool` (CLI / agent / library shape). Read by `@sync-config` to gate template files that don't apply to the project's type (DEC-S011). Optional but recommended; without it, `@sync-config` skips type-gating and diffs every template file.
 
 Plus a one-time global setup per machine:
 - `~/.claude/devname` — single line with the dev's handle (e.g. `eric`). Used in session filenames.
@@ -127,19 +127,19 @@ Effort uses Fibonacci points: 2, 3, 5, 8, 13. No 1s (just do it), no 13s if avoi
 
 1. **Global one-time:** put a one-liner in `~/.claude/devname` (e.g. `eric`) — your dev handle.
 2. **Project docs** — copy `dev/claude/docs/` contents to `docs/` in the project root. Fill in all `[Project Name]` and `[placeholder]` fields. `PROJECT_PLAN.md` has Phase 0 pre-filled — fill in Phase 1+ during planning.
-3. **Sessions branch + worktree (DEC-014)** — `/its-alive` Step 0.6 creates these automatically on first run (orphan `sessions` branch + `.sessions-worktree/` checkout). You can do it manually if preferred: `git checkout --orphan sessions && git rm -rf . && mkdir sessions && echo "# Sessions branch" > sessions/README.md && git add . && git commit -m "Initialize sessions branch" && git push -u origin sessions && git checkout main && echo ".sessions-worktree/" >> .gitignore && git add .gitignore && git commit -m "Ignore .sessions-worktree" && git push && git worktree add .sessions-worktree sessions`.
+3. **Sessions branch + worktree (DEC-S014)** — `/its-alive` Step 0.6 creates these automatically on first run (orphan `sessions` branch + `.sessions-worktree/` checkout). You can do it manually if preferred: `git checkout --orphan sessions && git rm -rf . && mkdir sessions && echo "# Sessions branch" > sessions/README.md && git add . && git commit -m "Initialize sessions branch" && git push -u origin sessions && git checkout main && echo ".sessions-worktree/" >> .gitignore && git add .gitignore && git commit -m "Ignore .sessions-worktree" && git push && git worktree add .sessions-worktree sessions`.
 4. **CLAUDE.md** — copy `dev/claude/CLAUDE.md` to the project root. Fill in stack, data model, roles, and doc table.
 5. **Agents** — copy `dev/claude/agents/` to `.claude/agents/` in the project root. Update `description:` frontmatter with the project name.
 6. **Skills** — copy `dev/claude/skills/` directories to `.claude/skills/` in the project root (project-level install, not global).
 7. **Shell alias** — source `dev/bash/aliases.sh` from `~/.bashrc` and add a project-specific alias.
 8. **GitHub labels** (if using phase rituals) — `/start-phase` will create them on first use, but you can pre-create: `phase:0`–`phase:9`, `points:1`/`2`/`3`/`5`/`8`, `blocked`.
 9. **Schema version** — `cp seeds-version <project>/.claude/seeds-version` so `/pull-seeds` can detect compatibility. See `docs/SCHEMA_VERSIONS.md`.
-10. **Project type (DEC-011)** — write the project's type to `<project>/.claude/project-type` as a single line. Currently supported: `webapp` (Next.js / React / shadcn / Supabase / Vercel) or `tool` (CLI / agent / library; Node stdlib + shell). The type gates a small set of template files in `dev/claude/` (e.g. `agents/ui-reviewer.md` is `webapp`-only). See `.claude/type-manifest.yaml`. Optional — if omitted, `@sync-config` runs without gating and forward-ports every template file.
+10. **Project type (DEC-S011)** — write the project's type to `<project>/.claude/project-type` as a single line. Currently supported: `webapp` (Next.js / React / shadcn / Supabase / Vercel) or `tool` (CLI / agent / library; Node stdlib + shell). The type gates a small set of template files in `dev/claude/` (e.g. `agents/ui-reviewer.md` is `webapp`-only). See `.claude/type-manifest.yaml`. Optional — if omitted, `@sync-config` runs without gating and forward-ports every template file.
 11. **VersionTag (deployable projects)** — copy `dev/claude/templates/VersionTag.tsx` to `<project>/src/components/VersionTag.tsx`. Wire into login screen + footer per `dev/claude/CLAUDE.md §Versioning`. Skip for non-deployable projects.
-12. **Production branch (optional, deployable projects)** — if the project deploys, add a downstream `production` branch: `git checkout -b production main && git push -u origin production`, then repoint the host's production branch (e.g. Vercel → Settings → Git → Production Branch) from `main` to `production` **before** `main` takes active work (otherwise WIP auto-deploys to prod). `main` stays the active trunk; `/promote-production` ff-merges `main` → `production` to ship. See DEC-022.
-13. **Supabase prod-write guard (Supabase projects)** — copy `dev/claude/scripts/safe-supabase.sh` to `<project>/scripts/safe-supabase.sh`, `chmod +x`, then `mkdir -p .claude && echo "<your-prod-ref>" > .claude/prod-supabase-refs && echo ".claude/prod-supabase-refs" >> .gitignore`. Optional alias: `alias supabase='./scripts/safe-supabase.sh'`. See DEC-009 + `dev/claude/CLAUDE.md §Migration Protocol`.
+12. **Production branch (optional, deployable projects)** — if the project deploys, add a downstream `production` branch: `git checkout -b production main && git push -u origin production`, then repoint the host's production branch (e.g. Vercel → Settings → Git → Production Branch) from `main` to `production` **before** `main` takes active work (otherwise WIP auto-deploys to prod). `main` stays the active trunk; `/promote-production` ff-merges `main` → `production` to ship. See DEC-S022.
+13. **Supabase prod-write guard (Supabase projects)** — copy `dev/claude/scripts/safe-supabase.sh` to `<project>/scripts/safe-supabase.sh`, `chmod +x`, then `mkdir -p .claude && echo "<your-prod-ref>" > .claude/prod-supabase-refs && echo ".claude/prod-supabase-refs" >> .gitignore`. Optional alias: `alias supabase='./scripts/safe-supabase.sh'`. See DEC-S009 + `dev/claude/CLAUDE.md §Migration Protocol`.
 
-14. **Permission settings (DEC-023)** — the master policy is `dev/claude/settings.json` (default-allow: `Bash(*)` + a deny guardrail; `deny` beats `allow`). NOT auto-synced. Distribute by hand per the full procedure in `README.md` § Permission settings: copy the master into each real machine's user-global `~/.claude/settings.json` (covers all repos on that box), and commit a per-repo `.claude/settings.json` for phone/web sessions (the only thing that reaches the ephemeral cloud container). Leave `.claude/settings.local.json` alone — per-box override. Change the policy by bringing it to a Claude session in seeds, not via `/permissions`.
+14. **Permission settings (DEC-S023)** — the master policy is `dev/claude/settings.json` (default-allow: `Bash(*)` + a deny guardrail; `deny` beats `allow`). NOT auto-synced. Distribute by hand per the full procedure in `README.md` § Permission settings: copy the master into each real machine's user-global `~/.claude/settings.json` (covers all repos on that box), and commit a per-repo `.claude/settings.json` for phone/web sessions (the only thing that reaches the ephemeral cloud container). Leave `.claude/settings.local.json` alone — per-box override. Change the policy by bringing it to a Claude session in seeds, not via `/permissions`.
 
 After setup, run `/its-alive` in the new project to start the first session.
 
@@ -156,13 +156,13 @@ One run, one commit per repo.
 
 ## The Routine
 
-Bi-directional sync also runs unattended via a nightly Anthropic Routine (DEC-010). The Routine clones seeds, reads `.claude/routine-config.yaml` for filter rules + directions + PR/branch prefixes, enumerates the repos its MCP github session has access to (the **Routine form's repo chip area on claude.ai is the active-set source of truth**), filters by `exclude:` + `require:` + `.claude/seeds-version` match, and per (repo × direction) invokes @sync-config in `mode: auto`. Each invocation that produces non-empty changes opens its own PR — upstream PRs land on `mobiustripper42/seeds:main`, downstream PRs land on each project's default branch (the active trunk; never a `production` deploy branch — DEC-022). Nothing merges automatically; the PR is the human review surface.
+Bi-directional sync also runs unattended via a nightly Anthropic Routine (DEC-S010). The Routine clones seeds, reads `.claude/routine-config.yaml` for filter rules + directions + PR/branch prefixes, enumerates the repos its MCP github session has access to (the **Routine form's repo chip area on claude.ai is the active-set source of truth**), filters by `exclude:` + `require:` + `.claude/seeds-version` match, and per (repo × direction) invokes @sync-config in `mode: auto`. Each invocation that produces non-empty changes opens its own PR — upstream PRs land on `mobiustripper42/seeds:main`, downstream PRs land on each project's default branch (the active trunk; never a `production` deploy branch — DEC-S022). Nothing merges automatically; the PR is the human review surface.
 
 - **Prompt source of truth:** `dev/claude/routines/nightly-sync.md`. Edit there, then re-paste into the Routine config on claude.ai (manual — see `dev/claude/routines/README.md`).
 - **Active-set source of truth:** the Routine form's repo chip area on claude.ai — NOT `routine-config.yaml`. Add a project = add chip + toggle "Allow unrestricted git push" in Permissions. Remove = remove chip. No config edit either way.
-- **Config source of truth:** `.claude/routine-config.yaml` carries `exclude:`, `require:`, `directions:`, and per-direction PR/branch prefixes. No `orgs:` or active-repo list (DEC-010 post-mortem from the 2026-05-08 first run).
-- **Provenance labeling:** every PR body the Routine opens includes a per-hunk classification table with `Provenance` column — `Project-only` / `Template-only` / `Both-modified` / `Type-gated`. The first three are hunk-level (Step 2 rubric); `Type-gated` is whole-file (Step 1 scoping per DEC-011 — file dropped because the project's `.claude/project-type` doesn't match the manifest's allowed list). See `@sync-config` for both rubrics.
-- **Project-type gating:** projects with `.claude/project-type` set get filtered against `<seeds>/.claude/type-manifest.yaml` before diffing — irrelevant template files (e.g. `agents/ui-reviewer.md` for a `tool`-type project) drop out of scope and surface as `Type-gated` skips in the PR body. Projects without `.claude/project-type` are treated as ungated (legacy behavior). DEC-011.
+- **Config source of truth:** `.claude/routine-config.yaml` carries `exclude:`, `require:`, `directions:`, and per-direction PR/branch prefixes. No `orgs:` or active-repo list (DEC-S010 post-mortem from the 2026-05-08 first run).
+- **Provenance labeling:** every PR body the Routine opens includes a per-hunk classification table with `Provenance` column — `Project-only` / `Template-only` / `Both-modified` / `Type-gated`. The first three are hunk-level (Step 2 rubric); `Type-gated` is whole-file (Step 1 scoping per DEC-S011 — file dropped because the project's `.claude/project-type` doesn't match the manifest's allowed list). See `@sync-config` for both rubrics.
+- **Project-type gating:** projects with `.claude/project-type` set get filtered against `<seeds>/.claude/type-manifest.yaml` before diffing — irrelevant template files (e.g. `agents/ui-reviewer.md` for a `tool`-type project) drop out of scope and surface as `Type-gated` skips in the PR body. Projects without `.claude/project-type` are treated as ungated (legacy behavior). DEC-S011.
 - **Schema-version mismatches** are skipped per-repo and rolled into a single rolling `routine: migration backlog` issue on `mobiustripper42/seeds`. Migrate the project, next run picks it back up.
 - **Per-run summary:** rolling `routine: last run <DATE>` issue on `mobiustripper42/seeds`. Body replaced each run.
 - **Run budget:** Pro plan caps Routines at 5 runs/day across all your Routines. This one assumes a single nightly fire.

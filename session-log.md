@@ -35,7 +35,7 @@ Format: prepend newest entry at the top.
 
 **Next Steps:**
 1. Print `docs/CHEATSHEET.md`, post on desk.
-2. Merge seeds#5 + bushel#2 (DEC-005 says self-merge while solo; CI is empty so no gate).
+2. Merge seeds#5 + bushel#2 (DEC-S005 says self-merge while solo; CI is empty so no gate).
 3. Open bushel session, run `/its-alive` → first real dogfood of the new workflow on a real project. Verify `sessions/<today>-HHMM-eric-<slug>.md` is created with `Transcript:` populated.
 4. Run `/start-phase 0` on bushel → first real dogfood of phase materialization. Watch for the `phase:current` bug (Code Review finding 1) to bite — `/its-alive` Step 5 will silently return zero current-phase issues until fixed.
 5. Tiny follow-up PR in seeds: fix `phase:current` label query (4 files: `/its-alive` + `/its-dead` × template + installed). Either teach `/start-phase` to apply `phase:current` (and `/retro` to strip it) OR change the query to lowest-open-phase loop. Pick one.
@@ -193,8 +193,8 @@ Format: prepend newest entry at the top.
   - Fixed `docs/PROJECT_PLAN.md:45` stale path
   - Added permissions block to sailbook's `.claude/settings.json`
 - Implemented Task 14 — PR-flow in `/kill-this` and `/its-dead` (4 files):
-  - `/kill-this` Step 3: branch detection — on `main` push unconditionally (DEC-005); on `task/*`/`claude/<slug>` branch push + `gh pr create`; captures PR URL for log; handles `gh` failure gracefully (push-only, tell user to open PR manually)
-  - `/its-dead` Step 5: PR state detection via `gh pr view --json state` — OPEN → push log commit to branch + stop (PR is merge gate); MERGED → DEC-005 FF-merge cleanup; CLOSED → STOP, ask user (never FF-merge); no PR → DEC-005 FF-merge cleanup
+  - `/kill-this` Step 3: branch detection — on `main` push unconditionally (DEC-S005); on `task/*`/`claude/<slug>` branch push + `gh pr create`; captures PR URL for log; handles `gh` failure gracefully (push-only, tell user to open PR manually)
+  - `/its-dead` Step 5: PR state detection via `gh pr view --json state` — OPEN → push log commit to branch + stop (PR is merge gate); MERGED → DEC-S005 FF-merge cleanup; CLOSED → STOP, ask user (never FF-merge); no PR → DEC-S005 FF-merge cleanup
   - Applied to both template (`dev/claude/skills/`) and installed (`.claude/skills/`) copies
 - Fixed 2 code review bugs caught in same session:
   - `its-dead` Step 5: CLOSED state was falling through to MERGED path (would FF-merge deliberately-discarded work) — fixed with explicit STOP + user prompt
@@ -322,7 +322,7 @@ Format: prepend newest entry at the top.
   - `its-alive` Step 5: "current phase" → "unchecked tasks and which are next"
   - `its-dead`, `restart-this`, `sync-config`: already project-agnostic, no changes needed
   - All 6 skill pairs verified byte-identical. Commit `964d53a`.
-- **Task 4** — Researched Anthropic Routines (research preview): multi-repo OAuth via `/web-setup`, creates PRs to `claude/<slug>` branches by default, Pro=5 runs/day up to 45 min each. Verdict: viable for nightly upstream sync. Captured as DEC-006 in `docs/DECISIONS.md`.
+- **Task 4** — Researched Anthropic Routines (research preview): multi-repo OAuth via `/web-setup`, creates PRs to `claude/<slug>` branches by default, Pro=5 runs/day up to 45 min each. Verdict: viable for nightly upstream sync. Captured as DEC-S006 in `docs/DECISIONS.md`.
 
 **In Progress:** None.
 
@@ -337,7 +337,7 @@ Format: prepend newest entry at the top.
 
 **Context:**
 - `§Commands` notation in skill files is informal shorthand for `## Commands` — code review flagged as ambiguous for agent lookup. Consider tightening wording in task 2 pass.
-- Routines creates PRs to `claude/`-prefixed branches; seeds workflow (DEC-005) expects main. May need a merge step in the Routine or a post-Routine manual merge. Assess when designing task 6.
+- Routines creates PRs to `claude/`-prefixed branches; seeds workflow (DEC-S005) expects main. May need a merge step in the Routine or a post-Routine manual merge. Assess when designing task 6.
 - Velocity this session: 8h20m / 10 pts = 0.83 hrs/pt (wall-clock, idle-inflated — not representative).
 
 **Code Review:** 4 findings on `964d53a`:
@@ -352,10 +352,10 @@ All pairs byte-identical (primary invariant preserved). No blockers.
 ## Session 6 — 2026-04-25 13:41–14:41 (~1 hr focused)
 **Duration:** ~1 hr (calendar 12h, mostly away from desk) | **Points:** 7 (task 12: 5, task 3: 2)
 
-**Task:** Task 12 (DEC-005 implementation bug fixes) + task 12 polish from code review + task 3 (delete mobile-test probe).
+**Task:** Task 12 (DEC-S005 implementation bug fixes) + task 12 polish from code review + task 3 (delete mobile-test probe).
 
 **Completed:**
-- **Task 12** — Fixed 6 DEC-005 enforcement bugs across 4 skill files:
+- **Task 12** — Fixed 6 DEC-S005 enforcement bugs across 4 skill files:
   - `/its-alive` Step 0: `git rev-parse --verify main` guard with `checkout -b main origin/main` fallback for fresh clones; diverged-main now asks user (a) rebase / (b) reset / (c) abort instead of just stopping.
   - `/its-alive` Step 3: auto-commits + pushes the session-open marker (`git push origin main`) so the stop hook stops firing every session start.
   - `/its-dead` Step 3: dropped the push (single-push-per-session rule).
@@ -365,7 +365,7 @@ All pairs byte-identical (primary invariant preserved). No blockers.
 - **Task 12 polish** (from `@code-review` of `8e17ec7`):
   - Bare `git push` → `git push origin main` in /its-alive Step 3 for fresh-clone safety.
   - Dirty-tree guard message in /its-dead Step 5a now tells the user what to do.
-- **Task 3** — Removed `.claude/skills/mobile-test/` directory; cleaned `docs/AGENTS.md` (dropped Overview parenthetical, full subsection, and summary-table row referencing mobile-test). Historical references in PROJECT_PLAN task 3 row + DECISIONS.md DEC-002 left intact (reviewer judged optional).
+- **Task 3** — Removed `.claude/skills/mobile-test/` directory; cleaned `docs/AGENTS.md` (dropped Overview parenthetical, full subsection, and summary-table row referencing mobile-test). Historical references in PROJECT_PLAN task 3 row + DECISIONS.md DEC-S002 left intact (reviewer judged optional).
 - **Branch model self-test passed** — `/its-alive` Step 0 ran cleanly at session start (already on main, FF pull). First session that didn't get sidetracked by branch confusion. Stop hook fired once at the open-marker stage (before task 12 fix landed); silent thereafter until /kill-this surfaced task 13.
 - **Task 13 added** — `/kill-this` push behavior follow-up (2 pts), surfaced live when stop hook fired between /kill-this commit and /its-dead.
 
@@ -386,7 +386,7 @@ All pairs byte-identical (primary invariant preserved). No blockers.
 7. Task 5/6 (Routine build) once task 4 is unblocked.
 
 **Context:**
-- DEC-005 enforcement is now hardened against the 6 known failure modes. /its-alive Step 0 self-tested live this session — passed.
+- DEC-S005 enforcement is now hardened against the 6 known failure modes. /its-alive Step 0 self-tested live this session — passed.
 - /its-dead Step 5 hasn't been live-tested with the new logic on a feature branch yet — this session is on main, so Step 5 hits the on-main fast path. Real test of the FF merge + orphan-note flow will come when a future session starts on a feature branch.
 - AGENTS.md cleanup folded into the same commit as task 3 deletion via `git commit --amend` — first amend in this project; works clean.
 - Velocity datapoint: 7 pts in ~1 hr = 0.14 hrs/pt. Consistent with Session 5 (0.125 hrs/pt). n=2 now, but both sessions were skill-edit / decision work — heavy build/debug tasks (task 6, 8 pts) likely run higher.
@@ -398,11 +398,11 @@ All pairs byte-identical (primary invariant preserved). No blockers.
 ## Session 5 — 2026-04-24 20:00–21:15 (~1.25 hrs)
 **Duration:** ~1.25 hrs (0.75 focused + 0.5 recovery — see addendum) | **Points:** 6 (task 10: 3, task 11: 3)
 
-**Task:** Task 10 — CC branch workflow decision; Task 11 — implement DEC-005 in skills.
+**Task:** Task 10 — CC branch workflow decision; Task 11 — implement DEC-S005 in skills.
 
 **Completed:**
-- **Task 10** — Decided DEC-005: always on main while solo; switch to per-session branches when a team member joins. Captured in `docs/DECISIONS.md`. Commit `acbbb16`.
-- **Task 11** — Implemented DEC-005:
+- **Task 10** — Decided DEC-S005: always on main while solo; switch to per-session branches when a team member joins. Captured in `docs/DECISIONS.md`. Commit `acbbb16`.
+- **Task 11** — Implemented DEC-S005:
   - `/its-alive` Step 0 (new): fetch + check branch + ensure on main with `--ff-only` pull. Stops with surface on dirty tree.
   - `/its-dead` Step 5 (new): merge non-main branch into main with `--ff-only`, push, delete locally + remote.
   - Applied to all 4 files: `dev/claude/skills/{its-alive,its-dead}/SKILL.md` + `.claude/skills/{its-alive,its-dead}/SKILL.md`. Templates and seeds copies verified byte-identical.
@@ -422,13 +422,13 @@ All pairs byte-identical (primary invariant preserved). No blockers.
 7. Remainder of task 1, task 2.
 
 **Context:**
-- DEC-005 enforcement starts with this session's `/its-dead`. First real-world test of Step 5.
+- DEC-S005 enforcement starts with this session's `/its-dead`. First real-world test of Step 5.
 - Code-review identified 4 logic bugs in the new steps — none affect *this* session's Step 5 run (FF merge will work, main exists locally, no concurrent main movement) but they will misfire on cross-device scenarios. Fix before relying on Step 5 for actual cross-device sessions.
 - Velocity datapoint: 6 pts in ~0.75 hrs = 0.125 hrs/pt. First real session with both real time + real points; n=1.
 
 **Code Review:** 4 findings — all queued, none blocking this session:
 1. **Step 0 missing-local-main guard** — `git checkout main` fails on fresh clones where only the auto-branch exists. Add `git rev-parse --verify main` check; fall back to `git checkout -b main origin/main`.
-2. **Step 0 diverged-main case** — `git pull --ff-only` failure on first DEC-005 adoption needs remediation guidance (rebase / reset / abort), not just "surface and stop."
+2. **Step 0 diverged-main case** — `git pull --ff-only` failure on first DEC-S005 adoption needs remediation guidance (rebase / reset / abort), not just "surface and stop."
 3. **Step 5 ordering** — Step 5 runs after Step 3's commit + push to feature branch. If `origin/main` advanced externally during the session, Step 5's FF merge fails and leaves the session "closed" but branch un-cleaned. Move cleanup before Step 3 (or remove Step 3's push since Step 5 will push from main anyway).
 4. **Step 5 missing dirty-tree guard** — Mirrors Step 0's `git status --porcelain` check; without it, `git checkout main` from a dirty non-main branch will misbehave.
 
@@ -482,7 +482,7 @@ Updated duration estimate: ~1.25 hrs (0.75 focused work + ~0.5 hr recovery).
 - Mobile-test probe skill (`.claude/skills/mobile-test/SKILL.md`) — created, pushed, merged to main. Verified on Android that project-level skill discovery works on mobile (no plugin needed).
 - Confirmed mobile slash UX: no autocomplete dropdown, but typing `/skillname` as text works.
 - Promoted seeds to real project — added `docs/` (PROJECT_PLAN, SPEC, DECISIONS, AGENTS, RETROSPECTIVES, VELOCITY guide), `.claude/agents/` (5 agents), `.claude/skills/` (6 skills) at root.
-- Captured 4 architectural decisions (DEC-001..004) + 3 DEC-TBDs.
+- Captured 4 architectural decisions (DEC-S001..004) + 3 DEC-TBDs.
 - Added "Future Direction" north star to `docs/SPEC.md` — seeds as personal project hub (long-term).
 - Added task 10 to PROJECT_PLAN — CC branch workflow discussion, priority for next session.
 - Retroactively numbered prior session-log entries (Session 1 = 04-20, Session 2 = 04-22) so `/its-alive` can compute the next N.
@@ -505,7 +505,7 @@ Updated duration estimate: ~1.25 hrs (0.75 focused work + ~0.5 hr recovery).
 4. Code-review fixes (from @code-review in this session):
    - Fill `[Project]` → `seeds` in architect.md, code-review.md, pm.md, ui-reviewer.md frontmatter
    - Seeds-ify the 4 dev-family agents (remove Next.js/Supabase/RLS/shadcn assumptions)
-   - `sync-config.md:16` — update `~/.claude/skills/` reference to `<project>/.claude/skills/` per DEC-002
+   - `sync-config.md:16` — update `~/.claude/skills/` reference to `<project>/.claude/skills/` per DEC-S002
    - `AGENTS.md` — replace "spec → build → test → mobile screenshot" loop with seeds' actual loop
    - `its-alive/SKILL.md:38` — remove "current phase" assumption (PROJECT_PLAN has no phases)
    - `PROJECT_PLAN.md:11` — add `docs/` prefix to VELOCITY_AND_POKER_GUIDE.md reference

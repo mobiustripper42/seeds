@@ -2,19 +2,19 @@
 
 **Status:** Active
 **Owner:** @architect
-**Implements:** DEC-018, DEC-019
+**Implements:** DEC-S018, DEC-S019
 **Date:** 2026-05-19
 
 ## Goal
 
-Cut nightly-Routine PR noise by making `@sync-config` aware of file classes (DEC-018) and splitting hybrid files into shell + context pairs (DEC-019). Target: every Routine PR has ≥80% real-change rows and 0 LLM flip-flop across consecutive nights.
+Cut nightly-Routine PR noise by making `@sync-config` aware of file classes (DEC-S018) and splitting hybrid files into shell + context pairs (DEC-S019). Target: every Routine PR has ≥80% real-change rows and 0 LLM flip-flop across consecutive nights.
 
 ## Non-goals
 
-- **No `settings.json` JSON-merge design.** That file is hybrid but needs a different strategy. Deferred to DEC-020, drafted after Phase 4 ships.
-- **No retro "prefer-apply for structural Both-modified diffs" heuristic.** Deferred to DEC-021. Independent of this work.
+- **No `settings.json` JSON-merge design.** That file is hybrid but needs a different strategy. Deferred to DEC-S020, drafted after Phase 4 ships.
+- **No retro "prefer-apply for structural Both-modified diffs" heuristic.** Deferred to DEC-S021. Independent of this work.
 - **No automated context extraction.** Per-project extraction is manual. LLM-assisted (paste template, ask Claude to identify shell vs context lines) is fine. Full automation is not in scope.
-- **No touching sync-config's Step 3 PR template/formatting** beyond what DEC-018 requires for logic-drift rows.
+- **No touching sync-config's Step 3 PR template/formatting** beyond what DEC-S018 requires for logic-drift rows.
 
 ## Success metrics
 
@@ -31,15 +31,15 @@ Cut nightly-Routine PR noise by making `@sync-config` aware of file classes (DEC
 **Files touched:**
 - `seeds/.claude/routine-config.yaml` — add `file-classes` map
 - `seeds/dev/claude/agents/sync-config.md` — new Step 1.4, amended Step 2, amended Step 3
-- `seeds/docs/DECISIONS.md` — append DEC-018
+- `seeds/docs/DECISIONS.md` — append DEC-S018
 
 **Pre-conditions:**
-- DEC-018 merged in DECISIONS.md
+- DEC-S018 merged in DECISIONS.md
 - No open Routine PRs on seeds (so the registry change ships to projects on a clean night)
 
 **Steps:**
-1. Append DEC-018 to `docs/DECISIONS.md`.
-2. Add `file-classes` block to `.claude/routine-config.yaml` with the seed glob list from DEC-018.
+1. Append DEC-S018 to `docs/DECISIONS.md`.
+2. Add `file-classes` block to `.claude/routine-config.yaml` with the seed glob list from DEC-S018.
 3. Amend `dev/claude/agents/sync-config.md`:
    - Insert Step 1.4 (file-class lookup, behavior fork)
    - Amend Step 2 to branch on class (hash-compare for logic, hunk classification for hybrid/unclassified, skip for context)
@@ -69,9 +69,9 @@ Cut nightly-Routine PR noise by making `@sync-config` aware of file classes (DEC
 **Scope:** Seeds + bushel + sailbook. Webapp projects only. Tool projects (crewbook, captains-log, helm, crewculator) deferred to a later mini-phase if they use `CLAUDE.md` at all — verify before extending.
 
 **Files touched:**
-- `seeds/dev/claude/CLAUDE.md` — replace with shell content per DEC-019 section table
+- `seeds/dev/claude/CLAUDE.md` — replace with shell content per DEC-S019 section table
 - `seeds/.claude/routine-config.yaml` — ensure `dev/claude/CLAUDE.md: hybrid` is in the registry (added in Phase 1)
-- `seeds/docs/DECISIONS.md` — append DEC-019 (if not already from Phase 1 prep)
+- `seeds/docs/DECISIONS.md` — append DEC-S019 (if not already from Phase 1 prep)
 - `bushel/CLAUDE.md` — replace with seeds shell + load instruction
 - `bushel/.claude/CLAUDE-context.md` — new file, holds bushel's current project-specific content
 - `sailbook/CLAUDE.md` — same as bushel
@@ -79,18 +79,18 @@ Cut nightly-Routine PR noise by making `@sync-config` aware of file classes (DEC
 
 **Pre-conditions:**
 - Phase 1 deployed and one nightly run observed clean
-- DEC-019 merged in DECISIONS.md
+- DEC-S019 merged in DECISIONS.md
 - Bushel and sailbook have no open Routine PRs touching `CLAUDE.md`
 
 **Steps:**
-1. Append DEC-019 to `seeds/docs/DECISIONS.md`.
+1. Append DEC-S019 to `seeds/docs/DECISIONS.md`.
 2. Build the new `seeds/dev/claude/CLAUDE.md` shell:
-   - Use the section table in DEC-019 to determine what stays
+   - Use the section table in DEC-S019 to determine what stays
    - Add load instruction at top: "Read `.claude/CLAUDE-context.md`. If the file does not exist, stop and tell the user to create it."
    - Strip all placeholders that move to context (`[Project Name]`, stack, data model, commands)
    - Keep universal `## Key Docs` rows; add a `## Additional Docs` placeholder hook pointing at context
 3. For bushel:
-   - Identify project-specific content in current `bushel/CLAUDE.md` (LLM-assisted extraction is fine: paste current file, ask for shell-vs-context classification using DEC-019's table)
+   - Identify project-specific content in current `bushel/CLAUDE.md` (LLM-assisted extraction is fine: paste current file, ask for shell-vs-context classification using DEC-S019's table)
    - Write `bushel/.claude/CLAUDE-context.md` with all context-class content (stack, data model, commands, project-specific workflow notes, two-Supabase-projects discipline, preview URL setup, port-3001 gotcha, etc.)
    - Replace `bushel/CLAUDE.md` with the seeds shell verbatim
    - Open Claude session in bushel, verify the shell's load instruction triggers reading the context file
@@ -113,7 +113,7 @@ Cut nightly-Routine PR noise by making `@sync-config` aware of file classes (DEC
 
 **Risk flags:**
 - Extraction error: a shell line accidentally moved to context = silent loss of cross-project content (project loses access to Tone/Verbosity etc. until next sync proposes restoring it). Mitigation: diff bushel's current `CLAUDE.md` against the new shell+context concatenated, expect zero diff (modulo formatting).
-- Load instruction reliability: if Claude doesn't follow "read this other file first" reliably, the split breaks. Mitigation: DEC-016's identical instruction has worked for ui-reviewer for months. Reuse exact phrasing.
+- Load instruction reliability: if Claude doesn't follow "read this other file first" reliably, the split breaks. Mitigation: DEC-S016's identical instruction has worked for ui-reviewer for months. Reuse exact phrasing.
 - Tool projects without `CLAUDE.md` customization: verify before extending. If they're already template-clean, skip.
 
 ---
@@ -200,11 +200,11 @@ Cut nightly-Routine PR noise by making `@sync-config` aware of file classes (DEC
 
 ## Post-phase follow-ups
 
-- **DEC-020** (`settings.json` JSON-merge strategy). Draft after Phase 4 ships and the registry pattern is validated. Settings files are still in the noise budget — sailbook#58's three skips included one on settings.json.
-- **DEC-021** (retro "prefer-apply for structural Both-modified diffs"). Independent track. Draft when prioritized.
+- **DEC-S020** (`settings.json` JSON-merge strategy). Draft after Phase 4 ships and the registry pattern is validated. Settings files are still in the noise budget — sailbook#58's three skips included one on settings.json.
+- **DEC-S021** (retro "prefer-apply for structural Both-modified diffs"). Independent track. Draft when prioritized.
 - **Tool-project audit for CLAUDE.md.** Phase 2 only covered webapp projects. Verify tool projects (crewbook, captains-log, helm, crewculator) either have no `CLAUDE.md` customization or get the same split treatment in a mini-phase.
 
 ## Open questions for next architect session
 
-- Should the registry support per-project overrides (e.g., a project says "this hybrid file is actually all context for me")? Default answer: no — that's what type-gating (DEC-011) is for. Reopen if a real case appears.
+- Should the registry support per-project overrides (e.g., a project says "this hybrid file is actually all context for me")? Default answer: no — that's what type-gating (DEC-S011) is for. Reopen if a real case appears.
 - After Phase 4, is there enough signal to consider a `class: skip-always` for files we know are never going to sync (e.g., `docs/SPEC.md`)? Probably redundant with `class: context`. Defer until evidence shows otherwise.

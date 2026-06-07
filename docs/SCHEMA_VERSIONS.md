@@ -46,8 +46,8 @@ When in doubt, bump.
 |---------|-------------------|---------|
 | **1** | session-file, skill set | Original workflow. Monolithic `session-log.md`. No `~/.claude/devname`. No phase rituals (no `/start-phase`, no `/retro`). No dual-mode detection. |
 | **2** | session-file, skill set, skill API | Per-session files at `sessions/YYYY-MM-DD-HHMM-<dev>-<slug>.md` with YAML frontmatter. `~/.claude/devname` resolves dev identity. Phase rituals via GitHub Issues (`/start-phase` materializes a phase, `/retro` closes it). New skills: `/start-phase`, `/retro`, `/pause-this`, `/restart-this`, `/read-the-tape`, `/push-seeds`. Skills detect legacy projects (`session-log.md` present, `sessions/` absent) and run in legacy mode for backward compat. |
-| **4** | skill set, skill API, branch convention | Production-branch model replaces staging-flow (DEC-022, retires DEC-008). `main` is the always-active trunk in every project; an optional `production` branch is a downstream deploy pointer advanced by the new `/promote-production` skill (`main` → `production` ff-merge, deploy-only — no tagging). `/promote-staging` is removed. `origin/staging` detection removed from `/kill-this` (PR base), `/retro` + `/bump-major` (working branch), `/its-alive` (orphan-scan base), and the nightly routine (downstream PR base) — all now use the default branch. Tags land on `main` at bump time, uniformly. `@sync-config` gains anti-churn rules: drop formatting-only hunks, apply verbatim, post-apply no-op guard, report-from-staged-diff. Detection signal: `origin/production` (only `/promote-production` reads it). No new project-root files. |
-| **3** | skill set, skill API, project-root convention | Project semver workflow (DEC-007) + staging-flow conventions (DEC-008). New skills: `/bump-major`, `/promote-staging`. `/its-dead` patch-bumps on STATE=MERGED for dev projects. `/retro` minor-bumps at phase close on dev projects. `/kill-this` PRs into `staging` if `git show-ref --verify --quiet refs/remotes/origin/staging` succeeds, else `main`. `/its-dead` resolves the working branch from the same staging detection. New `dev/claude/templates/VersionTag.tsx` build-time component template. New `CHANGELOG.md` at the project root, auto-maintained by the bump skills. Detection signals: `package.json` (dev project) and local-cache `refs/remotes/origin/staging` (staging flow) — no new project-root files required, but skills now write `package.json` and `CHANGELOG.md` for dev projects. |
+| **4** | skill set, skill API, branch convention | Production-branch model replaces staging-flow (DEC-S022, retires DEC-S008). `main` is the always-active trunk in every project; an optional `production` branch is a downstream deploy pointer advanced by the new `/promote-production` skill (`main` → `production` ff-merge, deploy-only — no tagging). `/promote-staging` is removed. `origin/staging` detection removed from `/kill-this` (PR base), `/retro` + `/bump-major` (working branch), `/its-alive` (orphan-scan base), and the nightly routine (downstream PR base) — all now use the default branch. Tags land on `main` at bump time, uniformly. `@sync-config` gains anti-churn rules: drop formatting-only hunks, apply verbatim, post-apply no-op guard, report-from-staged-diff. Detection signal: `origin/production` (only `/promote-production` reads it). No new project-root files. |
+| **3** | skill set, skill API, project-root convention | Project semver workflow (DEC-S007) + staging-flow conventions (DEC-S008). New skills: `/bump-major`, `/promote-staging`. `/its-dead` patch-bumps on STATE=MERGED for dev projects. `/retro` minor-bumps at phase close on dev projects. `/kill-this` PRs into `staging` if `git show-ref --verify --quiet refs/remotes/origin/staging` succeeds, else `main`. `/its-dead` resolves the working branch from the same staging detection. New `dev/claude/templates/VersionTag.tsx` build-time component template. New `CHANGELOG.md` at the project root, auto-maintained by the bump skills. Detection signals: `package.json` (dev project) and local-cache `refs/remotes/origin/staging` (staging flow) — no new project-root files required, but skills now write `package.json` and `CHANGELOG.md` for dev projects. |
 
 ## Migration notes
 
@@ -92,7 +92,7 @@ A v2 project has no version skills installed and (if deployable) no version surf
 
 ### v3 → v4
 
-v4 replaces the DEC-008 staging-flow with the DEC-022 production-branch model. The change is a skill rename + branch-convention shift; **no data migration** (session files, PROJECT_PLAN.md, RETROSPECTIVES.md formats are unchanged).
+v4 replaces the DEC-S008 staging-flow with the DEC-S022 production-branch model. The change is a skill rename + branch-convention shift; **no data migration** (session files, PROJECT_PLAN.md, RETROSPECTIVES.md formats are unchanged).
 
 **All v3 projects:**
 1. Replace the skill directory: remove `<project>/.claude/skills/promote-staging/`, add `<project>/.claude/skills/promote-production/` (copy from `dev/claude/skills/promote-production/`). Easiest via `/pull-seeds` once it honors v4.
@@ -110,6 +110,24 @@ Behaviorally unchanged — they already shipped off `main`. Steps 1–3 are the 
 5. From here, work on `main`; ship with `/promote-production`.
 
 **Why bump (not additive like v3):** a skill was renamed and a branch convention changed, so a v3 project pulling v4 templates without migrating would end up with both `/promote-staging` (orphaned) and `/promote-production`, and staging-flow projects would have skills that no longer detect their staging branch. The version gate forces the per-project migration above.
+
+### Caution: never rewrite a project's own `DEC-NNN`
+
+Seeds-workflow decisions carry the `DEC-S` prefix (DEC-S025); a project's own decisions in its `docs/DECISIONS.md` stay plain `DEC-NNN`. When a sync or migration touches DEC references — in either direction — convert **only** seeds-workflow refs (`DEC-013` → `DEC-S013`). Never blind-`s/DEC-NNN/DEC-SNNN/` a project file: a bare `DEC-008` may be the project's own decision (e.g. bushel `DEC-008` = "Fulfillment", not seeds' staging DEC), and prefixing it would mangle the project's record and break its cross-references. Judge ambiguous refs per line by what the surrounding text is about. This is not a versioned migration — the `DEC-S` sweep is a standalone per-repo pass, no `seeds-version` bump.
+
+### Per-repo DEC-S sweep runbook (one-time, DEC-S025 rollout)
+
+Every fleet project needs this once. It cannot ride the nightly Routine: `@sync-config` applies template hunks verbatim and only touches the seeds-mirrored files (`.claude/skills/**`, `.claude/agents/*.md`), and it can't make the per-line "seeds vs. project-own" call the project-specific files require. So it's manual, per repo. The helper `dev/claude/scripts/dec_s_sweep.py` does the safe conversions and surfaces the rest.
+
+1. **Branch.** In the project: `git checkout -b chore/dec-s-sweep`.
+2. **Find the ceiling.** The project's own DECs live in its `docs/DECISIONS.md` (`## DEC-NNN` headers). The highest is the "own ceiling" — refs *above* it are unambiguously seeds. The helper reads this automatically.
+3. **Dry run.** `python3 <seeds>/dev/claude/scripts/dec_s_sweep.py` from the project root. It prints (a) `WOULD CONVERT` — the safe seeds refs (mirrored files in full; project files above the ceiling), and (b) `NEEDS REVIEW` — every ref at/below the ceiling.
+4. **Judge the review list.** It always includes the project's own DECs (expected — leave those plain). Hunt it for *seeds* refs hiding at/below the ceiling — a bare `DEC-005` (branch model), `DEC-007` (semver), `DEC-008` (staging), `DEC-010` (Routine), etc. that the project's `CLAUDE.md`/docs cite. Hand-convert only those.
+5. **Keep plain (DEC-S025 exception list):** the project's own DECs; bushel's `DEC-016`/`DEC-008`/etc. when this project's file cites *another* project; illustrative `e.g.` examples ("this contradicts DEC-007"); `docs/DECISIONS.md` definitions and the `architect.md` example (the helper never touches these).
+6. **Apply + verify.** `python3 …/dec_s_sweep.py --apply`, then re-run with no flag — the `NEEDS REVIEW` list should now contain only refs you've confirmed are project-own or illustrative. Spot-check combined shorthand (`DEC-S013/S014`) and `.gitignore`.
+7. **Ship.** Commit (`DEC-S namespace sweep (seeds#101)`), push, open a PR to the project's default branch. No `seeds-version` bump.
+
+Worked example: **tinkle** (own ceiling `DEC-010`) — every `DEC-011/013/014/015` was seeds; `DEC-001…010` everywhere (hardware/firmware) stayed plain.
 
 ## How `/pull-seeds` (downstream sync) uses this
 

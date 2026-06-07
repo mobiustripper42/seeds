@@ -46,7 +46,7 @@ Treat that scope as the source of truth — do NOT enumerate the org via
 GitHub's `repos.list` API; the previous design did that and ate one
 access denial per non-granted repo per pass before settling on the
 small set the form had granted (run 2026-05-08 surfaced the failure
-mode; DEC-010 captures the post-mortem).
+mode; DEC-S010 captures the post-mortem).
 
 Enumerate the repos accessible to your MCP github session. The exact
 introspection mechanism depends on the MCP server implementation; in
@@ -193,7 +193,7 @@ Skip Step 3a entirely if `directions:` in the config doesn't include
 **Per-source revertability.** The PR contains one commit per source
 project. If a specific source's backports prove wrong, revert that
 single commit with `git revert <sha>` — no need to revert the whole PR.
-This preserves the per-source rollback property DEC-010's per-PR design
+This preserves the per-source rollback property DEC-S010's per-PR design
 prized while eliminating the inter-PR conflict cost.
 
 ### Step 3b — Downstream (seeds → project, one PR per project)
@@ -211,18 +211,18 @@ For each repo in the active set:
 1. The project repo is already cloned (from Step 3a, or clone it
    fresh if upstream was skipped).
 2. **Resolve PR base for this project.** Always the project's default
-   branch — the active trunk (DEC-022):
+   branch — the active trunk (DEC-S022):
    ```
    BASE=$(git -C <project-repo-path> remote show origin | sed -n 's/.*HEAD branch: //p')
    [ -z "$BASE" ] && BASE=main
    ```
    Downstream PRs always target the trunk the project is actually worked
    on. **Never target a `production` branch** — it is a downstream deploy
-   pointer, not a dev branch. (DEC-008 once targeted `staging` here; that
+   pointer, not a dev branch. (DEC-S008 once targeted `staging` here; that
    was the read-source/PR-target split that produced the sailbook noise
    loop — the routine read the default branch but PR'd into `staging`,
    so a stale-vs-active branch gap was re-proposed as drift every night.
-   DEC-022 retired it: trunk = default branch = what we diff and target.)
+   DEC-S022 retired it: trunk = default branch = what we diff and target.)
 3. In the project checkout, create a branch
    `{branch_prefix.downstream}/<DATE>` off `$BASE`.
 4. Invoke @sync-config with:

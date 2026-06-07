@@ -1,4 +1,4 @@
-# Project-type gating manifest — read by @sync-config (DEC-011).
+# Project-type gating manifest — read by @sync-config (DEC-S011).
 #
 # Most files in dev/claude/ apply to every dev project type. A few don't —
 # `agents/ui-reviewer.md` is built around shadcn UI conventions and is
@@ -30,7 +30,7 @@
 #   1. Decide what files are gated to it (and which existing files now need
 #      to add the new type to their list).
 #   2. Document in a successor DEC entry that supersedes the relevant part
-#      of DEC-011.
+#      of DEC-S011.
 #   3. Update CLAUDE.md (root) Setup section to list the type.
 #   4. Update this file.
 
