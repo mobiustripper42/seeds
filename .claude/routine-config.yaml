@@ -26,6 +26,10 @@
 # to read this very config file, so we exclude it explicitly.
 exclude:
   - mobiustripper42/seeds
+  # Retired projects — no longer actively developed; kept out of sync so they
+  # stop surfacing as schema-version gaps in the migration backlog (2026-06-07).
+  - mobiustripper42/crewbook
+  - mobiustripper42/crewculator
 
 # A repo joins the active set only if every condition here is true.
 # These run AFTER the form has already determined which repos this
