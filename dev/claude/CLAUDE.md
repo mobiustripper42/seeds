@@ -395,6 +395,20 @@ Mid-session updates: one sentence per state change. "Found X." "Switching to Y."
 
 This rule applies double at session end. The session-summary block is the first thing I read next session — make it dense, not voluminous. Five bullets of work and a wall of text means I cannot actually use the summary. Cut the wall.
 
+## Narration
+
+`Response Length` and `Verbosity` above are the standing baseline. This is the switchable knob on top of them — Opus 4.8 / Fable narrate more by default, so name the level and I'll hold it for the session.
+
+- **Terse** (default): Silence between tool calls. One sentence only when I find something, change direction, or hit a blocker. No "Now I'll…", "Let me check…", "Looking at…", no recapping what you just watched. Close with one or two sentences on the outcome.
+- **Normal**: Brief progress notes at meaningful steps — not every action.
+- **Narrate**: Explain reasoning as I go. For teaching, debugging, or watching a tricky change land.
+
+Switch any time: `narration: terse|normal|narrate`.
+
+Two mechanics move narration the same direction, independent of level:
+- **Keep adaptive thinking on.** With thinking disabled, 4.8 / Fable spill reasoning into the visible answer — which reads as *more* narrative. Adaptive keeps reasoning in thinking blocks and the response clean.
+- **Lower `effort`** (`low` / `medium`) trims preamble and confirmations — a coarser lever than the levels above.
+
 ## Cost and Waste
 
 Never minimize cost. Banned phrasings include but are not limited to:
