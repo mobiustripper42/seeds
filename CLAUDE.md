@@ -95,7 +95,7 @@ This repo encodes a specific development workflow for solo Claude-assisted proje
 
 | Agent | Model | When | Purpose |
 |-------|-------|------|---------|
-| @architect | Opus | Before design decisions, new dependencies, scope creep | Keep architecture coherent against SPEC.md + DECISIONS.md |
+| @architect | Fable 5 | Before design decisions, new dependencies, scope creep | Keep architecture coherent against SPEC.md + DECISIONS.md |
 | @code-review | Sonnet | After commits (wired into `/kill-this`) | Catch issues early |
 | @pm | Sonnet | Start/end of sessions via skills | Track progress, flag risks, update PROJECT_PLAN.md |
 | @ui-reviewer | Sonnet | After UI work, phase boundaries | Design quality review |
