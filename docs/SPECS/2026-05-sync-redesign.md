@@ -5,6 +5,12 @@
 **Implements:** DEC-S018, DEC-S019
 **Date:** 2026-05-19
 
+> **Status update 2026-06-10 — Phase 2 resumed.** Phase 1 (file-class registry) shipped; Phases 2–4 were parked when the v4 production-branch migration (DEC-S022), the DEC-S namespace sweep (DEC-S025), and the velocity rework (DEC-S024) took priority. Resumed after the CLAUDE.md propagation gap bit live: 2026-06-10 seeds edits (Narration knob, task-split reframe, Fable model-selection) all landed in CLAUDE.md prose and were skipped on every project by the nightly (tinkle #44, helm #77).
+> - **Seeds-side of Phase 2 done this pass:** `dev/claude/CLAUDE.md` rebuilt as the shell; new `dev/claude/CLAUDE-context.md` template ships the project-owned content. Root `CLAUDE.md` setup instructions updated.
+> - **Deviation from the DEC-S019 table:** `## Conventions` and the Supabase migration toolchain move **wholesale to context** (not "split"). The current template's Conventions are 100% webapp-concrete and the shell must be universal across webapp + tool; the shell keeps a stack-neutral migration *discipline* + pointers. Nothing lost — verified shell ∪ context preserves every original line bar 3 intentional stack-neutral rewordings.
+> - **Project scope re-set to the live fleet of 8** (seeds, helm, bushel, captains-log, tinkle, xola-tip-extractor, muster, sailbook). **crewbook + crewculator dropped — retired** (excluded in `routine-config.yaml`). Per-project extraction (steps 3–4) still pending, as its own sessions.
+> - **Scope discipline:** Phases 3 (architect) + 4 (code-review) stay deferred — decide on evidence (a *shared* edit to those agent files getting skipped), not by auto-expanding this resume.
+
 ## Goal
 
 Cut nightly-Routine PR noise by making `@sync-config` aware of file classes (DEC-S018) and splitting hybrid files into shell + context pairs (DEC-S019). Target: every Routine PR has ≥80% real-change rows and 0 LLM flip-flop across consecutive nights.
