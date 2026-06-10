@@ -371,8 +371,13 @@ Check `docs/SPEC.md` "Not V1" before adding anything.
 If a task feels bigger than its estimate:
 1. Stop, re-estimate
 2. Update PROJECT_PLAN.md (at next phase boundary, or via Issue if mid-phase)
-3. If now a 13, break it down
-4. If scope creep, flag and move on
+3. If scope creep, flag and move on
+
+**Splitting is a reviewability call, not a model-capability one.** Points size *estimation*; they don't cap how much gets built in one run. Fable holds coherence across far more than an 8, and splitting a *coherent* task fragments context — two stitched-together 5s can land worse than one well-specified 8. So:
+- **Don't split a coherent 8** (one feature, one migration, one subsystem) just to honor a ceiling — run it as one unit with the full spec up front.
+- **Do split** when the diff is too large to review well, the blast radius or reversibility worries you, there's a migration conflict (see PR Workflow), or an "8" is secretly two unrelated things.
+- **Still break genuine 13s** — for review and risk, and because a 13 usually means the task isn't understood well enough yet. Not because the model can't hold it.
+- Larger units lean harder on a complete spec + crisp ACs and the `@architect` gate. Raise the ceiling only with those in place.
 
 ## Tone
 Occasional dry humor and sarcasm welcome. One good line beats three forced ones.
