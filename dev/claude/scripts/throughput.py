@@ -21,10 +21,12 @@ WHAT IT REPORTS (validated 2026-06-11 against bushel/crewbook/muster/helm)
   2. Per phase — points, pts/issue (pointing-stability signal), calendar span in
      days, and a pts/week rate ONLY when the phase spans ≥7 days. Sub-week
      phases are flagged "burst" instead of quoting an exploding rate.
-  3. PR cycle time (open→merge), by point size — median + p85, as a DISTRIBUTION
-     (never summed). The "if I start it, when's it done?" forecast. Robust to
-     burstiness because it's per-PR, not per-week; and a distribution sidesteps
-     the overlapping-window summing that broke DEC-S024.
+  3. PR merge latency (open→merge) — median + p85 in HOURS, a flow-health signal
+     (do PRs sit unmerged?). NOT a build-effort forecast: the PR opens AFTER the
+     work is done, so open→merge can't see build time and is flat across point
+     sizes (validated on bushel — a 5-pointer merges as fast as a 2). Reported as
+     a distribution, never summed — which also sidesteps the overlapping-window
+     bug that broke DEC-S024.
   4. Per-repo and combined; --issues adds the points:N histogram.
 
 POINTS ATTRIBUTION (load-bearing — do NOT "improve" into PR-pairing):
@@ -32,8 +34,8 @@ POINTS ATTRIBUTION (load-bearing — do NOT "improve" into PR-pairing):
     of its OWN closedAt. PRs are NEVER counted directly for throughput.
   - An issue with no points:N label is SKIPPED, never guessed.
   - Never re-pair PR-open -> PR-merge to recover "effort": that window math is
-    exactly the DEC-S024 bug. Cycle time uses each PR's OWN open→merge span and
-    only reports the distribution — it never sums spans across PRs.
+    exactly the DEC-S024 bug. Merge latency uses each PR's OWN open→merge span
+    and only reports the distribution — it never sums spans across PRs.
 
 USAGE
   python3 throughput.py [REPO_PATH ...]          # one or more repos; default: cwd
@@ -214,30 +216,21 @@ def phase_stats(issues):
     return sorted(out, key=sortkey)
 
 
-def cycle_times(issues, prs):
-    """PR open→merge durations (days) keyed by point size.
+def merge_latency(prs):
+    """PR open→merge latency in HOURS over merged PRs. {'hours': sorted[], 'n': int}.
 
-    Each PR's OWN span only — never summed across PRs. A PR is attributed to a
-    point bucket only if it closes exactly ONE points-labelled issue (clean
-    attribution; ambiguous multi-issue PRs feed the overall distribution only).
-    Returns {'by_pt': {N: [days]}, 'overall': [days], 'used': int, 'total': int}.
-    """
-    pts_by_num = {i['number']: i['points'] for i in issues}
-    by_pt = defaultdict(list)
-    overall = []
-    used = 0
+    A flow-health signal (do PRs sit unmerged?), NOT a build-effort forecast:
+    open→merge can't see build time because the PR opens after the work is done,
+    so it's flat across point sizes. Each PR's OWN span only — never summed."""
+    hrs = []
     for pr in prs:
         if pr['createdAt'] is None or pr['mergedAt'] is None:
             continue
-        dur = (pr['mergedAt'] - pr['createdAt']).total_seconds() / 86400
-        if dur < 0:
+        h = (pr['mergedAt'] - pr['createdAt']).total_seconds() / 3600
+        if h < 0:
             continue
-        overall.append(dur)
-        labelled = [n for n in pr['closes'] if n in pts_by_num]
-        if len(labelled) == 1:
-            by_pt[pts_by_num[labelled[0]]].append(dur)
-            used += 1
-    return {'by_pt': dict(by_pt), 'overall': overall, 'used': used, 'total': len(prs)}
+        hrs.append(h)
+    return {'hours': sorted(hrs), 'n': len(hrs)}
 
 
 def issue_histogram(issues):
@@ -287,13 +280,13 @@ def fetch_issues(repo):
 
 
 def fetch_prs(repo):
-    """Merged PRs via gh -> dicts {createdAt(dt), mergedAt(dt), closes:[issue#]}.
-    None on gh failure (returns [] for a repo with zero merged PRs)."""
+    """Merged PRs via gh -> dicts {createdAt(dt), mergedAt(dt)}. None on gh failure
+    (returns [] for a repo with zero merged PRs). Only open/merge timestamps are
+    needed — merge latency is a flow signal, not joined to issues."""
     try:
         r = subprocess.run(
             ['gh', 'pr', 'list', '--state', 'merged',
-             '--json', 'number,createdAt,mergedAt,closingIssuesReferences',
-             '--limit', '1000'],
+             '--json', 'createdAt,mergedAt', '--limit', '1000'],
             cwd=repo, capture_output=True, text=True, timeout=60)
     except Exception:
         return None
@@ -303,16 +296,8 @@ def fetch_prs(repo):
         raw = json.loads(r.stdout or '[]')
     except json.JSONDecodeError:
         return None
-    prs = []
-    for pr in raw:
-        closes = [ref.get('number') for ref in pr.get('closingIssuesReferences', [])
-                  if ref.get('number') is not None]
-        prs.append({
-            'createdAt': parse_dt(pr.get('createdAt')),
-            'mergedAt': parse_dt(pr.get('mergedAt')),
-            'closes': closes,
-        })
-    return prs
+    return [{'createdAt': parse_dt(pr.get('createdAt')), 'mergedAt': parse_dt(pr.get('mergedAt'))}
+            for pr in raw]
 
 
 # ---------------------------------------------------------------------------
@@ -381,25 +366,18 @@ def report(res, window):
             verdict = "tight — pointing is consistent" if spread <= 1.5 else "drifting — check for point inflation"
             print(f"    pts/issue range {min(ppis):.2f}–{max(ppis):.2f} across {len(ppis)} phases — {verdict}.")
 
-    # 3. PR cycle time — the forecast.
-    ct = res['cycle']
-    if ct is None:
-        print("\n  PR cycle time: gh PR data unavailable (skipped).")
-    elif ct['overall']:
-        print("\n  PR cycle time, open→merge (days) — distribution, never summed:")
-        print(f"    overall ({len(ct['overall'])} merged PRs): "
-              f"median {percentile(ct['overall'], 50):.2f}  p85 {percentile(ct['overall'], 85):.2f}")
-        if ct['by_pt']:
-            print(f"    by point size ({ct['used']} single-issue PRs — the 'when's it done?' read):")
-            print(f"      {'pts':>4}{'n':>5}{'median':>9}{'p85':>9}")
-            for n in POINT_VALUES:
-                ds = ct['by_pt'].get(n)
-                if ds:
-                    print(f"      {n:>4}{len(ds):>5}{percentile(ds, 50):>9.2f}{percentile(ds, 85):>9.2f}")
-        else:
-            print("    (no PRs closed exactly one points-labelled issue — can't slice by size)")
+    # 3. PR merge latency — flow health (NOT a build-effort forecast; see DEC-S026).
+    ml = res['latency']
+    if ml is None:
+        print("\n  PR merge latency: gh PR data unavailable (skipped).")
+    elif ml['n']:
+        print("\n  PR merge latency, open→merge — flow health, not a build-effort forecast:")
+        print(f"    median {percentile(ml['hours'], 50):.1f}h  p85 {percentile(ml['hours'], 85):.1f}h  "
+              f"across {ml['n']} merged PRs")
+        print("    (open→merge opens after the work is done — it can't see build time, "
+              "so it's flat across point sizes.)")
     else:
-        print("\n  PR cycle time: no merged PRs found.")
+        print("\n  PR merge latency: no merged PRs found.")
 
     # --issues histogram.
     if res['show_issues']:
@@ -429,8 +407,8 @@ def run_self_test(window):
         return {'number': number, 'points': points, 'phase': phase,
                 'createdAt': parse_dt(created), 'closedAt': parse_dt(closed)}
 
-    def pr(created, merged, closes):
-        return {'createdAt': parse_dt(created), 'mergedAt': parse_dt(merged), 'closes': closes}
+    def pr(created, merged):
+        return {'createdAt': parse_dt(created), 'mergedAt': parse_dt(merged)}
 
     # W03=8, gap W04, W05=8, gap W06, W07=5, gap W08, W09=2 (ISO weeks of 2026).
     # Times pinned to 00:00 so phase deltas are whole days (= whole weeks).
@@ -480,35 +458,32 @@ def run_self_test(window):
     check('percentile p85', percentile([1, 2, 3, 4], 85), 4)
     check('percentile empty', percentile([], 50), None)
 
-    # cycle times: single-issue PRs attribute by point; multi-issue PR -> overall only
+    # merge latency: open→merge in hours, sorted; ignores anything but timestamps
     prs = [
-        pr('2026-01-10T00:00:00Z', '2026-01-10T12:00:00Z', [1]),   # 5pt, 0.5d
-        pr('2026-02-07T00:00:00Z', '2026-02-08T12:00:00Z', [4]),   # 5pt, 1.5d
-        pr('2026-01-11T00:00:00Z', '2026-01-11T06:00:00Z', [2]),   # 3pt, 0.25d
-        pr('2026-01-20T00:00:00Z', '2026-01-22T00:00:00Z', [3, 5]),  # multi -> overall only
+        pr('2026-01-10T00:00:00Z', '2026-01-10T12:00:00Z'),  # 12h
+        pr('2026-02-07T00:00:00Z', '2026-02-08T12:00:00Z'),  # 36h
+        pr('2026-01-11T00:00:00Z', '2026-01-11T06:00:00Z'),  # 6h
+        pr('2026-01-20T00:00:00Z', '2026-01-22T00:00:00Z'),  # 48h
     ]
-    ct = cycle_times(issues, prs)
-    check('cycle used (single-issue PRs)', ct['used'], 3)
-    check('cycle total PRs', ct['total'], 4)
-    check('cycle 5pt durations', sorted(ct['by_pt'][5]), [0.5, 1.5])
-    check('cycle 3pt durations', ct['by_pt'][3], [0.25])
-    check('cycle 5pt median', percentile(ct['by_pt'][5], 50), 0.5)
-    check('cycle 5pt p85', percentile(ct['by_pt'][5], 85), 1.5)
-    check('cycle overall count', len(ct['overall']), 4)
+    ml = merge_latency(prs)
+    check('latency hours sorted', ml['hours'], [6.0, 12.0, 36.0, 48.0])
+    check('latency n', ml['n'], 4)
+    check('latency median (p50)', percentile(ml['hours'], 50), 12.0)
+    check('latency p85', percentile(ml['hours'], 85), 48.0)
+    check('empty latency', merge_latency([])['n'], 0)
 
     # histogram + empties
     check('histogram', [issue_histogram(issues)[n] for n in POINT_VALUES], [1, 1, 2, 1, 0])
     check('empty weekly', weekly_points([]), {})
     check('empty lifetime', lifetime_rates([]), None)
-    check('empty cycle', cycle_times([], [])['overall'], [])
 
     if fails:
         print("SELF-TEST FAILED:")
         for f in fails:
             print(f"  ✗ {f}")
         sys.exit(1)
-    print("SELF-TEST PASSED — 28 assertions, computation verified offline (no gh).")
-    print("Note: pure logic only. Real-repo validation (incl. PR cycle time) needs "
+    print("SELF-TEST PASSED — 26 assertions, computation verified offline (no gh).")
+    print("Note: pure logic only. Real-repo validation (incl. PR merge latency) needs "
           "`gh` + the project repos (run on a dev machine).")
 
 
@@ -558,7 +533,7 @@ def main():
             'lifetime': lifetime_rates(issues),
             'band': rolling_band(issues, window),
             'phases': phase_stats(issues),
-            'cycle': cycle_times(issues, prs) if prs is not None else None,
+            'latency': merge_latency(prs) if prs is not None else None,
             'show_issues': show_issues,
         })
 
