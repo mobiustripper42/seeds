@@ -62,7 +62,7 @@ import subprocess
 from collections import defaultdict
 from datetime import datetime, timedelta
 
-POINT_VALUES = (2, 3, 5, 8, 13)
+POINT_VALUES = (1, 2, 3, 5, 8, 13)
 
 
 # ---------------------------------------------------------------------------
@@ -473,7 +473,7 @@ def run_self_test(window):
     check('empty latency', merge_latency([])['n'], 0)
 
     # histogram + empties
-    check('histogram', [issue_histogram(issues)[n] for n in POINT_VALUES], [1, 1, 2, 1, 0])
+    check('histogram', [issue_histogram(issues)[n] for n in POINT_VALUES], [0, 1, 1, 2, 1, 0])
     check('empty weekly', weekly_points([]), {})
     check('empty lifetime', lifetime_rates([]), None)
 
@@ -497,6 +497,13 @@ def main():
     self_test = '--self-test' in argv
     rest = [a for a in argv if a not in ('--issues', '--self-test')]
 
+    def int_window(s):
+        try:
+            return int(s)
+        except ValueError:
+            print("error: --window must be an integer", file=sys.stderr)
+            sys.exit(2)
+
     window, positional, j = 4, [], 0
     while j < len(rest):
         a = rest[j]
@@ -504,9 +511,9 @@ def main():
             if j + 1 >= len(rest):
                 print("error: --window needs a value", file=sys.stderr)
                 sys.exit(2)
-            window, j = int(rest[j + 1]), j + 2
+            window, j = int_window(rest[j + 1]), j + 2
         elif a.startswith('--window='):
-            window, j = int(a.split('=', 1)[1]), j + 1
+            window, j = int_window(a.split('=', 1)[1]), j + 1
         else:
             positional.append(a)
             j += 1
