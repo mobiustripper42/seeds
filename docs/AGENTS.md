@@ -87,7 +87,7 @@ Invokes `@sync-config` agent to diff live project files against seeds templates.
 
 | Agent/Skill | Model | When | Purpose |
 |-------------|-------|------|---------|
-| @architect | Fable 5 | Before design decisions | Keep architecture coherent |
+| @architect | Opus 4.8 | Before design decisions | Keep architecture coherent |
 | @code-review | Sonnet | After commits | Catch issues early |
 | @pm | Sonnet | Start/end of sessions | Track progress, flag risks |
 | @ui-reviewer | Sonnet | After UI work | Design quality (N/A for seeds) |
