@@ -1,12 +1,12 @@
 ---
 name: retro
-description: Phase-end retrospective. Closes the current phase. Under DEC-S013, retro is also where per-session time math runs — for every session in the phase window, it computes wall_clock / dev_time / review_time from `started`, `ended`, the transcript JSONL, and GitHub PR timestamps. Aggregates to phase velocity. Marks PROJECT_PLAN.md `[x]`, reconciles drift, writes RETROSPECTIVES.md, runs version bumps (patch per merged PR + minor at phase close on dev projects), prompts retro notes. Optionally chains into `/start-phase`.
+description: Phase-end retrospective. Closes the current phase. Under DEC-S013 retro owns the phase velocity math; under DEC-S026 that math is throughput (points per calendar week) computed from GitHub issue `closedAt` dates + `points:N` labels, plus an estimate-calibration tally — no session transcript is read. Marks PROJECT_PLAN.md `[x]`, reconciles drift, writes RETROSPECTIVES.md, runs version bumps (patch per merged PR + minor at phase close on dev projects), prompts retro notes. Optionally chains into `/start-phase`.
 tools: Read, Edit, Write, Bash, Glob, Grep, Agent
 ---
 
 You are running the phase-end retrospective. Work for this phase is complete (or you've decided to call it done and move scope).
 
-Under DEC-S013, this skill **owns all per-session time math** that used to live in `/its-dead` and **all version bumps** that used to live in `/its-dead` (patch per merge) and `/retro` (minor at close). Session files are atomic event logs; retro is where they get turned into numbers.
+Under DEC-S013 this skill **owns the phase velocity math** that used to live in `/its-dead` and **all version bumps** (patch per merge + minor at close). Under DEC-S026 that velocity math is **throughput + estimate calibration**, computed from GitHub issue dates + `points:N` labels — the transcript-based `active = wall − breaks` model is retired. Session files are atomic event logs; GitHub is the velocity data source.
 
 ## Step 0 — Identify the current phase
 
@@ -32,105 +32,68 @@ For each open issue, ask the user: "Move to next phase, leave open, or close as 
 - **Leave open:** record in retro.
 - **Close as won't-do:** `gh issue close <N> --reason "not planned" --comment "Closed at Phase N retro — descoped."`
 
-## Step 2 — Per-session time math (DEC-S013 — moved from `/its-dead`)
+## Step 2 — Phase throughput + estimate calibration (DEC-S026 — replaces transcript-based time math)
 
-Find every session file in the phase window. Phase window = first issue's `createdAt` → last issue's `closedAt` (use `gh issue list --label "phase:<N>" --state all --json createdAt,closedAt`).
+DEC-S026 retired the `active = wall_clock − breaks` model. **No session transcript is read in this step.** Two numbers come out of it, both from data GitHub already holds: the phase's **throughput** (points per calendar week) and an **estimate-calibration tally** (did the points hold their value). Fleet validation showed solo phases are burst-shaped — most clear inside a single calendar week — so throughput is a coarse capacity signal, not a precise rate; the calibration tally is what keeps the point unit honest.
 
-For each session file in `.sessions-worktree/sessions/` whose `started:` falls within the phase window (or `started:` < phase_start AND `ended:` is within — span sessions count too):
+Phase window: `phase_first_created` = first issue's `createdAt`, `phase_last_closed` = last issue's `closedAt`.
 
-### Step 2.1 — Read frontmatter
-
-Parse `started`, `ended`, `pr_numbers`, `points`, `transcript` from the session file's YAML frontmatter. Required: `started`, `ended`. If `ended` is empty (session was abandoned or unclosed), skip with a note in the retro.
-
-### Step 2.2 — wall_clock
-
-`wall_clock = (ended − started) in hours, rounded to nearest 0.083h`. Always defined.
-
-### Step 2.3 — Break inference from transcript
-
-If `transcript` is set and the file is readable:
-1. Read the JSONL line by line; parse each line's `timestamp` field.
-2. Sort timestamps ascending.
-3. Walk pairwise. Any gap > 15 min counts as idle.
-4. Sum idle minutes within `[started, ended]` to get `total_breaks_hours`.
-
-If the transcript is unreadable or missing, set `total_breaks_hours = 0` and note `inference: transcript-unavailable` in the per-session line of the retro.
-
-### Step 2.4 — PR timestamps from GitHub
-
-For each PR number in `pr_numbers`:
-```
-gh pr view <N> --json number,createdAt,mergedAt,state
-```
-Capture `createdAt` (= `pr_opened_at`) and `mergedAt` (= `pr_merged_at`, may be null if still open or closed-without-merge).
-
-If `gh` is unavailable, try `mcp__github__pull_request_read` with `owner`, `repo`, `pullNumber`.
-
-If both unavailable: skip PR-derived math for this session; note `inference: github-unavailable`. The user can rerun retro later.
-
-### Step 2.5 — dev_time and review_time (per-PR windows, DEC-S015)
-
-Each PR gets its own dev window (time building it) and its own review window (time reviewing it). Sum across all PRs. Replaces the prior single-boundary model — which collapsed an N-PR session to one seam and structurally under-reported dev_time when PRs > 1.
-
-Sort `pr_numbers` by `createdAt` ascending. For each `PR_i` (i = 0..N-1):
-
-**dev_window_i** = `anchor_i → PR_i.createdAt`
-- `anchor_i = started` if i = 0; otherwise `anchor_i = PR_{i-1}.mergedAt`.
-- If `PR_{i-1}.mergedAt` is null (previous PR not yet merged at retro time): use `PR_{i-1}.createdAt` as the anchor — conservative under-count of dev time for PR_i; the cost is absorbed into PR_{i-1}'s review window.
-- If `anchor_i > PR_i.createdAt` (next PR opened before previous merged — concurrent work): `dev_window_i = 0`. The time is real dev work but it overlapped review of PR_{i-1} and is counted there.
-
-**review_window_i** = `PR_i.createdAt → effective_merge_i`
-- `effective_merge_i = min(PR_i.mergedAt, ended)` if `mergedAt` is non-null. If merged after `/its-dead`, cap at `ended` — post-session review is uncountable.
-- If `PR_i` is still OPEN at retro time: `effective_merge_i = ended`.
-- If `PR_i` was CLOSED-without-merge in-session: still count `PR_i.createdAt → closed_at` as review (the time was spent on it). Skip if closed after `ended`.
-
-**Trailing review window** — after the last in-session activity:
-- `last_in_session = max over i of (effective_merge_i)`
-- If `last_in_session < ended`: add a trailing review window `last_in_session → ended` covering session close-out (final review reads, `/its-dead`, etc.).
-
-**Subtract breaks per window:** for each window above, sum break gaps > 15 min whose start timestamp falls inside the window. Subtract from that window's contribution.
-
-**Sum and clamp:**
-```
-dev_time     = Σ max(0, dev_window_i − dev_breaks_i)
-review_time  = Σ max(0, review_window_i − review_breaks_i)
-              + max(0, trailing_window − trailing_breaks)
-```
-
-Round each to nearest 0.083 h (5 min).
-
-**Sanity check:** `dev_time + review_time + Σ breaks_in_all_windows ≈ wall_clock`. If off by more than 0.1 h after rounding, surface in Notes — likely a missed break or a merge timestamp outside the session window.
-
-**Edge cases:**
-- **N=0 (no PRs):** `dev_time = wall_clock − all_breaks`, `review_time = 0`. Pure dev session.
-- **N=1:** collapses cleanly. dev_window = `started → PR.createdAt`. review_window = `PR.createdAt → effective_merge`. Trailing = `effective_merge → ended`.
-- **N≥2 with concurrent work:** dev_window_i clamps at 0 when the next PR opened before the previous merged; that overlap time is implicitly inside PR_{i-1}'s review_window. Honest accounting — you were context-switching, not pure-deving.
-- **All PRs merged post-`/its-dead`:** every review_window caps at `ended`. dev_time and review_time still split correctly; the post-session merge time is just invisible to the metric.
-
-### Step 2.6 — Per-session line for the retro
-
-Build one row per session for the RETROSPECTIVES.md table:
+### Step 2.1 — Phase points + dates (GitHub only)
 
 ```
-| Session N | YYYY-MM-DD | wall_clock | dev_time | review_time | breaks | points | PRs |
+gh issue list --label "phase:<N>" --state closed --json number,createdAt,closedAt,labels --limit 200
 ```
 
-Hold these numbers — they get summed in Step 3.
+- `phase_points` = Σ of each closed issue's `points:M` label value. Issues with **no** `points:` label are skipped — list them in the retro so they're visible; never guess a value.
+- `phase_first_created` = min `createdAt`; `phase_last_closed` = max `closedAt`; `phase_span_days = (phase_last_closed − phase_first_created)` in days.
+
+This keys the phase to issues, not PRs — robust to merging PRs in any order (DEC-S022). **Never re-pair PR-open → PR-merge to recover "effort"** — that window math is the exact bug DEC-S024 died on. Dates are not windows.
+
+### Step 2.2 — Throughput (the headline)
+
+```
+phase_calendar_weeks = phase_span_days / 7
+throughput           = phase_points / phase_calendar_weeks    # points per calendar week
+```
+
+- **If `phase_span_days < 7`** (phase opened and closed inside one week — a *burst* phase): do **not** quote a per-week rate. A sub-week denominator explodes it into nonsense (a phase done in an afternoon reads as hundreds of pts/wk). Record `throughput: burst (<7d) — <phase_points> pts over <phase_span_days>d` instead. Most solo phases land here; the point total + span is the honest record.
+- **Companion (optional):** `active_weeks` = ISO weeks in the span containing ≥1 close; `active_throughput = phase_points / active_weeks` = intensity when actually shipping (strips idle/off weeks).
+
+Throughput is capacity **including availability** — a slow week and an off week look identical. Correct for "when does the *next* phase ship," wrong for "at-keyboard speed." Never quote it as the latter. It is an active-time rate; a calendar forecast = throughput ÷ your real availability, which only you know.
+
+### Step 2.3 — wall_clock (gut-check only — NOT a velocity)
+
+`/its-dead` already displayed each session's `wall_clock = ended − started` on-screen as a sanity gut-check. That is its only role. **It is not aggregated, not divided by points, and not quoted as a velocity** — `wall_clock / point` is the number the guide forbids (it carries overnight gaps and idle). No transcript is read; no breaks are inferred; there is no `active_time`. (This is the DEC-S024 model being retired — see DEC-S026.)
+
+### Step 2.4 — Estimate-calibration tally
+
+Throughput alone rots: if points quietly shrink, "throughput" rises while nothing actually got faster. This tally is the guard, and it replaces the old per-session h/pt spread as the estimate-health signal.
+
+From PROJECT_PLAN.md's estimate column + this phase's session notes:
+- `re_estimated` = count of tasks whose points changed between original estimate and final (re-pointed mid-flight).
+- `net_drift` = Σ(final points) − Σ(original points). Positive = tasks ran bigger than pointed (under-estimating); negative = smaller.
+
+Record `re-estimated: <K> tasks, net drift: <±D> pts`. A stable point unit shows few re-estimates and near-zero net drift. Persistent positive drift = under-pointing; persistent **shrink alongside rising throughput** = point inflation — the failure mode throughput can't see on its own.
+
+### Step 2.5 — Per-phase line for the retro
+
+One phase row (there is no longer a per-session time table — the transcript that fed it is gone):
+
+```
+| Phase N | <phase_last_closed date> | <points> | <span_days>d | <throughput or "burst"> | <re_estimated> | <net_drift> | <sessions> | <PRs> |
+```
+
+`sessions` = count of session files in the window (reference only); `PRs` = merged PRs in the window. Hold these for Step 3.
 
 ## Step 3 — Phase metrics
 
-Sum the per-session numbers:
-- `phase_wall_clock` = Σ wall_clock
-- `phase_dev_time` = Σ dev_time
-- `phase_review_time` = Σ review_time
-- `phase_breaks` = Σ breaks
-- `phase_points` = Σ points (also confirm against `points:N` label sum from closed issues — flag mismatch)
-- `phase_sessions` = count
+From Step 2:
+- `phase_points` — Σ `points:N` on closed phase issues (cross-check against PROJECT_PLAN's estimate column; flag mismatch).
+- `throughput` — points per calendar week (or `burst` for sub-week phases). **The headline** — but never reported without the calibration tally beside it.
+- `re_estimated` + `net_drift` — the estimate-calibration tally.
+- `phase_sessions` = session-file count in the window; `phase_prs` = merged PRs in the window.
 
-Three velocities:
-- `wall_clock / point` — total elapsed including all idle and review
-- `dev_time / point` — active dev only (the headline number for forecasting)
-- `review_time / point` — review-and-iterate cost per point
+There is no `active`, no `breaks`, no `dev_time`/`review_time`, and no `h/pt` — all retired by DEC-S026.
 
 ## Step 4 — Update PROJECT_PLAN.md
 
@@ -141,14 +104,14 @@ Mark all closed phase tasks `[x]`. For each row:
 
 Reconcile drift: issues with `phase:<N>` labels that don't appear in PROJECT_PLAN.md (added mid-phase). Add rows with status `[x] [#N](url)` and inline note `Added during P<N> retro`.
 
-Update the velocity table at the top:
+Update the velocity table at the top (DEC-S026 columns):
 ```
-| Phase | Sessions | Points | Wall (h) | Dev (h) | Review (h) | hrs/pt (dev) |
-|-------|----------|--------|----------|---------|------------|______________|
-| N     | <count>  | <pts>  | <wall>   | <dev>   | <review>   | <hrs_pt_dev> |
+| Phase | Points | Span (d) | Throughput | Re-est'd | Net drift | Sessions |
+|-------|--------|----------|------------|----------|-----------|----------|
+| N     | <pts>  | <days>   | <pts/wk or burst> | <K> | <±D> | <count> |
 ```
 
-Append one row per phase as they complete.
+Append one row per phase as they complete. **Don't rewrite history:** phases closed before DEC-S026 carry the retired `Wall / Breaks / Active / h-pt` columns — leave those rows as written and note the metric change inline (the full table migration is a separate deferred task).
 
 ## Step 5 — Prompt retro notes
 
@@ -159,7 +122,7 @@ Ask three questions, one at a time, capture verbatim:
 
 ## Step 5.5 — PM retro commentary
 
-Invoke `@pm` (Sonnet) with the full retro context: phase number + name, metrics from Step 3, user's verbatim answers, the per-session table from Step 2.6, closed-issue list with descoped/moved notes, and `docs/RETROSPECTIVES.md` for cross-phase comparison. Let `@pm` read the session files themselves for in-the-trenches detail.
+Invoke `@pm` (Sonnet) with the full retro context: phase number + name, metrics from Step 3 (throughput + calibration tally), user's verbatim answers, the phase line from Step 2.5, closed-issue list with descoped/moved notes, and `docs/RETROSPECTIVES.md` for cross-phase comparison. Let `@pm` read the session files themselves for in-the-trenches detail.
 
 `@pm` returns 3–5 short paragraphs on pace, scope, patterns, a reaction to the user's answers (not a paraphrase), and a forward-looking note.
 
@@ -181,21 +144,17 @@ Read `docs/RETROSPECTIVES.md` first (Edit requires a prior Read). If it doesn't 
 ```
 ## Phase <N> — <YYYY-MM-DD>
 
-**Sessions:** <count>
 **Points:** <points completed> / <planned> (<%>)
-**Wall clock:** <wall>h
-**Dev time:** <dev>h
-**Review time:** <review>h
-**Velocities:**
-- Wall: <wall/pt> h/pt
-- Dev: <dev/pt> h/pt  ← headline forecast
-- Review: <review/pt> h/pt
+**Span:** <span_days> days (<first_created> → <last_closed>)
+**Throughput:** <pts/wk> pts/calendar-week  ← headline (or: `burst — <pts> pts in <days>d` for sub-week phases)
+**Estimate calibration:** <K> tasks re-estimated, net drift <±D> pts  ← keeps the point unit honest
+**Sessions:** <count>   **PRs merged:** <count>
 **Issues:** <created> created, <closed> closed, <moved> moved to Phase <N+1>
 
-### Per-session breakdown
-| Session | Date | Wall | Dev | Review | Breaks | Points | PRs |
-|---------|------|------|-----|--------|--------|--------|-----|
-| <row>   | ...  | ...  | ... | ...    | ...    | ...    | ... |
+### Phase throughput line
+| Phase | Date | Points | Span(d) | Throughput | Re-est'd | Net drift | Sessions | PRs |
+|-------|------|--------|---------|------------|----------|-----------|----------|-----|
+| <row> | ...  | ...    | ...     | ...        | ...      | ...       | ...      | ... |
 
 ### What worked
 - <verbatim>
@@ -219,7 +178,7 @@ Session files were already finalized by `/its-dead` and are not modified by this
 
 ```
 git add docs/PROJECT_PLAN.md docs/RETROSPECTIVES.md
-git commit -m "Phase <N> retro — <points> pts in <dev>h dev (<dev/pt> hrs/pt)"
+git commit -m "Phase <N> retro — <points> pts, throughput <pts/wk or burst>, drift <±D>"
 git push origin <BRANCH>
 ```
 
@@ -273,7 +232,7 @@ a. `NEW_VERSION=$(npm version minor --no-git-tag-version | tr -d 'v')` — zeros
 b. CHANGELOG entry:
    ```
    ## [<NEW_VERSION>] - <YYYY-MM-DD> — Phase <N>
-   - <points> pts shipped across <session count> sessions (<dev/pt> hrs/pt dev)
+   - <points> pts shipped across <session count> sessions (throughput <pts/wk or burst>)
    - See `docs/RETROSPECTIVES.md` for the full retro
    ```
 
@@ -302,8 +261,8 @@ Echo: `Phase <N> closed at v<NEW_VERSION>` (and `tagged` if main).
 
 ```
 Phase <N> closed.
-Points: <P> in <dev>h dev time (<dev/pt> hrs/pt)
-Wall: <wall>h | Review: <review>h | Sessions: <count>
+Points: <P> | Throughput: <pts/wk or burst> | Calibration: <K> re-est'd, <±D> drift
+Span: <days>d | Sessions: <count> | PRs merged: <count>
 Issues: <closed>/<created> closed; <moved> moved to Phase <N+1>
 Retro: docs/RETROSPECTIVES.md
 Version: v<NEW_VERSION>  (dev projects only; skipped if no package.json)
@@ -312,7 +271,7 @@ Version: v<NEW_VERSION>  (dev projects only; skipped if no package.json)
 ## Notes
 
 - **Session files are read-only here.** Retro reads them; never writes. DEC-S013 atomicity.
-- **GitHub queries can fail.** If `gh` and MCP are both unavailable, skip the PR-derived numbers, mark them `inference: github-unavailable` in the retro, and tell the user they can rerun retro later. Don't guess.
-- **The headline velocity is `dev_time / point`.** Wall-clock velocity is inflated by review-and-merge wait. Review-time velocity is interesting but secondary. Forecast against dev_time.
-- **Each PR has its own dev + review window** (Step 2.5, DEC-S015). Replaces both the original `min(pr.createdAt)` single-boundary model AND its `max(pr.createdAt)` follow-up — both collapsed multi-PR sessions to one seam and structurally mis-attributed dev vs review time. Per-PR windows make `dev_time + review_time + breaks ≈ wall_clock` honestly hold for any N.
-- **Historical retros run under the single-boundary model are method artifacts.** Sessions where N>1 will have under-reported `dev_time` and over-reported `review_time` (or vice versa, depending on which seam version). Forecast against `wall_clock − breaks` (active time) when comparing to pre-DEC-S015 numbers. Going forward (post-DEC-S015), `dev_time / point` and `review_time / point` are both meaningful headlines.
+- **No transcript is read anywhere.** DEC-S026 retired break inference and `active = wall − breaks` — the model whose `breaks = 0 → active = wall_clock` fallback was the bug that triggered the change.
+- **GitHub IS the velocity data source now.** Step 2 reads issue `createdAt`/`closedAt` + `points:N` labels — that's the throughput input. `gh` is also used for issue accounting (Step 1), the points cross-check (Step 3), and version bumps (Step 8). If `gh` is down, Step 2 can't compute throughput; note it and let the user rerun. Don't guess.
+- **The headline is throughput (points / calendar week), never reported without the calibration tally.** There is no `active`, `wall/pt`, `dev_time`, or `review_time` — all retired by DEC-S026. `wall_clock` survives only as the `/its-dead` on-screen gut-check.
+- **Old retros carry retired columns.** Phases closed before DEC-S026 carry `Wall / Breaks / Active / h-pt` (or older `Dev / Review`) columns and an h/pt velocity — all retired, all on a different denominator. **Don't blend them with throughput.** History stays as written (DEC-S024 precedent); the standalone extractor `dev/claude/scripts/throughput.py` recomputes throughput straight from GitHub and is independent of any old retro prose.
