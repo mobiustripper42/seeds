@@ -33,6 +33,10 @@ Clone the seeds repo (`mobiustripper42/seeds`) into the working dir and read
 - `require` — filter conditions for active repos (post-access filter)
 - `directions` — which sync directions to run this session
 - `pr_title_prefix`, `branch_prefix` — naming for the PRs you'll open
+- `last_run_issue`, `status_issue` — pinned issue numbers for the rolling
+  per-run summary (Step 4) and the fleet-status digest (Step 4.5). Either may
+  be `null` until bootstrapped — see those steps for the create-once fallback.
+- `digest` — whether to emit the Step 4.5 fleet-status digest (default on).
 
 If the config file is missing or malformed, STOP. Open a single tracking
 issue on `mobiustripper42/seeds` titled `routine: config read failed
@@ -243,23 +247,112 @@ For each repo in the active set:
    single project here is the "source") plus a `Base: <BASE>`
    note so the reviewer can confirm the trunk was targeted.
 
-## Step 4 — Per-run summary issue
+## Step 4 — Per-run summary issue (rolling, pinned by number)
 
-After all repos are processed, upsert a single issue on
-`mobiustripper42/seeds` titled `routine: last run <DATE>` with:
+After all repos are processed, record this run's operational summary on a single
+rolling issue on `mobiustripper42/seeds`, addressed by the **`last_run_issue`**
+number from the config — NOT by title search. Body sections:
 
 - Active set (size + repos).
 - Skipped (with reasons) — config-excluded, missing seeds-version, archived.
 - Migration backlog (if any).
 - PRs opened — link the single aggregated upstream PR (if any) and each
-  per-project downstream PR.
+  per-project downstream PR. "None — fleet converged, nothing to sync" is a
+  valid and expected value (see Step 4.5).
 - Pattern flags surfaced across repos (deduplicated, with source
   attribution).
 - Errors hit per repo (don't crash the whole run on one repo's failure;
   log and continue).
 
-One rolling issue, replace the body each run. The history is in the issue's
-edit log if you ever need it.
+**Addressing the issue (pinned-number pattern, DEC-S028):**
+
+- If `last_run_issue` is a number: edit THAT issue's body in place (replace the
+  body; GitHub preserves the edit history). Optionally refresh its title to
+  `routine: last run <DATE>`. Do **not** open a new issue.
+- If `last_run_issue` is `null` (not yet bootstrapped): open ONE issue titled
+  `routine: last run <DATE>`, then log its number prominently in this run's
+  stdout AND under a "Config bootstrap needed" note in the Step 4.5 digest, so
+  the number can be pasted into `routine-config.yaml`. You cannot edit the
+  config yourself (Step 5) — surface the number, never guess one.
+
+**One-time stale cleanup.** DEC-S010 intended a single rolling issue, but
+title-search-and-create accreted many (34 open `routine: last run` issues as of
+2026-06-21). Once, when `last_run_issue` is set: list open issues whose title
+starts with `routine: last run`, and close every one EXCEPT the pinned number,
+each with a closing comment `superseded by pinned #<last_run_issue> (DEC-S028)`.
+Skip this cleanup while `last_run_issue` is still `null`.
+
+One rolling issue, body replaced each run.
+
+## Step 4.5 — Fleet status digest (read-side projection, DEC-S028)
+
+Skip this step entirely if `digest:` in the config is `false`.
+
+Steps 1–2 already assembled a complete snapshot of the estate; the sync
+write-path then discards it. This step harvests that snapshot into one durable
+**portfolio view** — a rolling `fleet: status` issue on `mobiustripper42/seeds`
+addressed by the pinned **`status_issue:`** number. It is a READ-ONLY
+projection: it never merges, pushes, branches, or mutates any project, and it
+**does not invoke `@sync-config` or spawn any agent** — reuse data already in
+hand. (If a future reader is tempted to fuse this into `@sync-config`: don't.
+Classification and status aggregation are separate concerns; that separation is
+the decision in DEC-S028.)
+
+**Per-project fields** — one row per repo in the active set, plus
+migration-backlog repos marked as lagging:
+
+- **version** — the repo's `.claude/seeds-version` (already read in Step 2).
+- **last activity** — date of the default branch's HEAD commit (already seen in
+  Steps 1/3; reuse it). `—` if unavailable.
+- **open PRs** — one `mcp__github__list_pull_requests` count per repo (state
+  open). This is the only new data call this step adds.
+- **migration** — `ok` if version-matched and in the active set; otherwise the
+  Step 2 backlog status (`lagging v<P>/<S>`).
+- **throughput** — best-effort from `throughput.py --fleet` (see gotcha below).
+  Mark `n/a (gh unavailable)` if it can't run. Never block the digest on it.
+- **flags** — divergence / pattern flags surfaced for that repo this run; `—`
+  when clean.
+
+**Deltas (V1 trends, no new storage).** Before overwriting, read the pinned
+issue's current body, parse the prior per-project rows, and annotate changes:
+`idle N nights` (no open PRs and no sync activity for N consecutive runs),
+`migration stuck D days`, `convergence held an Nth night` (zero PRs across the
+whole fleet again). Compute these by diffing this run's snapshot against the
+prior body. If the prior body can't be parsed, emit the snapshot without deltas
+— do not fail.
+
+**Body layout** — a markdown table plus a deltas line. Obey the Output
+formatting section below: REAL newlines, never the literal escape `\n`.
+
+```
+# Fleet status — <DATE>
+
+| Project | Version | Last activity | Open PRs | Migration | Throughput | Flags |
+|---------|---------|---------------|----------|-----------|------------|-------|
+| muster  | 4       | 2026-06-19    | 0        | ok        | 2.10 pts/wk | —    |
+| ...     |         |               |          |           |            |       |
+
+**Since last run:** <deltas, or "no changes">.
+
+_Read-side projection of the nightly enumeration (DEC-S028). Sync this run: <N PRs / converged>._
+```
+
+**Addressing the issue (same pinned-number pattern as Step 4):**
+
+- `status_issue` is a number → edit that issue's body in place.
+- `status_issue` is `null` → open ONE issue titled `fleet: status` (apply a
+  `fleet: status` label if it exists), then log its number under "Config
+  bootstrap needed" in both this digest and the Step 4 summary so it can be
+  pinned in `routine-config.yaml`.
+
+**Gotcha — `throughput.py` shells out to `gh`, this session uses MCP.** If `gh`
+isn't on the Routine runner, `throughput.py --fleet` can't compute. Treat it as
+best-effort: emit every other field and mark throughput `n/a (gh unavailable)`.
+Never let a missing `gh` block the rest of the digest.
+
+Keep it cheap: this step is ~one PR-count call per repo plus data already
+gathered, plus optional throughput. If it ever needs an agent, the design has
+drifted from DEC-S028.
 
 ## Step 5 — Exit
 
