@@ -61,6 +61,28 @@ branch_prefix:
   upstream: "auto-sync/upstream"
   downstream: "auto-sync/downstream"
 
+# --- Rolling-issue handles + fleet-status digest (DEC-S028) ---
+# The Routine addresses its two rolling issues by PINNED NUMBER, not by title
+# search. A stateless nightly run can't reliably find its own prior artifact by
+# title, so title-search-and-create spawned a fresh issue every night — 34 open
+# `routine: last run` issues had accreted before this was caught. A stable
+# handle stops the accretion by construction: the Routine edits the body of THIS
+# issue number in place. Bootstrap once — create the issue, paste its number
+# here. Until a number is set the Routine falls back to create-once and logs the
+# number it created so it can be pinned (it cannot edit this config itself; that
+# goes through a normal PR, see the Routine's Step 5).
+#
+#   last_run_issue — the operational "did sync do anything?" summary (Step 4).
+#   status_issue   — the portfolio-view fleet-status digest (Step 4.5).
+# Two concerns, two issues. Leave null to trigger the bootstrap fallback.
+last_run_issue: null
+status_issue: null
+
+# Master switch for the Step 4.5 fleet-status digest. false = skip the digest
+# entirely (Step 4 still runs). The digest is a read-only projection over the
+# enumeration Steps 1–2 already perform; it never merges, pushes, or branches.
+digest: true
+
 # File-class registry (DEC-S018). Read by @sync-config at Step 1.4 before
 # hunk classification. Maps glob patterns to one of:
 #

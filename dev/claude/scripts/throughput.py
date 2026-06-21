@@ -41,6 +41,7 @@ USAGE
   python3 throughput.py [REPO_PATH ...]          # one or more repos; default: cwd
   python3 throughput.py --window 8 ~/GitHub/bushel
   python3 throughput.py --issues ~/GitHub/bushel  # also show points:N histogram
+  python3 throughput.py --fleet ~/GitHub/*        # per-repo JSON (DEC-S028 digest)
   python3 throughput.py --self-test               # offline logic check, no gh
 
 HONEST LIMITS (by design)
@@ -240,6 +241,30 @@ def issue_histogram(issues):
         if it['points'] in out:
             out[it['points']] += 1
     return out
+
+
+def fleet_record(repo, issues):
+    """Per-repo throughput summary for the --fleet JSON mode (DEC-S028).
+
+    Shaped for clean machine ingest by the nightly Routine's fleet-status digest
+    rather than human reading. `issues=None` means gh was unavailable for the
+    repo; an empty list means no points-labelled closed issues. Both are
+    reported as not-measurable with a reason, never as a zero rate."""
+    name = os.path.basename(repo.rstrip('/')) or repo
+    if issues is None:
+        return {'repo': name, 'path': repo, 'measurable': False,
+                'reason': 'gh unavailable'}
+    lr = lifetime_rates(issues)
+    if lr is None:
+        return {'repo': name, 'path': repo, 'measurable': False,
+                'reason': 'no points-labelled closed issues'}
+    return {
+        'repo': name, 'path': repo, 'measurable': True,
+        'points': lr['total'], 'n_cal': lr['n_cal'], 'n_active': lr['n_active'],
+        'cal_rate': round(lr['cal_rate'], 2), 'active_rate': round(lr['active_rate'], 2),
+        'first_close': lr['first'].date().isoformat(),
+        'last_close': lr['last'].date().isoformat(),
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -477,12 +502,18 @@ def run_self_test(window):
     check('empty weekly', weekly_points([]), {})
     check('empty lifetime', lifetime_rates([]), None)
 
+    # fleet_record: per-repo JSON summary (measurable / no-issues / gh-down)
+    fr = fleet_record('/x/bushel/', issues)
+    check('fleet measurable', (fr['repo'], fr['measurable'], fr['points']), ('bushel', True, 23))
+    check('fleet no issues', fleet_record('/x/empty', [])['reason'], 'no points-labelled closed issues')
+    check('fleet gh down', fleet_record('/x/dead', None)['reason'], 'gh unavailable')
+
     if fails:
         print("SELF-TEST FAILED:")
         for f in fails:
             print(f"  ✗ {f}")
         sys.exit(1)
-    print("SELF-TEST PASSED — 26 assertions, computation verified offline (no gh).")
+    print("SELF-TEST PASSED — 29 assertions, computation verified offline (no gh).")
     print("Note: pure logic only. Real-repo validation (incl. PR merge latency) needs "
           "`gh` + the project repos (run on a dev machine).")
 
@@ -495,7 +526,8 @@ def main():
     argv = sys.argv[1:]
     show_issues = '--issues' in argv
     self_test = '--self-test' in argv
-    rest = [a for a in argv if a not in ('--issues', '--self-test')]
+    fleet = '--fleet' in argv
+    rest = [a for a in argv if a not in ('--issues', '--self-test', '--fleet')]
 
     def int_window(s):
         try:
@@ -527,6 +559,18 @@ def main():
         return
 
     repos = positional or [os.getcwd()]
+
+    # --fleet: machine-readable per-repo JSON for the Routine digest (DEC-S028).
+    # Best-effort by design — a repo where gh is unavailable is emitted as
+    # not-measurable rather than skipped, so the digest can mark it n/a.
+    if fleet:
+        records = []
+        for repo in repos:
+            path = os.path.abspath(os.path.expanduser(repo))
+            records.append(fleet_record(path, fetch_issues(path)))
+        print(json.dumps(records, indent=2))
+        return
+
     results = []
     for repo in repos:
         path = os.path.abspath(os.path.expanduser(repo))
