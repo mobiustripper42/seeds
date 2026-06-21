@@ -746,3 +746,16 @@ Per the SPEC: Phase 2 = CLAUDE.md, Phase 3 = architect.md, Phase 4 = code-review
 **What changes:** `dev/claude/routines/nightly-sync.md` (new Step 4.5; Step 4 rewritten to pinned-number addressing + one-time stale close; Step 0 field list); `.claude/routine-config.yaml` (`status_issue:` / `last_run_issue:` / `digest:`); `dev/claude/scripts/throughput.py` (`--fleet` JSON mode + self-test coverage); `docs/SPEC.md` Future Direction marked partially actionable. The Routine prompt must also be re-pasted into the Routine config on claude.ai (the standing manual drift step — the Routine executes from claude.ai storage, not this file). Origin proposal: PR #127 (`docs/SPECS/2026-06-21-tiller-fleet-status-digest.md`).
 
 **Schema:** additive config + a logic-class prompt change; no cross-file contract `/pull-seeds` enforces is touched, so `seeds-version` is unchanged (Eric's call, recorded here as no-bump, consistent with DEC-S023–S027). Rides the nightly Routine to downstream projects — though the digest itself only runs on the seeds-side Routine.
+
+## DEC-S029: Fable disabled for now — Opus default, Sonnet cheap (suspends DEC-S027's frontier tier)
+**Decision:** The `claude-fable-5` frontier tier is **withdrawn from active guidance for now** — Fable has been disabled. Model Selection in `dev/claude/CLAUDE.md` collapses to two tiers: Opus 4.8 (default/standing) and Sonnet (cheap/scoped). The "Fable trigger — bundle, then escalate," the vision-escalation and silent-fallback notes, and the stray Fable mentions in the Narration and Scope-Discipline sections are removed. `@architect` already runs Opus (DEC-S027), so no agent frontmatter changes.
+
+**Why:** Fable is disabled, so guidance that routes work to it is dead instructions — worse than neutral, since it tells a session to escalate to a tier that isn't there. Pulling it from the operative guidance keeps the standing instructions honest.
+
+**Why suspend, not delete (history kept).** DEC-S027 (the Opus-default + on-demand-Fable tiering) is **retained verbatim as history** — this is the house pattern (DEC-S022 kept DEC-S008's text; DEC-S015→S024→S026 chain). Fable is expected to come back; when it does, re-enabling is reverting this DEC and restoring the DEC-S027 guidance block, not reconstructing it from memory. DEC-S029 supersedes DEC-S027 only for *which tiers are live right now*.
+
+**Scope (DEC-S028 answer — sync does it once).** Edited the canonical source only: `dev/claude/CLAUDE.md` (the synced shell). Project repos carry the same shell and pick the change up via the nightly Routine / next `/pull-seeds` — no per-repo hand-edit. (One known divergence: bushel's live `CLAUDE.md` pins `@architect` to Fable 5 against DEC-S027; that project-specific deviation resolves when bushel syncs, or sooner by hand if needed.)
+
+**What changes:** `dev/claude/CLAUDE.md` § Model Selection rewritten (two tiers; `effort`-first and file-memory guidance kept, de-Fable'd); two Narration mentions and one Scope-Discipline mention de-Fable'd. The dated `docs/SPECS/2026-05-sync-redesign.md` Fable reference is left as historical record.
+
+**Schema:** template/labeling only — no skill contract or frontmatter-field change. No version bump (consistent with DEC-S023–S028). Rides the nightly Routine to downstream projects.
