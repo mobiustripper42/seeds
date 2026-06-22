@@ -5,9 +5,11 @@ claude.ai (see `README.md` in this directory for setup steps). The Routine
 fires on a schedule, opens a fresh CC session with multi-repo OAuth grants,
 and runs this prompt start to finish.
 
-The prompt is checked into seeds so it's source-controlled. When you edit it,
-also re-paste the new body into the Routine config — the Routine reads its
-prompt from claude.ai's storage, not from this file.
+The prompt is checked into seeds so it's source-controlled. **The Routine on
+claude.ai holds only a short loader shim** (see `README.md` § The loader prompt)
+that reads *this file* at run time and executes everything below the `---`. So
+edits here take effect on the **next run with no re-paste** — the claude.ai
+prompt is set once and never changes again.
 
 ---
 
