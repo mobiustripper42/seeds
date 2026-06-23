@@ -75,8 +75,8 @@ branch_prefix:
 #   last_run_issue — the operational "did sync do anything?" summary (Step 4).
 #   status_issue   — the portfolio-view fleet-status digest (Step 4.5).
 # Two concerns, two issues. Leave null to trigger the bootstrap fallback.
-last_run_issue: null
-status_issue: null
+last_run_issue: 130
+status_issue: 131
 
 # Master switch for the Step 4.5 fleet-status digest. false = skip the digest
 # entirely (Step 4 still runs). The digest is a read-only projection over the
