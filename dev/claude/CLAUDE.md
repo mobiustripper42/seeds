@@ -185,6 +185,10 @@ Doing PR reviews from your phone is tolerable if you structure for it:
 
 Project-specific debugging gotchas (dev-server checks, stale-process traps, auth-redirect quirks) live in `.claude/CLAUDE-context.md` under `## Workflow Notes (project)`.
 
+## Memory
+
+When the user gives a durable fact — a preference, a correction, a project constraint — write it to the memory directory in the **same turn**, then add its one-line pointer to `MEMORY.md` before you reply. Never defer to session end; deferred writes get dropped. Saying "noted" or "I'll remember" without writing a file is the failure mode — treat it as untrue unless a file actually landed on disk. Only `MEMORY.md` loads at session start, so a memory file with no index line is invisible and recalls for no one: every file in the memory directory must have a matching line in `MEMORY.md`. If the user ever says memory "isn't working," reconcile the directory against `MEMORY.md` first — a drifted or orphaned index is the usual cause, not the plumbing.
+
 ## Approval Before Action (all tasks)
 
 For every task — not just bugs — explain the plan and wait for approval before doing anything:
