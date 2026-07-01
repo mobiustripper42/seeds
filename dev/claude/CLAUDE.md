@@ -93,7 +93,7 @@ Default to the cheapest model that does the job. **Opus 4.8 is the standing mode
 
 | Tier | Model | Use for |
 |------|-------|---------|
-| Cheap | `claude-sonnet-4-6` | Trivial/scoped agents and reviews — fast, low-cost. |
+| Cheap | `claude-sonnet-5` | Trivial/scoped agents and reviews — fast, low-cost. |
 | Default | `claude-opus-4-8` | The standing model for development and architecture. Most work runs here. |
 
 - **Reach for `effort` before reaching for a bigger model.** `effort` (`low`/`medium`/`high`/`xhigh`/`max`, via `output_config`) buys quality more cheaply than a model jump on a task the current model can already do. `xhigh` is the floor for coding/agentic work, `high` for intelligence-sensitive work, `max` only when correctness must beat cost.
