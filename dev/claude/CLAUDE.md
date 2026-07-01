@@ -187,7 +187,12 @@ Project-specific debugging gotchas (dev-server checks, stale-process traps, auth
 
 ## Memory
 
-When the user gives a durable fact — a preference, a correction, a project constraint — write it to the memory directory in the **same turn**, then add its one-line pointer to `MEMORY.md` before you reply. Never defer to session end; deferred writes get dropped. Saying "noted" or "I'll remember" without writing a file is the failure mode — treat it as untrue unless a file actually landed on disk. Only `MEMORY.md` loads at session start, so a memory file with no index line is invisible and recalls for no one: every file in the memory directory must have a matching line in `MEMORY.md`. If the user ever says memory "isn't working," reconcile the directory against `MEMORY.md` first — a drifted or orphaned index is the usual cause, not the plumbing.
+Two actions, both automatic — never wait for the user to ask, and never defer to session end:
+
+1. **Save on the spot.** The moment the user states a durable fact (a preference, a correction, a project constraint), do two things in that same turn: (a) write the memory file, (b) add its one-line pointer to `MEMORY.md`. Saying "noted" or "I'll remember" is not saving — if no file was written, nothing was remembered.
+2. **Reconcile at session start.** When you load memory, list the memory directory and diff it against `MEMORY.md`. For any file missing a pointer line, add one. Only `MEMORY.md` loads at startup, so an unindexed file never recalls — this self-check catches drift without the user ever having to notice it broke.
+
+A memory is "working" only when both its file exists **and** it has a line in `MEMORY.md`. One without the other is invisible.
 
 ## Approval Before Action (all tasks)
 
