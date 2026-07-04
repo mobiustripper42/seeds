@@ -106,6 +106,7 @@ file-classes:
   - "dev/claude/agents/ui-reviewer.md": hybrid
   - "dev/claude/agents/architect.md": hybrid
   - "dev/claude/agents/code-review.md": hybrid
+  - "dev/claude/agents/ideas.md": hybrid
   - "dev/claude/CLAUDE.md": hybrid
   - "dev/claude/docs/SPEC.md": context
   - "dev/claude/docs/BRAND.md": context
@@ -113,3 +114,4 @@ file-classes:
   - "dev/claude/docs/PROJECT_PLAN.md": context
   - "dev/claude/docs/RETROSPECTIVES.md": context
   - "dev/claude/docs/USER_STORIES.md": context
+  - "dev/claude/docs/FUTURE_IDEAS.md": context
