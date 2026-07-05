@@ -103,10 +103,10 @@ file-classes:
   - "dev/claude/skills/**": logic
   - "dev/claude/agents/sync-config.md": logic
   - "dev/claude/agents/tape-reader.md": logic
+  - "dev/claude/agents/ideas.md": logic   # generic curator — no project-specific content, byte-identical everywhere
   - "dev/claude/agents/ui-reviewer.md": hybrid
   - "dev/claude/agents/architect.md": hybrid
   - "dev/claude/agents/code-review.md": hybrid
-  - "dev/claude/agents/ideas.md": hybrid
   - "dev/claude/CLAUDE.md": hybrid
   - "dev/claude/docs/SPEC.md": context
   - "dev/claude/docs/BRAND.md": context
