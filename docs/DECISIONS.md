@@ -747,15 +747,53 @@ Per the SPEC: Phase 2 = CLAUDE.md, Phase 3 = architect.md, Phase 4 = code-review
 
 **Schema:** additive config + a logic-class prompt change; no cross-file contract `/pull-seeds` enforces is touched, so `seeds-version` is unchanged (Eric's call, recorded here as no-bump, consistent with DEC-S023–S027). Rides the nightly Routine to downstream projects — though the digest itself only runs on the seeds-side Routine.
 
-## DEC-S029: Fable disabled for now — Opus default, Sonnet cheap (suspends DEC-S027's frontier tier)
-**Decision:** The `claude-fable-5` frontier tier is **withdrawn from active guidance for now** — Fable has been disabled. Model Selection in `dev/claude/CLAUDE.md` collapses to two tiers: Opus 4.8 (default/standing) and Sonnet (cheap/scoped). The "Fable trigger — bundle, then escalate," the vision-escalation and silent-fallback notes, and the stray Fable mentions in the Narration and Scope-Discipline sections are removed. `@architect` already runs Opus (DEC-S027), so no agent frontmatter changes.
+## DEC-S030: Memory doctrine removed — CLAUDE-context.md is the memory system
+**Decision:** The `## Memory` section is **deleted** from the synced shell (`dev/claude/CLAUDE.md`). The `MEMORY.md` + per-file "memory directory" scheme it described is retired entirely. Its three jobs re-home to systems that already exist and work:
+- **Durable project facts / preferences / constraints** → `.claude/CLAUDE-context.md` (project-owned, loaded every session by the harness, reviewable as a diff, sync-safe).
+- **Hard safety rules** (e.g. "don't read `.env`") → `.claude/settings.json` `deny` (DEC-S023), where the harness *enforces* the rule instead of relying on the model to recall prose.
+- **Cross-cutting personal prefs** (tone, verbosity, narration) → already live in the shell.
 
-**Why:** Fable is disabled, so guidance that routes work to it is dead instructions — worse than neutral, since it tells a session to escalate to a tier that isn't there. Pulling it from the operative guidance keeps the standing instructions honest.
+**Why:** The memory doctrine was pure prose with zero machinery — no DEC, no skill, no scaffolding. It failed four ways at once:
+1. **Wrote unprompted.** Rule 1 literally commanded it ("never wait for the user to ask… the moment the user states a durable fact… write the memory file"). Working as written *was* the complaint — silent writes the user couldn't govern.
+2. **Never loaded.** Rule 2 ("reconcile at session start") was implemented by no skill; `/its-alive` has no memory step, so loading depended on the model spontaneously recalling CLAUDE.md prose, which it doesn't.
+3. **Not enforced.** Even when loaded, a `MEMORY.md` pointer line kept no constraint salient.
+4. **Not curatable.** Unprompted + unreviewed writes accumulate junk with no prune path.
 
-**Why suspend, not delete (history kept).** DEC-S027 (the Opus-default + on-demand-Fable tiering) is **retained verbatim as history** — this is the house pattern (DEC-S022 kept DEC-S008's text; DEC-S015→S024→S026 chain). Fable is expected to come back; when it does, re-enabling is reverting this DEC and restoring the DEC-S027 guidance block, not reconstructing it from memory. DEC-S029 supersedes DEC-S027 only for *which tiers are live right now*.
+The deeper point: `CLAUDE.md` + `CLAUDE-context.md` are already a memory system, and a strictly better one — harness-loaded (guaranteed, not model-dependent), deliberately written, reviewable, sync-safe. The memory layer stored the *same categories* ("a preference, a correction, a project constraint" is the doctrine's own trigger list) in a second, worse copy. Deletion removes all four failure modes by subtraction — nothing writes unprompted, so nothing needs curating; the thing that loads is the file the harness already loads.
 
-**Scope (DEC-S028 answer — sync does it once).** Edited the canonical source only: `dev/claude/CLAUDE.md` (the synced shell). Project repos carry the same shell and pick the change up via the nightly Routine / next `/pull-seeds` — no per-repo hand-edit. (One known divergence: bushel's live `CLAUDE.md` pins `@architect` to Fable 5 against DEC-S027; that project-specific deviation resolves when bushel syncs, or sooner by hand if needed.)
+**What changes:** `dev/claude/CLAUDE.md` § Memory removed (section sat between § Workflow Notes and § Approval Before Action). No replacement block added — the shell already directs project facts to `CLAUDE-context.md` at the top, so a Memory-adjacent pointer would just be a new vestige. No skill touched (`/its-alive` gets no memory step — the tape-reader's proposed Step 7.5 is moot once the system it served is gone).
 
-**What changes:** `dev/claude/CLAUDE.md` § Model Selection rewritten (two tiers; `effort`-first and file-memory guidance kept, de-Fable'd); two Narration mentions and one Scope-Discipline mention de-Fable'd. The dated `docs/SPECS/2026-05-sync-redesign.md` Fable reference is left as historical record.
+**Scope — deviates from DEC-S029's "sync does it once," at user request.** Edited the canonical source *and* hand-applied the identical deletion to the seven live shells carrying the section (poop-deck, sailbook, muster, tinkle, helm, bushel, bushel-mobile) so the doctrine is gone immediately rather than waiting on the nightly Routine. soundings (older shell) and grace (knowledge repo) never carried it. All eight shells stay byte-identical.
 
-**Schema:** template/labeling only — no skill contract or frontmatter-field change. No version bump (consistent with DEC-S023–S028). Rides the nightly Routine to downstream projects.
+**Follow-ups (not done here, flagged):**
+- No live `MEMORY.md` files or memory directories were present in any clone, so none were deleted. Any that exist on other machines (e.g. a `dont-touch-secrets-files-unprompted.md`) are now dead weight — they load unreliably at best — and want a manual `rm`.
+- The one memory that did real safety work (the `.env` warning) should be re-homed as a `settings.json` `deny` for harness enforcement. Not done unprompted here — additive to the removal.
+
+**Schema:** template/labeling only — no skill contract or frontmatter-field change. No version bump (consistent with DEC-S023–S029).
+
+## DEC-S031: CLAUDE.md shell audit — cut bloat, merge duplicates, add the memory keepers
+**Decision:** Audited the synced shell (`dev/claude/CLAUDE.md`) through four lenses — misleading/stale, unnecessary, could-be-more-direct, could-be-a-hook — and rewrote it shorter and sharper. The thesis (from the same session that produced DEC-S030): CLAUDE.md prose only sticks if it's lean; bloat buries the rules that matter and trains the reader to skim.
+
+**What changed:**
+- **Three overlapping sections → one.** `Response Length` + `Verbosity` + `Narration` all said "be concise" (~30 lines); merged into one `Communication` section (~14). The section telling the model not to wall the user was itself a wall, three ways.
+- **Reference material out of the always-loaded file.** The `<VersionTag />` wiring, CHANGELOG format example, and "PR Review on Mobile" notes (~40 lines) moved to `dev/claude/docs/DEV_REFERENCE.md`. The Versioning *rule* stays; the examples don't load every session anymore.
+- **Duplicate merged.** `Bug Reports & Questions` just restated `Approval Before Action`; folded into one.
+- **`Scope Discipline` "Splitting" block trimmed** from ~7 lines to its 3 load-bearing bullets.
+
+**Memory keepers folded in (from DEC-S030's triage, 5 locked by the user):**
+1. *Stop-and-reconcile on the first surprise — pin the assumption/environment before diagnosing* → Workflow Notes (replaces the narrower "Debugging CI failures" bullet). The false-premise fix.
+2. *Trust the user's statement the first time; check the obvious thing last, not first* → Approval Before Action.
+3. *Enumerate + confirm the concrete set before writing code; live words override docs* → Micro Workflow step 1 (sharpened). Also the target of the planned spec-gate **hook**.
+4. *Change only the named surface; never invent a rationale the user didn't state* → Scope Discipline.
+5. *Don't guess third-party API shapes; ask for the real docs* → Workflow Notes.
+Plus a new `Communication` rule — *never lead with a false premise* (state a made-up cause as fact, then defend it at length) — the sharpest ask from the session.
+
+**Deliberately kept:** Cost and Waste, Model Selection, Micro Workflow, Migration Protocol, PR Workflow, Production branch. A full pass, not cherry-picks.
+
+**Hooks deferred (not in this DEC):** three enforcement candidates surfaced — a verbosity/register check on replies, the spec-gate (block the first code-write of a task until "done = X" exists), and a "no test, no push" pre-push check. These are settings.json/hook work, tracked separately from the shell rewrite. Prose that drifts becomes a tripwire that holds.
+
+**Net:** ~90 lines cut, ~4 added. Shorter and sharper.
+
+**Scope (deviates from steady-state sync, deliberately):** the rewrite lands on the canonical `dev/claude/CLAUDE.md` + the new `dev/claude/docs/DEV_REFERENCE.md` first, for review before it fans out to the seven live shells (poop-deck, sailbook, muster, tinkle, helm, bushel, bushel-mobile). Once approved, the identical shell is copied to each so all eight stay byte-identical; DEV_REFERENCE copies into each project's `docs/`.
+
+**Schema:** template/labeling only — no skill contract or frontmatter-field change. No version bump (consistent with DEC-S023–S030).
