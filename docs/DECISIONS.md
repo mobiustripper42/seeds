@@ -747,19 +747,6 @@ Per the SPEC: Phase 2 = CLAUDE.md, Phase 3 = architect.md, Phase 4 = code-review
 
 **Schema:** additive config + a logic-class prompt change; no cross-file contract `/pull-seeds` enforces is touched, so `seeds-version` is unchanged (Eric's call, recorded here as no-bump, consistent with DEC-S023–S027). Rides the nightly Routine to downstream projects — though the digest itself only runs on the seeds-side Routine.
 
-## DEC-S029: Fable disabled for now — Opus default, Sonnet cheap (suspends DEC-S027's frontier tier)
-**Decision:** The `claude-fable-5` frontier tier is **withdrawn from active guidance for now** — Fable has been disabled. Model Selection in `dev/claude/CLAUDE.md` collapses to two tiers: Opus 4.8 (default/standing) and Sonnet (cheap/scoped). The "Fable trigger — bundle, then escalate," the vision-escalation and silent-fallback notes, and the stray Fable mentions in the Narration and Scope-Discipline sections are removed. `@architect` already runs Opus (DEC-S027), so no agent frontmatter changes.
-
-**Why:** Fable is disabled, so guidance that routes work to it is dead instructions — worse than neutral, since it tells a session to escalate to a tier that isn't there. Pulling it from the operative guidance keeps the standing instructions honest.
-
-**Why suspend, not delete (history kept).** DEC-S027 (the Opus-default + on-demand-Fable tiering) is **retained verbatim as history** — this is the house pattern (DEC-S022 kept DEC-S008's text; DEC-S015→S024→S026 chain). Fable is expected to come back; when it does, re-enabling is reverting this DEC and restoring the DEC-S027 guidance block, not reconstructing it from memory. DEC-S029 supersedes DEC-S027 only for *which tiers are live right now*.
-
-**Scope (DEC-S028 answer — sync does it once).** Edited the canonical source only: `dev/claude/CLAUDE.md` (the synced shell). Project repos carry the same shell and pick the change up via the nightly Routine / next `/pull-seeds` — no per-repo hand-edit. (One known divergence: bushel's live `CLAUDE.md` pins `@architect` to Fable 5 against DEC-S027; that project-specific deviation resolves when bushel syncs, or sooner by hand if needed.)
-
-**What changes:** `dev/claude/CLAUDE.md` § Model Selection rewritten (two tiers; `effort`-first and file-memory guidance kept, de-Fable'd); two Narration mentions and one Scope-Discipline mention de-Fable'd. The dated `docs/SPECS/2026-05-sync-redesign.md` Fable reference is left as historical record.
-
-**Schema:** template/labeling only — no skill contract or frontmatter-field change. No version bump (consistent with DEC-S023–S028). Rides the nightly Routine to downstream projects.
-
 ## DEC-S030: Memory doctrine removed — CLAUDE-context.md is the memory system
 **Decision:** The `## Memory` section is **deleted** from the synced shell (`dev/claude/CLAUDE.md`). The `MEMORY.md` + per-file "memory directory" scheme it described is retired entirely. Its three jobs re-home to systems that already exist and work:
 - **Durable project facts / preferences / constraints** → `.claude/CLAUDE-context.md` (project-owned, loaded every session by the harness, reviewable as a diff, sync-safe).
@@ -801,7 +788,7 @@ The deeper point: `CLAUDE.md` + `CLAUDE-context.md` are already a memory system,
 5. *Don't guess third-party API shapes; ask for the real docs* → Workflow Notes.
 Plus a new `Communication` rule — *never lead with a false premise* (state a made-up cause as fact, then defend it at length) — the sharpest ask from the session.
 
-**Deliberately kept:** Cost and Waste, Model Selection (DEC-S029 current), Micro Workflow, Migration Protocol, PR Workflow, Production branch. A full pass, not cherry-picks.
+**Deliberately kept:** Cost and Waste, Model Selection, Micro Workflow, Migration Protocol, PR Workflow, Production branch. A full pass, not cherry-picks.
 
 **Hooks deferred (not in this DEC):** three enforcement candidates surfaced — a verbosity/register check on replies, the spec-gate (block the first code-write of a task until "done = X" exists), and a "no test, no push" pre-push check. These are settings.json/hook work, tracked separately from the shell rewrite. Prose that drifts becomes a tripwire that holds.
 

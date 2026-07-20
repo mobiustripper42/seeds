@@ -88,19 +88,19 @@ Project coding conventions — typing, component structure, data fetching, auth/
 
 ## Model Selection
 
-Default to the cheapest model that does the job. **Opus 4.8 is the standing model** for real development and architecture; Sonnet handles cheap/scoped work.
-
-> **Fable is disabled for now (DEC-S029).** The frontier `claude-fable-5` tier and its bundle-then-escalate trigger are withdrawn from this guidance until re-enabled. Everything below routes between Opus (default) and Sonnet (cheap). DEC-S027 retains the prior Fable tiering as history for when it comes back.
+Default to the cheapest model that does the job. **Opus 4.8 is the standing model** for development and architecture; **Sonnet** handles cheap/scoped work. **Fable is never the default** — it's a deliberate, scope-confirmed escalation for a *bundled* long-horizon unit (several related tasks run as one coherent multi-file pass); at ~2× Opus it drains usage fast, so reserve it for where that premium amortizes.
 
 | Tier | Model | Use for |
 |------|-------|---------|
 | Cheap | `claude-sonnet-5` | Trivial/scoped agents and reviews — fast, low-cost. |
 | Default | `claude-opus-4-8` | The standing model for development and architecture. Most work runs here. |
+| Frontier (on demand) | `claude-fable-5` | A *bundled* multi-file unit, scope-confirmed before spawning. One-off task → stay on Opus. |
 
+- **The Fable trigger — bundle, then escalate.** Fable's edge is largest on long, coherent, multi-file work — also where the premium amortizes. Either party raises it: Claude proposes a bundle (with scope) before starting, or you say `bundle for fable`. It's opt-in and announced — confirm scope, give it the full combined spec up front, run it at high effort.
 - **Reach for `effort` before reaching for a bigger model.** `effort` (`low`/`medium`/`high`/`xhigh`/`max`, via `output_config`) buys quality more cheaply than a model jump on a task the current model can already do. `xhigh` is the floor for coding/agentic work, `high` for intelligence-sensitive work, `max` only when correctness must beat cost.
 - **File memory is a force multiplier.** Session files, `design/`, `docs/DECISIONS.md`, and acceptance criteria are the persistent notes the model exploits to improve its own output. Keep them current and reference them explicitly.
-- **Agents:** model in agent frontmatter. `@architect` runs Opus 4.8. Reviewers (`@code-review`, `@pm`, `@doc-consistency`, `@tape-reader`) and `@ui-reviewer` stay Sonnet.
-- **New agents:** default to Sonnet; pin `model: opus` only when the agent's standing job needs it.
+- **Agents:** model in agent frontmatter. `@architect` runs Opus 4.8, escalating to a Fable run only for genuinely hard or bundled design work. Reviewers (`@code-review`, `@pm`, `@doc-consistency`, `@tape-reader`) and `@ui-reviewer` stay Sonnet.
+- **New agents:** default to Sonnet; pin `model: opus` only when the agent's standing job needs it. Don't pin Fable — reach it via the bundle trigger.
 
 ## PR Workflow
 
