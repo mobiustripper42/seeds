@@ -813,3 +813,33 @@ Plus a new `Communication` rule — *never lead with a false premise* (state a m
 **Scope:** canonical `dev/claude/CLAUDE.md` + `dev/claude/agents/tape-reader.md`; hand-applied to muster (trial repo) so its next session carries them. Other repos pick both up at the post-trial rollout.
 
 **Schema:** template/labeling only — no skill contract or frontmatter-field change. No version bump (consistent with DEC-S023–S031).
+
+## DEC-S033: `@architect` + `@code-review` go stack-neutral (defer to `CLAUDE-context.md § Conventions`)
+**Decision:** The two review agents stop hardcoding the Supabase/RLS/shadcn/Next.js webapp stack as universal criteria. `@code-review` replaces "RLS policy gaps / unhandled Supabase errors / Server Components / `src/`" with stack-neutral equivalents (access-control gaps, unhandled errors from the data layer or external calls, "the codebase") and defers the specifics to `CLAUDE-context.md § Conventions`. `@architect` replaces "new RLS policy shape / server action" and the dependency check's "(Next.js, Supabase, shadcn/ui, Tailwind)" with "the project's actual stack — see `§ Conventions`." Both gain an explicit **"Stack-neutral"** note near the top.
+
+**Why:** the agents run on *every* project (`@code-review` is wired into `/kill-this`; `@architect` gates design), so a non-webapp project inherited wrong criteria and had to hand-adapt them at setup — sheepdog (a tool project) flagged exactly this. It's the DEC-S019 principle: shared templates are stack-neutral; stack facts live in `CLAUDE-context.md § Conventions` (which the shell already designates as the home for auth/RLS + the error-handling contract). No per-project context edits are needed — the specifics already live there in filled webapp contexts.
+
+**Evidence it was the right call:** several repos had *already* hand-patched these two agents away from the webapp assumption — helm and poop-deck rewrote them to a "tool-shape," sailbook substituted domain framing. Those customizations are the manual workaround for exactly this bug.
+
+**Scope / rollout:** rewritten in seeds canonical and hand-rolled to the repos whose agents were byte-identical to seeds (converged: **tinkle, bushel-mobile, bushel**). The repos that had customized these agents (**sailbook, helm, poop-deck, soundings, muster**) are left as-is — they've already adapted, so they don't carry the bug; they converge later (lift their keeper-specifics into `§ Conventions`, then drop to neutral) or via `/pull-seeds`.
+
+**Not done here:** the shell's Micro Workflow test-step defaults (`Playwright` / `pgTAP` / RLS) still carry webapp assumptions, but they have the "override in `§ Workflow Overrides`" escape hatch — left for a separate pass.
+
+**Schema:** template/labeling only — no skill contract or frontmatter-field change. No version bump (consistent with DEC-S023–S032).
+
+## DEC-S034: Opus 5 becomes the standing model; effort sweeps down; the Fable trigger is retired as routine
+**Decision:** Four changes to the shell's `## Model Selection`, plus one to Micro Workflow step 1 and one to Scope Discipline.
+- **Default tier → `claude-opus-5`** ($5 / $25 per MTok — the same price as Opus 4.8, which it replaces). The tier table now carries per-MTok prices so the cost of a tier jump is visible at the point of decision: Sonnet 5 $3/$15, Opus 5 $5/$25, Fable 5 $10/$50.
+- **The Fable bundle trigger is retired as a routine escalation.** It becomes "reach for it only after Opus 5 at `max` has actually failed the task." Fable is still 2× Opus (verified: $10/$50 vs $5/$25), but the gap it was buying has closed — Opus 5 at `max` effort lands within 0.5% of Fable's peak on agentic coding at half the cost per task.
+- **`effort` guidance inverts.** The old text called `xhigh` "the floor for coding/agentic work." It is now the *starting point*: begin at `xhigh` for coding/agentic and `high` elsewhere, then try lower, because `low`/`medium` are unusually strong on Opus 5. On a Pro plan effort spends the usage allowance, so a floor that never sweeps down is a standing cost with no stated benefit.
+- **Fast mode documented** — ~2.5× speed at 2× price ($10/$50), a deliberate choice rather than a default.
+- **Micro Workflow step 1 gains "get the whole spec down before step 4."** Opus 5's edge is largest on long, coherent, multi-file work handed a complete brief in one turn; assembling the spec across many exchanges costs both quality and tokens. This makes step 1 load-bearing instead of ceremonial.
+- **Scope Discipline: the points scale does not grow.** The "still break genuine 13s" rule keeps both reasons but names them as human-side (reviewability, and my own understanding) rather than model-capacity. Explicitly: a bigger unit of work is a bigger *run*, not a bigger number. Adding a 20/21 bucket was considered and rejected — it would break velocity comparability with every prior phase for a label, and the shell already says points don't cap what ships in one run.
+
+**Why now:** Opus 5 shipped 2026-07-24 at Opus 4.8's price, so every shell named a superseded default. The substantive changes aren't the model string — they're the effort inversion (a live usage cost) and the Fable retirement (an escalation path that no longer buys what it cost).
+
+**Not changed, deliberately:** `§ Communication` already fights Opus 5's longer-default-output tendency, and effort does not reliably shorten *visible* output — only prompting does, which is what that section already is. No self-verification scaffolding existed to delete (the only "verify" language in the shell, `§ Approval Before Action`, tells Claude to *stop* re-verifying settled statements — the opposite of the pattern that needs removing on this model). Agent frontmatter is untouched: `model: opus` is an alias that resolves forward on its own.
+
+**Scope / rollout:** seeds canonical (`dev/claude/CLAUDE.md`, `dev/claude/docs/AGENTS.md`) plus seeds' own `CLAUDE.md` + `docs/AGENTS.md` agent tables, then hand-rolled to all 8 shell repos. Hand-rolled rather than left to the nightly sync because the sync is currently disabled, and this session already produced one silent miss (tinkle's rollout PR #164 closed unmerged, leaving `main` behind until #165 caught it up).
+
+**Schema:** template/labeling only — no skill contract or frontmatter-field change. No version bump (consistent with DEC-S023–S033).
