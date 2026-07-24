@@ -104,9 +104,27 @@ file-classes:
   - "dev/claude/agents/sync-config.md": logic
   - "dev/claude/agents/tape-reader.md": logic
   - "dev/claude/agents/ideas.md": logic   # generic curator — no project-specific content, byte-identical everywhere
-  - "dev/claude/agents/ui-reviewer.md": hybrid
-  - "dev/claude/agents/architect.md": hybrid
-  - "dev/claude/agents/code-review.md": hybrid
+  # Project-owned reviewers (DEC-S035). These three reason about the project's
+  # *substance* — its architecture, its correctness rules, its design system —
+  # so a good one is necessarily project-specific and cannot be derived from a
+  # template. Seeds keeps `dev/claude/agents/*.md` as install-time starting
+  # points (setup step 5 copies them once); after that each project owns its
+  # copy and sync never touches it again.
+  #
+  # They were `hybrid` until 2026-07-24, which was a misclassification: hybrid
+  # means "generic shell + paired `.claude/<name>-context.md`" (the DEC-S019
+  # CLAUDE.md pattern), and no such context file exists for an agent. So they
+  # fell through to full hunk classification and the machine forward-ported
+  # template edits into hand-adapted reviewers. sheepdog's `@code-review` —
+  # classifier purity, alert-path independence, "weight silent-failure bugs
+  # heaviest" — is what that would have destroyed.
+  #
+  # Cost of `context`, accepted knowingly: a good idea that emerges in one
+  # project's reviewer will never auto-surface for backporting. Harvesting into
+  # the seeds template is a deliberate manual act.
+  - "dev/claude/agents/ui-reviewer.md": context
+  - "dev/claude/agents/architect.md": context
+  - "dev/claude/agents/code-review.md": context
   - "dev/claude/CLAUDE.md": hybrid
   - "dev/claude/docs/SPEC.md": context
   - "dev/claude/docs/BRAND.md": context
