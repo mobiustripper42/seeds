@@ -93,6 +93,8 @@ Invokes `@sync-config` agent to diff live project files against seeds templates.
 | @ui-reviewer | Sonnet | After UI work | Design quality (N/A for seeds) |
 | @tape-reader | Sonnet | Via /read-the-tape | Audit transcripts, propose improvements |
 | @sync-config | Sonnet | Via skill / Routine | Classify diffs, propose backports |
+| @doc-consistency | Sonnet | Via /doc-consistency-check | Cross-reference doc claims. Report-only, no edits |
+| @ideas | Sonnet | Park or re-rank an idea | Curate the FUTURE_IDEAS parking lot |
 | /its-alive | — | Session start | Timestamp + briefing |
 | /pause-this | — | Mid-session break | Safe pause with commit |
 | /restart-this | — | Resume from pause | Reload context |
@@ -100,3 +102,9 @@ Invokes `@sync-config` agent to diff live project files against seeds templates.
 | /its-dead | — | Session end (part 2) | Finalize + push |
 | /read-the-tape | — | After notable sessions | Audit + improve skills |
 | /push-seeds | — | After workflow tweaks | Backport to seeds |
+| /pull-seeds | — | After seeds gains improvements | Pull templates in; gated on `seeds-version` |
+| /start-phase | — | Phase boundary (start) | Materialize the phase as GitHub Issues |
+| /retro | — | Phase boundary (end) | Close the phase, compute throughput, bump minor |
+| /bump-major | — | Breaking change | Manual major bump + CHANGELOG + tag |
+| /promote-production | — | Ship trunk to prod | ff-merge `main` → `production`, patch-bump |
+| /doc-consistency-check | — | When docs feel drifted | Cross-read docs for drift. Report-only |

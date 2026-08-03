@@ -1,0 +1,28 @@
+{
+  "repo": "<owner>/<repo>",
+  "rosters": {
+    "CLAUDE.md": { "skills": true, "agents": true },
+    "docs/AGENTS.md": { "skills": true, "agents": true },
+    "docs/CHEATSHEET.md": { "skills": true, "agents": false }
+  },
+  "historical": {
+    "docs/PROJECT_PLAN.md": "shipped task rows cite what they retired",
+    "docs/RETROSPECTIVES.md": "per-phase record of what was true at phase close",
+    "docs/FUTURE_IDEAS.md": "parked ideas cite sketches that predate the current tree"
+  },
+  "knownForeign": [
+    "review",
+    "security-review",
+    "init",
+    "loop",
+    "simplify",
+    "config",
+    "mcp",
+    "help",
+    "clear",
+    "update-config",
+    "fewer-permission-prompts",
+    "keybindings-help",
+    "claude-api"
+  ]
+}
