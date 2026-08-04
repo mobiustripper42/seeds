@@ -52,11 +52,24 @@ dev/
       README.md            # How to deploy + update Routines via /web-setup
     templates/             # Code templates — copy individually as needed
       VersionTag.tsx       # Build-time version display (DEC-S007). Wire into login + footer.
-    scripts/               # Per-project scripts — copy individually as needed
-      safe-supabase.sh     # Supabase prod-write guard (DEC-S009). Wrap with shell alias.
+    doc-check.json         # Config for check-docs.mjs (DEC-S037) — copy to <project>/.claude/doc-check.json and fill in repo slug + roster/exemption lists
+    scripts/               # Per-project scripts — copy to <project>/scripts/
+      gen-decisions-index.mjs  # Generates docs/DECISIONS.md + every reciprocal amendment pointer (DEC-S036)
+      check-decisions.mjs      # Gates the decision record. Runs first in verify — fails in ms
+      check-decisions.test.mjs # vitest suite for both of the above
+      check-context.mjs        # Asserts paths cited in the always-loaded context docs resolve
+      check-docs.mjs           # Doc-set ratchet — DEC refs, npm scripts, issue links, rosters, paths (DEC-S037)
+      split-decisions.mjs      # ONE-TIME v4→v5 migration: monolithic DECISIONS.md → docs/decisions/
+      throughput.py            # Throughput extraction for /retro
+      safe-supabase.sh         # Supabase prod-write guard (DEC-S009). Wrap with shell alias.
     docs/
       AGENTS.md            # Reference doc explaining the full agent + skill workflow
       VELOCITY_AND_POKER_GUIDE.md  # Estimation and velocity tracking methodology
+      DECISIONS.md         # GENERATED index — do not edit; output of gen-decisions-index.mjs
+      decisions/           # The decision record, one file per decision (DEC-S036)
+        _config.json       # Topic order + id families. The ONLY project-specific knob — scripts stay identical
+        _preamble.md       # Index header prose
+        DEC-001-example…md # Shows the file shape + both frontmatter declaration forms. Delete after install
 
 domain/
   README.md                # Stub — populated as non-dev domains get scaffolded
@@ -103,7 +116,7 @@ This repo encodes a specific development workflow for solo Claude-assisted proje
 | @sync-config | Sonnet | Via `/push-seeds` skill, or ad-hoc | Classify diffs, propose backports, flag cross-family patterns |
 | @tape-reader | Sonnet | Via `/read-the-tape` skill | Audit session JSONL for anti-patterns; self-improving via candidate pattern discovery |
 | @doc-consistency | Sonnet | Via `/doc-consistency-check` skill, or ad-hoc | Cross-reference factual claims across project docs; flag mismatches + unfilled placeholders. Report-only, no edits |
-| @ideas | Sonnet | Park an idea, re-rank, or audit the parking lot | Curate `docs/FUTURE_IDEAS.md` — capture, dedupe, cross-ref, keep the prioritized index. Edits only that file |
+| @ideas | Sonnet | Park an idea, re-rank, or audit the parking lot | Curate `<project>/docs/FUTURE_IDEAS.md` — capture, dedupe, cross-ref, keep the prioritized index. Edits only that file |
 
 ### Files a target project needs
 
@@ -113,7 +126,9 @@ The skills and agents expect these files to exist in the project root:
 - `docs/PROJECT_PLAN.md` — phases, tasks, estimates, velocity table
 - `docs/RETROSPECTIVES.md` — phase-end retros (created by `/retro` if missing)
 - `docs/SPEC.md` — scope (V1 vs later) and "Not V1" list
-- `docs/DECISIONS.md` — architectural decisions with IDs (e.g. DEC-001)
+- `docs/decisions/DEC-*.md` — the architectural decision record, one file per decision, plus `_config.json` and `_preamble.md` (DEC-S036)
+- `docs/DECISIONS.md` — **generated** topic index over `docs/decisions/`. Never hand-edited
+- `.claude/doc-check.json` — repo slug + roster/exemption lists read by `check-docs.mjs` (DEC-S037)
 - `docs/AGENTS.md` — adapted from `dev/claude/docs/AGENTS.md` in this repo
 - `.claude/seeds-version` — single line containing the schema version this project was last installed at (e.g. `2`). Read by `/pull-seeds`. See `docs/SCHEMA_VERSIONS.md`.
 - `.claude/project-type` — single line naming the project's type: `webapp` (Next.js + Supabase shape) or `tool` (CLI / agent / library shape). Read by `@sync-config` to gate template files that don't apply to the project's type (DEC-S011). Optional but recommended; without it, `@sync-config` skips type-gating and diffs every template file.
@@ -143,7 +158,23 @@ Effort uses Fibonacci points: 2, 3, 5, 8, 13. No 1s (just do it), no 13s if avoi
 
 14. **Permission settings (DEC-S023)** — the master policy is `dev/claude/settings.json` (default-allow: `Bash(*)` + a deny guardrail; `deny` beats `allow`). NOT auto-synced. Distribute by hand per the full procedure in `README.md` § Permission settings: copy the master into each real machine's user-global `~/.claude/settings.json` (covers all repos on that box), and commit a per-repo `.claude/settings.json` for phone/web sessions (the only thing that reaches the ephemeral cloud container). Leave `.claude/settings.local.json` alone — per-box override. Change the policy by bringing it to a Claude session in seeds, not via `/permissions`.
 
+15. **Decision record + doc gate (DEC-S036, DEC-S037)** — copy `dev/claude/docs/decisions/` to `<project>/docs/decisions/`, then write the project's real topic list into `_config.json` and delete the example decision file once there's a real one. Copy `dev/claude/scripts/{gen-decisions-index,check-decisions,check-decisions.test,check-context,check-docs}.mjs` to `<project>/scripts/`, and `dev/claude/doc-check.json` to `<project>/.claude/doc-check.json` (fill in the repo slug, the docs that claim to be complete rosters, and the historical ledgers). Add the scripts to `package.json` and put `check:decisions && check:context && check:docs` at the **front** of `verify` — they're text-only and fail in milliseconds, so they belong ahead of typecheck/test/build. Run `npm run gen:decisions` to write `docs/DECISIONS.md`. **A project migrating an existing monolithic `DECISIONS.md` uses `split-decisions.mjs` instead — see `docs/SCHEMA_VERSIONS.md` § v4 → v5.**
+
 After setup, run `/its-alive` in the new project to start the first session.
+
+## Seeds' Own Decision Record
+
+Seeds eats its own dogfood: its decisions live one per file in `docs/decisions/` and `docs/DECISIONS.md` is generated (DEC-S036). Seeds has **no `package.json` on purpose** — adding one would switch on the semver bump skills, which detect it at the repo root — so run the gate directly:
+
+```
+node dev/claude/scripts/gen-decisions-index.mjs   # after editing any decision
+node dev/claude/scripts/check-decisions.mjs       # gate: index freshness, ids, edges, references
+node dev/claude/scripts/check-docs.mjs            # gate: DEC refs, rosters, issue links, paths
+```
+
+Run them from the repo root — they resolve `docs/` relative to the working directory, so seeds validates the exact template files it ships rather than a copy that could drift. `check-context.mjs` is **not** run here: it asserts `.claude/CLAUDE-context.md` exists, and seeds doesn't use the DEC-S019 shell/context split — its `CLAUDE.md` describes this repo, not a project.
+
+Seeds' ids are `DEC-S###` with no numeric main line, so `docs/decisions/_config.json` sets `"numericIds": false`. That matters: seeds cites plain `DEC-001`-style ids on purpose (DEC-S025 — a project's own decisions stay unprefixed), and without the flag the reference check would report another repo's record as seeds' dangling references.
 
 ## Syncing Improvements Back
 

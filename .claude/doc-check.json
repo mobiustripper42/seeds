@@ -1,0 +1,45 @@
+{
+  "repo": "mobiustripper42/seeds",
+  "rosters": {
+    "CLAUDE.md": {
+      "skills": true,
+      "agents": true
+    },
+    "docs/AGENTS.md": {
+      "skills": true,
+      "agents": true
+    },
+    "docs/CHEATSHEET.md": {
+      "skills": true,
+      "agents": false
+    }
+  },
+  "historical": {
+    "docs/PROJECT_PLAN.md": "shipped task rows cite what they retired",
+    "docs/RETROSPECTIVES.md": "per-phase record of what was true at phase close",
+    "docs/SCHEMA_VERSIONS.md": "migration notes describe file layouts of superseded schema versions",
+    "docs/SPECS/2026-05-sync-redesign.md": "a design doc frozen as of its date"
+  },
+  "knownForeign": [
+    "claude-api",
+    "clear",
+    "code-review",
+    "config",
+    "fewer-permission-prompts",
+    "help",
+    "init",
+    "keybindings-help",
+    "loop",
+    "mcp",
+    "permissions",
+    "review",
+    "security-review",
+    "session-start-hook",
+    "simplify",
+    "stripe-best-practices",
+    "stripe-projects",
+    "update-config",
+    "upgrade-stripe",
+    "web-setup"
+  ]
+}

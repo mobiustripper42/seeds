@@ -1,0 +1,14 @@
+---
+id: DEC-S006
+title: "Schema versioning — single global integer at `seeds-version`"
+topic: "Branches, versioning & release"
+---
+
+## DEC-S006: Schema versioning — single global integer at `seeds-version`
+
+**Decision:** The seeds workflow is versioned as a single integer (V1, V2, …) stored at the seeds repo root in `seeds-version` and at each project root in `.claude/seeds-version`. One number covers `PROJECT_PLAN.md` format, session-file format, and the skill set + API as one bundle. `/pull-seeds` (and any future seeds ↔ project sync) compares the two files; mismatch → STOP and require an explicit migration (documented in `docs/SCHEMA_VERSIONS.md`). Never auto-migrate.
+**Why:** Without versioning, `/pull-seeds` into a project on an older convention (e.g. sailbook still on monolithic `session-log.md`) would silently install incompatible skills and corrupt the project's session history. A single integer is enough — the three surfaces are coupled in practice (a skill API change usually implies a session-file change), so independent counters add complexity without clarity. Plain text in a bare file is grep-able by shell tooling without parsing markdown or JSON.
+**Tradeoff:** Bumps are coarse — adding one new optional skill could trigger a version bump even if existing projects keep working. Acceptable: when in doubt, bump, and document the migration as a no-op if nothing requires action.
+**Alternatives considered:** SemVer (rejected — no real "patch" axis for templates); per-surface counters (rejected — coupling makes them move together anyway); version field embedded in CLAUDE.md frontmatter (rejected — harder to grep, easy to drift from the truth).
+
+---

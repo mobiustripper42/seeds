@@ -39,7 +39,7 @@ Everything needed to develop safely. No user-facing changes. Do this phase first
 | 0.14 | Playwright test suite — [core flow 2] | 5 | |
 | 0.15 | Save @ui-reviewer agent spec to `.claude/agents/ui-reviewer.md` | 2 | Fill in project theme details |
 | 0.16 | Verify session skills installed (`/its-alive`, `/pause-this`, etc.) | 1 | Should already be in `.claude/skills/` in the project root |
-| 0.17 | Fill in CLAUDE.md, SPEC.md, DECISIONS.md, AGENTS.md, BRAND.md | 3 | Done before first session if possible |
+| 0.17 | Fill in CLAUDE.md, SPEC.md, `docs/decisions/`, AGENTS.md, BRAND.md | 3 | Done before first session if possible |
 
 **Phase 0 total: [sum] pts**
 

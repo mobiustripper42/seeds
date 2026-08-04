@@ -101,6 +101,13 @@ digest: true
 # project `.claude/skills/<name>/SKILL.md`).
 file-classes:
   - "dev/claude/skills/**": logic
+  # Doc-integrity scripts (DEC-S036, DEC-S037). These became byte-identical
+  # across projects the moment their editorial knobs moved out of the code:
+  # the topic order and id families live in `docs/decisions/_config.json`, the
+  # roster and exemption lists in `.claude/doc-check.json`. A project that
+  # needs different behavior edits its config, never the script — so drift in
+  # the script itself is staleness, which is exactly what `logic` handles.
+  - "dev/claude/scripts/**": logic
   - "dev/claude/agents/sync-config.md": logic
   - "dev/claude/agents/tape-reader.md": logic
   - "dev/claude/agents/ideas.md": logic   # generic curator — no project-specific content, byte-identical everywhere
@@ -129,6 +136,11 @@ file-classes:
   - "dev/claude/docs/SPEC.md": context
   - "dev/claude/docs/BRAND.md": context
   - "dev/claude/docs/DECISIONS.md": context
+  # The record itself, its preamble, its topic order, and the doc-check
+  # roster/exemption lists — all statements about one project. The scripts
+  # above are shared; what they read never is.
+  - "dev/claude/docs/decisions/**": context
+  - "dev/claude/doc-check.json": context
   - "dev/claude/docs/PROJECT_PLAN.md": context
   - "dev/claude/docs/RETROSPECTIVES.md": context
   - "dev/claude/docs/USER_STORIES.md": context

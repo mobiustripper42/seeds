@@ -8,7 +8,8 @@
 | File | Purpose |
 |------|-------|
 | `docs/SPEC.md` | What we're building — scope, V1 vs V2 vs V3 |
-| `docs/DECISIONS.md` | Why we made each architectural choice |
+| `docs/decisions/DEC-*.md` | Why we made each architectural choice — **one decision, one file** (DEC-S036) |
+| `docs/DECISIONS.md` | **Generated** topic index over `docs/decisions/`. Never edit it by hand |
 | `docs/USER_STORIES.md` | What each role does |
 | `docs/PROJECT_PLAN.md` | Phases, scope, velocity. **Phase-boundary doc** — read at planning, written at retro. Current-phase tasks live in GitHub Issues. |
 | `docs/RETROSPECTIVES.md` | Phase-end retrospectives — written by `/retro` |
@@ -27,8 +28,8 @@ Project-specific docs are listed in `.claude/CLAUDE-context.md` under `## Additi
 1. **Spec it** — poker estimate + acceptance criteria. Before writing code, pin what "done" looks like: enumerate the concrete set from source and confirm it with me. My live words override prior docs. **Get the whole spec down before step 4** — the model does its best work on a complete brief given in one turn, not assembled across a dozen exchanges. (Issue exists from `/start-phase`.)
 2. **Plan it** — summarize what you're going to do. Wait for explicit approval before writing code or running commands.
 3. **Cut the branch** — once approved: `git checkout -b task/X.Y-short-description`.
-4. **Build it**
-5. **Write the test** — Playwright integration test + pgTAP if RLS-touching. Test-first when behavior is changing.
+4. **Write the failing test FIRST** — when behavior is changing, the test comes before the code: write it, run it, and watch it fail *for the reason you expect*. That failure is the proof the test actually bites; a test written afterwards has never been observed failing, so it may be asserting nothing. Playwright integration test + pgTAP if RLS-touching. The test must exercise the function named in its own title — a test named for one thing that calls another is worse than no test, because it turns an unverified claim into an apparently-verified one.
+5. **Build it** — until the test passes. If you find yourself writing code first and then reconstructing the proof by deleting it to watch the test fail, you have done step 4 the long way round.
 6. **Run targeted tests** — `npx playwright test tests/foo.spec.ts --project=desktop`. `supabase test db` if RLS-touching. Do NOT run full suite — that's the user's call.
 7. **Mobile screenshot** — confirm 375px viewport passes
 8. **Ship the task** — `/kill-this` commits, pushes, opens PR with `closes #<issue>`, appends a `## Task <N>` block to the session file (on the orphan `sessions` branch). Run per task; multiple per session.
@@ -50,6 +51,32 @@ The project's migration **toolchain** — CLI commands, production-write protect
 ## Conventions
 
 Project coding conventions — typing, component structure, data fetching, auth/RLS, error-handling contract, naming, UI/brand, and testing layout — live in `.claude/CLAUDE-context.md` under `## Conventions`. They're stack-specific, so they're project-owned.
+
+## Decision Record (DEC-S036)
+
+**One decision, one file.** Each lives at `docs/decisions/DEC-<id>-<slug>.md` with frontmatter carrying `id`, `title`, and `topic`. `docs/DECISIONS.md` is a **generated** topic index over them — editing it by hand is a wasted edit that `check:decisions` will reject.
+
+**Reading.** Read one decision by reading its file: `grep -rl DEC-042 docs/decisions/` resolves any id, and `grep -rl 'topic: "Auth' docs/decisions/` pulls a whole topic. Don't load the whole record to answer one question, and **don't cite a decision you only saw in the index** — the index carries titles, not holdings, and a confident citation of a decision you didn't read is how a stale answer gets laundered into a fact.
+
+**Writing.** Edit the file, then `npm run gen:decisions`. A new id is the next one after the highest in `docs/decisions/`; a collision is no longer silent, it's a red build on whichever branch merges second.
+
+**Amendments are declared once, in frontmatter, and generated in both directions:**
+
+```yaml
+amends:
+  - id: DEC-020
+    relation: refines          # or supersedes / revises / reverses / retires / extends / corrects / resolves / reframes
+    scope: "the retry policy only — the transport choice stands"
+amends_spec:
+  - section: "2.4"             # a NUMBERED section of docs/SPEC.md
+    scope: "the availability rule; the surface below is unchanged"
+```
+
+The generator writes the reciprocal banner into the amended decision's own file, the annotation onto its index row, and the pointer under the amended spec section's heading. **Never hand-write any of those ends.** Declaring it once is what makes them agree — a reader arriving by `Ctrl-F`, a code comment, or another doc's citation lands in the *body*, not the index, and an index-only pointer never reaches them.
+
+**Prefer `amends` + scope over `supersedes`.** A strike-through says the whole holding is dead. In the project this pattern came from, an audit of 138 decisions found *zero* fully superseded — every struck row still had a live leg. Total supersession is rarer than it looks.
+
+**The gate.** `npm run check:decisions` fails on a stale index, a duplicate id, an unknown topic or relation, a dangling reference, a backwards-pointing amendment, and a declared spec amendment that never landed. Its siblings `check:context` and `check:docs` cover the always-loaded context files and the rest of the doc set. All three run before the slow stages of `verify` — they fail in milliseconds. Project-specific knobs live in `docs/decisions/_config.json` and `.claude/doc-check.json`; the scripts themselves are shared and identical everywhere, so don't edit them per-project.
 
 ## Session Skills
 

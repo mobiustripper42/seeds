@@ -1,0 +1,19 @@
+{
+  "spec": "docs/SPEC.md",
+  "families": {
+    "S": 0
+  },
+  "topics": [
+    "Template families & repo structure",
+    "Sync \u2014 directions, classification & file classes",
+    "Session lifecycle & skills",
+    "Velocity, retro math & throughput",
+    "Branches, versioning & release",
+    "Agents & review",
+    "Model selection",
+    "Docs, decisions & context discipline",
+    "Tooling & safety",
+    "Open questions"
+  ],
+  "numericIds": false
+}

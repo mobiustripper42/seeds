@@ -24,7 +24,8 @@ SEMVER  ( dev projects only — needs package.json )
   /bump-major      breaking change. manual. tag on main.
   /promote-production main->prod ff-merge + push.
                    ( needs origin/production — DEC-S022 )
-  patch bumps      automatic in /its-dead on PR merge.
+  patch bumps      /promote-production on each ship; or /retro
+                   per merged PR if there's no production branch.
 
 REFLECT / SYNC
   /read-the-tape   scan a session for anti-patterns.
@@ -32,6 +33,9 @@ REFLECT / SYNC
   /push-seeds      backport workflow wins to seeds.
   /pull-seeds      pull seeds improvements into this project.
                    gated on `seeds-version` match.
+  /doc-consistency-check
+                   cross-read the doc set for drift. report-only.
+                   the mechanisable half is `npm run check:docs`.
 
 INFRA                              DOMAIN
   /update-config                     /stripe-best-practices

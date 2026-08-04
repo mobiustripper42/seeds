@@ -34,13 +34,3 @@ Available relations: `supersedes` (the only one that strikes a row), `amends`, `
 A decision that changes the spec declares that too — `amends_spec: [{section, scope}]` — and the
 pointer under that spec section's heading is generated from the declaration. A claim that never
 reached the spec is then a red build rather than a line of prose nobody cross-read.
-
-## Index
-
-### Workflow, tooling & process
-- DEC-001 — Example decision — delete this file once the project has a real one
-
-_**This file is GENERATED** by `npm run gen:decisions` —
-edit `docs/decisions/DEC-*.md`, not this file. `npm run check:decisions` fails on a stale index, a
-duplicate id, an unknown topic, an unknown relation, a forward-pointing amendment, or a
-reference to a decision that does not exist._

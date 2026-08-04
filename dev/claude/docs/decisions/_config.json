@@ -1,0 +1,13 @@
+{
+  "spec": "docs/SPEC.md",
+  "families": {},
+  "topics": [
+    "Architecture & core model",
+    "Data & persistence",
+    "Auth & access control",
+    "UI & frontend patterns",
+    "Workflow, tooling & process",
+    "Deployment, infra & versioning",
+    "Open questions"
+  ]
+}
