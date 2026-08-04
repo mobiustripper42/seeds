@@ -28,8 +28,17 @@ const DIR = process.argv[3] ?? 'docs/decisions'
  *  first when the parser can just accept both. */
 const HEADING = /^## (DEC-(?:\d+|[A-Z]+-?\d+|TBD))\s*[:—–-]\s*(.+?)\s*$/
 
-/** Prose that probably encodes an amendment edge. Reported, never acted on. */
-const EDGE_HINT = /~~|\bsupersed|\bamend|\brevis|\brefin|\breplac|\bretir|\breverse/i
+/**
+ * Prose that probably encodes an amendment edge. Reported, never acted on.
+ *
+ * Two conditions, both required: a word that names a relation, AND a citation of some other
+ * decision. A relation word alone is far too loose — the decision template's own
+ * "**Revisit if:**" field contains `revis`, so a bare word-match flagged every decision in the
+ * first repo this ran on, and a report that flags everything is a report nobody reads.
+ */
+const RELATION_WORD = /~~|\bsupersed|\bamend(s|ed|ment)|\breplaced by\b|\breplaces\b|\bretired by\b|\bretires\b|\breverses?\b|\brevised by\b|\brefines\b|\bcorrects\b|\bextends\b/i
+const CITES_DECISION = /\bDEC-(?:\d+|[A-Z]+-?\d+|TBD)\b/
+const hasEdgeHint = (s) => RELATION_WORD.test(s) && CITES_DECISION.test(s)
 
 export function slug(title, limit = 50) {
   const s = title
@@ -131,7 +140,7 @@ if (process.argv[1]?.endsWith('split-decisions.mjs')) {
   for (const d of decisions) writeFileSync(`${DIR}/${d.id}-${slug(d.title)}.md`, render(d, topic))
   writeFileSync(`${DIR}/_preamble.md`, `${preamble}\n`)
 
-  const edges = decisions.filter((d) => EDGE_HINT.test(d.body) || EDGE_HINT.test(d.title))
+  const edges = decisions.filter((d) => hasEdgeHint(d.body) || hasEdgeHint(d.title))
 
   console.log(`✓ split ${SRC} → ${decisions.length} files in ${DIR}/`)
   console.log(`\n  Every decision landed in topic ${JSON.stringify(topic)}. Next, by hand:`)
