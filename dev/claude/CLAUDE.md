@@ -20,7 +20,7 @@
 | `.claude/seeds-version` | Schema version this project was last installed at. Used by `/pull-seeds` to gate template syncs. |
 | `.claude/project-type` | Project type — `webapp` or `tool`. Used by `@sync-config` to gate template files that don't apply to this project's type (DEC-S011). Optional. |
 
-Project-specific docs are listed in `.claude/CLAUDE-context.md` under `## Additional Docs` — including `docs/BRAND.md`, which is webapp-shaped and legitimately absent from a CLI or firmware project. The shell lists only docs every project has; a shell that names a doc a whole project type doesn't need is a dead reference in every one of them.
+Project-specific docs are listed in `.claude/CLAUDE-context.md` under `## Additional Docs` — including BRAND.md, which is webapp-shaped and legitimately absent from a CLI or firmware project. The shell lists only docs every project has; a shell that names a doc a whole project type doesn't need is a dead reference in every one of them.
 
 ## Micro Workflow (every task, no exceptions)
 
@@ -55,7 +55,7 @@ Project coding conventions — typing, component structure, data fetching, auth/
 
 **One decision, one file.** Each lives at `docs/decisions/DEC-<id>-<slug>.md` with frontmatter carrying `id`, `title`, and `topic`. `docs/DECISIONS.md` is a **generated** topic index over them — editing it by hand is a wasted edit that `check:decisions` will reject.
 
-**Reading.** Read one decision by reading its file: `grep -rl DEC-042 docs/decisions/` resolves any id, and `grep -rl 'topic: "Auth' docs/decisions/` pulls a whole topic. Don't load the whole record to answer one question, and **don't cite a decision you only saw in the index** — the index carries titles, not holdings, and a confident citation of a decision you didn't read is how a stale answer gets laundered into a fact.
+**Reading.** Read one decision by reading its file: `grep -rl DEC-NNN docs/decisions/` resolves any id, and `grep -rl 'topic: "Auth' docs/decisions/` pulls a whole topic. Don't load the whole record to answer one question, and **don't cite a decision you only saw in the index** — the index carries titles, not holdings, and a confident citation of a decision you didn't read is how a stale answer gets laundered into a fact.
 
 **Writing.** Edit the file, then `npm run gen:decisions`. A new id is the next one after the highest in `docs/decisions/`; a collision is no longer silent, it's a red build on whichever branch merges second.
 
@@ -63,7 +63,7 @@ Project coding conventions — typing, component structure, data fetching, auth/
 
 ```yaml
 amends:
-  - id: DEC-020
+  - id: DEC-NNN
     relation: refines          # or supersedes / revises / reverses / retires / extends / corrects / resolves / reframes
     scope: "the retry policy only — the transport choice stands"
 amends_spec:
@@ -176,7 +176,7 @@ The `<VersionTag />` wiring (login + footer, and the `NEXT_PUBLIC_` gotcha that 
 - **JSON parsing in Bash:** Prefer `gh ... --jq '...'` (built-in jq via `gh`) or `jq` over `python3 -c "import json,sys; ..."` one-liners. The python invocations trigger per-pattern permission prompts (each unique argument list is a new allowlist entry), while `gh --jq` runs under the existing `Bash(gh ...)` allowance. For non-`gh` JSON, install/use `jq` directly. Reserve python for cases where the data shape genuinely needs control flow.
 - **Bug reports:** create a GitHub issue, label `bug`, add to current or next phase.
 - **Don't guess third-party API shapes** from naming or 403/404 signals — stop and ask for the official docs; never write code against a guess.
-- **Context docs carry decisions, rationale and pointers — never inventory.** `CLAUDE.md` and `.claude/CLAUDE-context.md` load into every session as ground truth, so a stale sentence in them is believed and acted on rather than checked. Rationale ("webpack, because Turbopack lacks `extensionAlias`") doesn't rot. A **snapshot of current state** ("the adapters are X and Y; Z comes later") is stale the day the code moves — and no doc-consistency audit catches it, because the claim is false against **code**, the corpus doc sweeps never read. Write a pointer instead: `ls src/adapters/*-channel.ts` sends the reader to the truth rather than copying it, and it is checkable. `dev/claude/scripts/check-context.mjs` asserts every repo path and glob those two files cite still resolves — wire it into the project's verify chain. It cannot judge a *characterization*; "X is the live transport" is a sentence only a reader can validate.
+- **Context docs carry decisions, rationale and pointers — never inventory.** `CLAUDE.md` and `.claude/CLAUDE-context.md` load into every session as ground truth, so a stale sentence in them is believed and acted on rather than checked. Rationale ("webpack, because Turbopack lacks `extensionAlias`") doesn't rot. A **snapshot of current state** ("the adapters are X and Y; Z comes later") is stale the day the code moves — and no doc-consistency audit catches it, because the claim is false against **code**, the corpus doc sweeps never read. Write a pointer instead: `ls <dir>/*-channel.ts` sends the reader to the truth rather than copying it, and it is checkable — and note the angle brackets, which mark this as an illustration rather than a claim about this repo. A worked example written as a real path is a dead reference in every project that copies the shell. `dev/claude/scripts/check-context.mjs` asserts every repo path and glob those two files cite still resolves — wire it into the project's verify chain. It cannot judge a *characterization*; "X is the live transport" is a sentence only a reader can validate.
   - **An env-overridable number is not a fact a repo can state.** "Currently 30 days" for a value read from env is a claim about a *deployment*, unanswerable from a checkout. Cite where the constant is defined and say the deployed value lives in the host's env.
   - **Before asserting what is built or live, check the code in the same turn** — one `ls` or `grep`. This rule exists because a session read "SMS = later swap" from a context file, filed an issue declaring a feature blocked on an adapter that had shipped weeks earlier, and explained the blockage at length. The doc was wrong; the failure was not verifying a live-state claim that took one command to check.
 
