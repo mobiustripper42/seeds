@@ -8,7 +8,7 @@
 | File | Purpose |
 |------|-------|
 | `docs/SPEC.md` | What we're building — scope, V1 vs V2 vs V3 |
-| `docs/decisions/DEC-*.md` | Why we made each architectural choice — **one decision, one file** (DEC-S036) |
+| `docs/decisions/` | Why we made each architectural choice — **one decision, one file**, `DEC-<id>-<slug>.md` (DEC-S036) |
 | `docs/DECISIONS.md` | **Generated** topic index over `docs/decisions/`. Never edit it by hand |
 | `docs/USER_STORIES.md` | What each role does |
 | `docs/PROJECT_PLAN.md` | Phases, scope, velocity. **Phase-boundary doc** — read at planning, written at retro. Current-phase tasks live in GitHub Issues. |
@@ -110,7 +110,7 @@ The generator writes the reciprocal banner into the amended decision's own file,
 | @sync-config | Sonnet | `/push-seeds` and `/pull-seeds` | Classifies template-vs-project diffs, gates structural backports |
 | @tape-reader | Sonnet | `/read-the-tape` | Audits session JSONL for workflow anti-patterns |
 | @doc-consistency | Sonnet | Via `/doc-consistency-check` skill, or ad-hoc | Cross-reference factual claims across project docs; flag mismatches + unfilled placeholders. Report-only |
-| @ideas | Sonnet | Park an idea, re-rank, or audit the parking lot | Curate `docs/FUTURE_IDEAS.md` — capture, dedupe, cross-ref, keep the index. Edits only that file |
+| @ideas | Sonnet | Park an idea, re-rank, or audit the parking lot | Curate docs/FUTURE_IDEAS.md — capture, dedupe, cross-ref, keep the index. Edits only that file, and creates it on first use |
 
 ## Model Selection
 
