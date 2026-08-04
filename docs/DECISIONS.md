@@ -12,13 +12,14 @@ Decisions are numbered DEC-NNN. "DEC-TBD" means the decision is flagged but unre
 
 ### Sync — directions, classification & file classes
 - DEC-S003 — One sync concept, two directions, same classifier
-- DEC-S004 — Upstream = nightly remote Routine, downstream = manual skill
-- DEC-S010 — Bi-directional nightly sync via Anthropic Routine
+- DEC-S004 — Upstream = nightly remote Routine, downstream = manual skill _(amended by DEC-S038 — the upstream leg — both directions are now manual; downstream-is-manual was already right)_
+- DEC-S010 — Bi-directional nightly sync via Anthropic Routine _(retired by DEC-S038 — the nightly automation only — the config, the classifier and the file-class registry it defined are still read by manual sync)_
 - DEC-S011 — Project-type gating for template files
 - DEC-S016 — ui-reviewer agent split — generic shell + project context file _(extended by DEC-S019 — the pattern generalized from one agent to any shell/context pair)_
 - DEC-S018 — File-class registry for sync-config
 - DEC-S019 — Hybrid-file split pattern (generalization of DEC-S016)
-- DEC-S028 — The Routine emits a fleet-status digest — the read side of the SPEC hub; rolling issues are pinned by config number
+- DEC-S028 — The Routine emits a fleet-status digest — the read side of the SPEC hub; rolling issues are pinned by config number _(retired by DEC-S038 — the digest is dormant while the Routine that emitted it is off)_
+- DEC-S038 — The nightly sync Routine is off — seeds ↔ project sync is on-demand from CC Desktop
 
 ### Session lifecycle & skills
 - DEC-S012 — Session-end flow — `/its-dead` first, merge last; PR-flow default on protected `$WORKING_BRANCH`
