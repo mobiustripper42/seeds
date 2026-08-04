@@ -1,5 +1,12 @@
 # Routine config — read by the nightly bi-directional sync Routine.
 #
+# THE ROUTINE IS OFF (DEC-S038). Sync is on-demand from CC Desktop. This file is
+# NOT dead: `file-classes:` below is read by manual /pull-seeds and /push-seeds
+# too, and is the reason the shared scripts forward-port cleanly. Only the
+# scheduling-related keys — exclude, require, directions, the PR/branch prefixes,
+# the rolling-issue numbers, digest — are dormant. They stay so re-enabling is a
+# switch rather than a rebuild.
+#
 # Lives in the seeds repo so it's source-controlled and editable in PRs.
 # The Routine fetches this file from `main` at the start of each run.
 #

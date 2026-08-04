@@ -187,9 +187,15 @@ One run, one commit per repo.
 
 **Schema version compatibility:** before any seeds ↔ project sync (in either direction), the active skill (`/push-seeds`, future `/pull-seeds`) must compare `seeds-version` against `<project>/.claude/seeds-version`. Mismatch → STOP and surface the migration. Never auto-migrate. See `docs/SCHEMA_VERSIONS.md`.
 
-## The Routine
+## The Routine — OFF (DEC-S038)
 
-Bi-directional sync also runs unattended via a nightly Anthropic Routine (DEC-S010). The Routine clones seeds, reads `.claude/routine-config.yaml` for filter rules + directions + PR/branch prefixes, enumerates the repos its MCP github session has access to (the **Routine form's repo chip area on claude.ai is the active-set source of truth**), filters by `exclude:` + `require:` + `.claude/seeds-version` match, and per (repo × direction) invokes @sync-config in `mode: auto`. Each invocation that produces non-empty changes opens its own PR — upstream PRs land on `mobiustripper42/seeds:main`, downstream PRs land on each project's default branch (the active trunk; never a `production` deploy branch — DEC-S022). Nothing merges automatically; the PR is the human review surface.
+**The nightly Routine is disabled.** Sync is on-demand, per repo, driven from CC Desktop: `/pull-seeds` downstream, `/push-seeds` upstream. Everything in this section describes machinery that is **dormant, not deleted** — the prompt and config stay source-controlled so re-enabling is switching it on, not rebuilding it. Read the rest as "how it works when it runs", not as what happens tonight.
+
+What is *not* dormant, because none of it was Routine-specific: the file-class registry in `.claude/routine-config.yaml` (DEC-S018), project-type gating (DEC-S011), the schema-version gate (DEC-S006), and `@sync-config`'s classifier — all read by manual sync too.
+
+**The trap manual sync creates (DEC-S038):** `dev/claude/scripts/**` is `logic` class, so seeds wins in the pull direction and drift there is a full-file overwrite onto the project. When a project's work improves a shared script, get it into seeds **before** the next `/pull-seeds` on that project, or the sync replaces the project's newer copy with seeds' older one. The version gate won't catch it — both sides read the same number by then.
+
+When it ran, the Routine cloned seeds, read `.claude/routine-config.yaml` for filter rules + directions + PR/branch prefixes, enumerated the repos its MCP github session had access to (the **Routine form's repo chip area on claude.ai was the active-set source of truth**), filtered by `exclude:` + `require:` + `.claude/seeds-version` match, and per (repo × direction) invoked @sync-config in `mode: auto`. Each invocation that produced non-empty changes opened its own PR — upstream PRs land on `mobiustripper42/seeds:main`, downstream PRs land on each project's default branch (the active trunk; never a `production` deploy branch — DEC-S022). Nothing merges automatically; the PR is the human review surface.
 
 - **Prompt source of truth:** `dev/claude/routines/nightly-sync.md`. The claude.ai Routine holds only a **loader shim** that reads this file at run time, so edits go live on the next run with **no re-paste** (see `dev/claude/routines/README.md` § The loader prompt). Re-paste only if the loader shim itself changes.
 - **Active-set source of truth:** the Routine form's repo chip area on claude.ai — NOT `routine-config.yaml`. Add a project = add chip + toggle "Allow unrestricted git push" in Permissions. Remove = remove chip. No config edit either way.
@@ -200,7 +206,7 @@ Bi-directional sync also runs unattended via a nightly Anthropic Routine (DEC-S0
 - **Per-run summary:** rolling `routine: last run <DATE>` issue on `mobiustripper42/seeds`. Body replaced each run.
 - **Run budget:** Pro plan caps Routines at 5 runs/day across all your Routines. This one assumes a single nightly fire.
 
-Manual `/push-seeds` and `/pull-seeds` still exist for ad-hoc pulls and pushes — the Routine handles the steady-state, manual handles the "I want it now" cases.
+Manual `/push-seeds` and `/pull-seeds` are now the **only** paths (DEC-S038). They always existed for the ad-hoc cases; with the Routine off they carry the steady state too.
 
 ## Verbosity
 
