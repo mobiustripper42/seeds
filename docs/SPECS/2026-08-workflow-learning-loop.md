@@ -38,7 +38,8 @@ observation, and no candidate pattern is lost to the session that found it.
 ## Phase 1 — `/read-the-tape` becomes an observer
 
 **It edits nothing.** Not a skill, not `.claude/settings.json`, not a reviewer — no file in the repo
-it runs in. It has no `Edit` tool, so the constraint is structural rather than remembered. Its whole
+it runs in. `Edit` is withheld from it; `Write`/`Bash` are not, so Step 3's post-run `git status`
+check is the real backstop rather than the tool list. Its whole
 output is one observation file, written to seeds.
 
 > **Amended 2026-08-06 by DEC-S040.** As first written, this phase split findings by file class:

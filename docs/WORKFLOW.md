@@ -205,7 +205,7 @@ Before copying, check `.claude/routine-config.yaml` § `file-classes` in the see
 
 Surfaces anti-patterns (verbose responses, missed context, retries instead of root-causing, etc.) and writes them up as a cited **observation** pushed to seeds' `observations` branch.
 
-**It changes nothing in this repo** (DEC-S040) — no fix, no branch, no PR, not even a `.claude/settings.json` permission entry. It has no `Edit` tool. Findings with a local fix still go in the observation; applying one is a separate deliberate act.
+**It changes nothing in this repo** (DEC-S040) — no fix, no branch, no PR, not even a `.claude/settings.json` permission entry. `Edit` is withheld from the agent and Step 3 asserts the tree is unchanged afterwards. Findings with a local fix still go in the observation; applying one is a separate deliberate act.
 
 ### Promote what accumulated (seeds only)
 

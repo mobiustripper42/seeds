@@ -1,6 +1,11 @@
 # Sync redesign — phased implementation
 
-**Status:** Active
+**Status:** SUPERSEDED 2026-08-06 by DEC-S040 — the mechanism this spec designs no longer exists.
+Phase 1 (the file-class registry) shipped and outlived it: the registry is still in
+`.claude/routine-config.yaml`, now as guidance for a human copying files rather than input to a
+classifier. Phase 2's CLAUDE.md shell/context split (DEC-S019) also shipped and stands. What is dead
+is everything the phases served — the sync-config agent and both sync skills are deleted. Kept
+unedited below as the design record; read it as history, not as work outstanding.
 **Owner:** @architect
 **Implements:** DEC-S018, DEC-S019
 **Date:** 2026-05-19

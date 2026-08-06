@@ -113,7 +113,7 @@ This repo encodes a specific development workflow for solo Claude-assisted proje
 | @code-review | Sonnet | After commits (wired into `/kill-this`) | Catch issues early |
 | @pm | Sonnet | Start/end of sessions via skills | Track progress, flag risks, update PROJECT_PLAN.md |
 | @ui-reviewer | Sonnet | After UI work, phase boundaries | Design quality review |
-| @tape-reader | Sonnet | Via `/read-the-tape` skill | **Observer** (DEC-S039, DEC-S040). Audits session JSONL and writes one cited observation to seeds. Modifies nothing in the repo it runs in — it has no `Edit` tool |
+| @tape-reader | Sonnet | Via `/read-the-tape` skill | **Observer** (DEC-S039, DEC-S040). Audits session JSONL and writes one cited observation to seeds. Modifies nothing in the repo it runs in |
 | @workout | Opus 5 | Via `/workout`, weekly or fortnightly — **seeds only** | The promotion half of the learning loop. Reads accumulated observations across repos, groups them into patterns, makes the severity call (DEC-S039), opens one PR against `main`. Not a project template — see below |
 | @doc-consistency | Sonnet | Via `/doc-consistency-check` skill, or ad-hoc | Cross-reference factual claims across project docs; flag mismatches + unfilled placeholders. Report-only, no edits |
 | @ideas | Sonnet | Park an idea, re-rank, or audit the parking lot | Curate `<project>/docs/FUTURE_IDEAS.md` — capture, dedupe, cross-ref, keep the prioritized index. Edits only that file |
@@ -208,7 +208,9 @@ Three steps, exactly one of them automated. Spec: `docs/SPECS/2026-08-workflow-l
 | `/workout` → `@workout` | **seeds only** | one PR against `main` | `dev/claude/**` |
 | copying the merged change outward | from seeds | a changed project | whatever you choose, by hand |
 
-**`@tape-reader` edits nothing (DEC-S040).** No file-class lookup, no `y/n` approval loop, no branch, no PR — it has no `Edit` tool. An earlier version fixed "what the project owns" and observed the rest, but that line came from the sync classifier: an argument about which files a sync would overwrite, applied to an agent whose job is reading a transcript. With no sync, an auditor that also edits files is just an auditor with a side effect. The cost is real — a repeated permission prompt has a one-line fix in `.claude/settings.json` and now becomes an observation someone applies later, or doesn't. Taken so the output needs no diff review.
+**`@tape-reader` edits nothing (DEC-S040).** No file-class lookup, no `y/n` approval loop, no branch, no PR. An earlier version fixed "what the project owns" and observed the rest, but that line came from the sync classifier: an argument about which files a sync would overwrite, applied to an agent whose job is reading a transcript. With no sync, an auditor that also edits files is just an auditor with a side effect. The cost is real — a repeated permission prompt has a one-line fix in `.claude/settings.json` and now becomes an observation someone applies later, or doesn't. Taken so the output needs no diff review.
+
+**How much of that is enforced:** the `Edit` tool is withheld, which removes the habitual path, but the agent keeps `Write` and `Bash` and either could write here. `/read-the-tape` Step 3 checks `git status` after the run and treats any change as an agent defect — detection, not prevention. Worth knowing precisely, because "it structurally cannot" is a stronger claim than the tooling supports and would be the wrong thing to rely on.
 
 **The `observations` branch** is orphan, same shape and same reasons as a project's `sessions` branch (DEC-S014). Reached via `.observations-worktree/`, which `main` gitignores. One file per run, named `YYYY-MM-DD-<repo>-<slug>.md`, pushed directly — no PR, because evidence is not policy and nothing reads it at session time. A run that found nothing still writes a file: a clean run is the evidence that retires a rule.
 

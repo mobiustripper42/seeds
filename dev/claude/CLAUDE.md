@@ -111,7 +111,7 @@ The route that ends somewhere: `/read-the-tape` records the failure as a cited o
 | @code-review | Sonnet | After every commit (wired into `/kill-this`) | Catch issues early |
 | @pm | Sonnet | Start/end of sessions via skills | Track progress, flag risks |
 | @ui-reviewer | Sonnet | After UI work, phase boundaries | Design quality |
-| @tape-reader | Sonnet | `/read-the-tape` | Audits session JSONL for workflow anti-patterns. **Observer** (DEC-S039) — fixes project-owned files, records everything else as evidence |
+| @tape-reader | Sonnet | `/read-the-tape` | Audits session JSONL for workflow anti-patterns. **Observer** (DEC-S040) — writes one cited observation to seeds and changes nothing in this repo |
 | @doc-consistency | Sonnet | Via `/doc-consistency-check` skill, or ad-hoc | Cross-reference factual claims across project docs; flag mismatches + unfilled placeholders. Report-only |
 | @ideas | Sonnet | Park an idea, re-rank, or audit the parking lot | Curate docs/FUTURE_IDEAS.md — capture, dedupe, cross-ref, keep the index. Edits only that file, and creates it on first use |
 
