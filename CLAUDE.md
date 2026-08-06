@@ -32,8 +32,14 @@ Two template families:
 seeds-version            # Single line — current schema version (integer, no `v` prefix)
 
 .claude/
-  routine-config.yaml      # Routine config — exclude list, directions, per-direction PR/branch prefixes (DEC-S010)
+  routine-config.yaml      # Routine config — exclude list, directions, per-direction PR/branch prefixes (DEC-S010).
+                           # Also the file-class registry (DEC-S018) that decides what @tape-reader may edit (DEC-S039)
   type-manifest.yaml       # Project-type gating manifest read by @sync-config (DEC-S011)
+  agents/workout.md        # SEEDS-ONLY agent (DEC-S039). Not a template — see "The Learning Loop" below
+  skills/workout/          # SEEDS-ONLY skill (DEC-S039). Ditto
+
+observations/*.md          # On the orphan `observations` branch, via `.observations-worktree/` (DEC-S039).
+                           # The accumulating record: one file per /read-the-tape run, plus LEDGER.md and archive/
 
 dev/
   bash/
@@ -94,7 +100,7 @@ This repo encodes a specific development workflow for solo Claude-assisted proje
 | `/promote-production` | Ship trunk to prod | ff-merges `main` → `production` (deploy-only; tag already on the commit), pushes. Projects with a `production` branch only |
 | `/push-seeds` | After workflow improvements | Invokes @sync-config to classify diffs and propose backports to seeds |
 | `/pull-seeds` | After seeds gets new improvements | Resolves seeds checkout, gates on `seeds-version` compatibility, invokes @sync-config in pull direction to apply approved changes to the project |
-| `/read-the-tape` | After a session worth learning from | Invokes @tape-reader to audit JSONL transcript, find anti-patterns, propose skill improvements |
+| `/read-the-tape` | After a session worth learning from | Invokes @tape-reader to audit the JSONL transcript. Fixes project-owned files; records everything `logic`-class as a cited observation on seeds' `observations` branch. Requires a resolvable seeds checkout (DEC-S039) |
 | `/doc-consistency-check` | Ad-hoc, when docs feel drifted (no scheduled trigger) | Invokes @doc-consistency to cross-reference factual claims across `docs/*.md` + root `CLAUDE.md` and flag mismatches and unfilled placeholders. Report-only |
 
 **Dev identity:** skills resolve `DEV` from `~/.claude/devname` (one-line file) with `$USER` as fallback. Set once per machine. Used in session filenames so two devs never collide.
@@ -114,7 +120,8 @@ This repo encodes a specific development workflow for solo Claude-assisted proje
 | @pm | Sonnet | Start/end of sessions via skills | Track progress, flag risks, update PROJECT_PLAN.md |
 | @ui-reviewer | Sonnet | After UI work, phase boundaries | Design quality review |
 | @sync-config | Sonnet | Via `/push-seeds` skill, or ad-hoc | Classify diffs, propose backports, flag cross-family patterns |
-| @tape-reader | Sonnet | Via `/read-the-tape` skill | Audit session JSONL for anti-patterns; self-improving via candidate pattern discovery |
+| @tape-reader | Sonnet | Via `/read-the-tape` skill | **Observer** (DEC-S039). Audits session JSONL for anti-patterns; fixes project-owned files, writes everything else as a cited observation. Never edits a `logic`-class file, including its own pattern list |
+| @workout | Opus 5 | Via `/workout`, weekly or fortnightly — **seeds only** | The promotion half of the learning loop. Reads accumulated observations across repos, groups them into patterns, makes the severity call (DEC-S039), opens one PR against `main`. Not a project template — see below |
 | @doc-consistency | Sonnet | Via `/doc-consistency-check` skill, or ad-hoc | Cross-reference factual claims across project docs; flag mismatches + unfilled placeholders. Report-only, no edits |
 | @ideas | Sonnet | Park an idea, re-rank, or audit the parking lot | Curate `<project>/docs/FUTURE_IDEAS.md` — capture, dedupe, cross-ref, keep the prioritized index. Edits only that file |
 
@@ -186,6 +193,30 @@ When the workflow evolves in an active project, run `/push-seeds` there. The @sy
 One run, one commit per repo.
 
 **Schema version compatibility:** before any seeds ↔ project sync (in either direction), the active skill (`/push-seeds`, future `/pull-seeds`) must compare `seeds-version` against `<project>/.claude/seeds-version`. Mismatch → STOP and surface the migration. Never auto-migrate. See `docs/SCHEMA_VERSIONS.md`.
+
+## The Learning Loop (DEC-S039)
+
+`/push-seeds` moves *deliberate* improvements. This moves the *accidental* ones — what a session revealed by going wrong. Spec: `docs/SPECS/2026-08-workflow-learning-loop.md`.
+
+**Observation and rule are different acts with different homes.** An observation is cheap, high-volume, project-local, and factual: *this session read the whole plan file three times*. A rule change is expensive, rare, cross-project, and a judgment: *therefore `/its-alive` should grep*. One agent doing both in one sitting is why neither was done well.
+
+| Surface | Runs where | Produces | May edit |
+|---|---|---|---|
+| `/read-the-tape` → `@tape-reader` | in a project | observations + local fixes | project-owned files only |
+| `observations` branch | seeds | the accumulating record | nothing — it is data |
+| `/workout` → `@workout` | **seeds only** | one PR against `main` | `dev/claude/**` |
+
+**Where the line falls is the file-class registry** (`.claude/routine-config.yaml` § `file-classes`, DEC-S018 as extended by DEC-S039). `@tape-reader` resolves it rather than guessing. Project-owned → fix. `logic` → observe, never edit — seeds is canonical there and drift is a full-file overwrite in the pull direction, so a fix applied in a project is silently deleted by the next `/pull-seeds` along with the evidence that justified it.
+
+**The `observations` branch** is orphan, same shape and same reasons as a project's `sessions` branch (DEC-S014). Reached via `.observations-worktree/`, which `main` gitignores. One file per run, named `YYYY-MM-DD-<repo>-<slug>.md`, pushed directly — no PR, because evidence is not policy and nothing reads it at session time. A run that found nothing still writes a file: a clean run is the evidence that retires a rule.
+
+**Inbox and ledger.** Directory position is the state — a file in `observations/` is unread, and after a cycle it moves to `archive/YYYY-MM/` **regardless of verdict, held included**. `LEDGER.md` carries one row per *pattern* with the accumulated judgment. A cycle reads the inbox plus the ledger, **never the archive**, so cost scales with what happened since the last run rather than with how long the loop has been running. The ledger is the one hand-maintained artifact here and therefore the one that can rot — watch for a row whose count stops moving while observations for it keep arriving.
+
+**Promotion is a severity call, not a count.** No threshold exists and none should be invented. The question is what the next occurrence costs and whether it would announce itself — irreversible or silent earns a rule on one sighting; recoverable and self-announcing waits for repetition. Frequency is evidence *about* severity, never severity. Full table in DEC-S039.
+
+**`@workout` is seeds-only and deliberately not a template.** It edits `dev/claude/**` and reads a branch that exists only here, so a project could never run it; shipping it in `dev/claude/agents/` would install dead machinery in every project and put it in every project's skill list. It lives at `.claude/agents/workout.md` + `.claude/skills/workout/`, alongside the other seeds-only config (`routine-config.yaml`, `type-manifest.yaml`), and is not in the file-class registry because nothing syncs it.
+
+**Cadence: weekly or fortnightly, by hand.** Not scheduled — this is not the Routine returning under a new name (DEC-S038). The honest failure mode is that the workout doesn't happen; observations then pile up harmlessly and nothing regresses, which still beats today's failure where the candidate pattern is deleted by the next sync. Merged rules travel outward by `/pull-seeds`, and the DEC-S038 ordering trap applies: a `logic`-class change must be in seeds `main` before the next `/pull-seeds` on any project.
 
 ## The Routine — OFF (DEC-S038)
 

@@ -29,9 +29,15 @@ Five agents and six session skills drive seeds' own workflow. All run as Claude 
 **Note:** N/A for seeds itself (no UI) — included for completeness / test coverage of the template.
 
 ### @tape-reader
-**Purpose:** Audits session JSONL transcripts for workflow anti-patterns. Checks 10 known patterns (P1–P10), proposes targeted skill/agent fixes, and surfaces new candidate patterns to grow its own checklist.
+**Purpose:** Audits session JSONL transcripts for workflow anti-patterns (P1–P17). Under DEC-S039 it is an **observer** — it fixes project-owned files and records everything `logic`-class as a cited observation on the `observations` branch. It never edits a shared workflow file, including its own pattern list.
 **When:** Via `/read-the-tape` skill, after a session worth learning from.
 **Spec:** `.claude/agents/tape-reader.md`
+
+### @workout
+**Purpose:** The promotion half of the learning loop (DEC-S039). Reads the accumulated observations, groups them into patterns across repos and weeks, makes the severity call — cost and detectability, never a count — and opens one PR against `main`. Never merges it.
+**When:** Via `/workout`, weekly or fortnightly, by hand. Not scheduled (DEC-S038).
+**Spec:** `.claude/agents/workout.md`
+**Note:** **Seeds-only.** It edits `dev/claude/**` and reads a branch that exists only here, so it is deliberately not a template — shipping it would install machinery no project can run. Not in the file-class registry, because nothing syncs it.
 
 ### @sync-config
 **Purpose:** Classifies diffs between seeds and active projects — "generic improvement" (backport) vs. "project-specific tweak" (skip). Used in both directions (upstream PR automation + downstream `/pull-seeds`).
@@ -63,8 +69,12 @@ Calculate duration + points, write session log entry, update `docs/PROJECT_PLAN.
 **Spec:** `.claude/skills/its-dead/SKILL.md`
 
 ### /read-the-tape — Audit a session transcript
-Invokes `@tape-reader` agent on a session JSONL. Finds anti-patterns, proposes fixes, opens PR. Self-improving: surfaces candidate patterns for the agent's own checklist.
+Resolves the seeds checkout, attaches `.observations-worktree/`, then invokes `@tape-reader` on a session JSONL. Applies project-owned fixes only; writes one cited observation per run — including a run that found nothing — to the `observations` branch.
 **Spec:** `.claude/skills/read-the-tape/SKILL.md`
+
+### /workout — Promote what accumulated (seeds only)
+Invokes `@workout` on the observation inbox plus `LEDGER.md`, never the archive. Groups observations into patterns, makes the severity call, updates the ledger, archives the whole inbox, and opens one PR against `main`. Weekly or fortnightly, by hand.
+**Spec:** `.claude/skills/workout/SKILL.md`
 
 ### /push-seeds — Push workflow changes back to seeds
 Invokes `@sync-config` agent to diff live project files against seeds templates. One run, one commit per repo.
@@ -78,8 +88,9 @@ Invokes `@sync-config` agent to diff live project files against seeds templates.
 **During:** spec → build → test → mobile screenshot (N/A for seeds)
 **Pause:** `/pause-this` → break → `/restart-this`
 **End:** `/kill-this` → review draft → `/its-dead` → finalize + push
-**After a notable session:** `/read-the-tape` → find anti-patterns → PR → `/push-seeds` → backport
-**After workflow tweaks:** `/push-seeds` → propose backports
+**After a notable session:** `/read-the-tape` → fix what the project owns → observation lands on the `observations` branch
+**Weekly/fortnightly, in seeds:** `/workout` → group, judge, promote → one PR against `main` → `/pull-seeds` carries merged rules outward
+**After deliberate workflow tweaks:** `/push-seeds` → propose backports
 
 ---
 
@@ -91,7 +102,8 @@ Invokes `@sync-config` agent to diff live project files against seeds templates.
 | @code-review | Sonnet | After commits | Catch issues early |
 | @pm | Sonnet | Start/end of sessions | Track progress, flag risks |
 | @ui-reviewer | Sonnet | After UI work | Design quality (N/A for seeds) |
-| @tape-reader | Sonnet | Via /read-the-tape | Audit transcripts, propose improvements |
+| @tape-reader | Sonnet | Via /read-the-tape | Observe transcripts; fix project-owned files, record the rest |
+| @workout | Opus 5 | Via /workout, weekly/fortnightly — seeds only | Group observations into patterns, judge severity, promote via one PR |
 | @sync-config | Sonnet | Via skill / Routine | Classify diffs, propose backports |
 | @doc-consistency | Sonnet | Via /doc-consistency-check | Cross-reference doc claims. Report-only, no edits |
 | @ideas | Sonnet | Park or re-rank an idea | Curate the FUTURE_IDEAS parking lot |
@@ -100,7 +112,8 @@ Invokes `@sync-config` agent to diff live project files against seeds templates.
 | /restart-this | — | Resume from pause | Reload context |
 | /kill-this | — | Session end (part 1) | Draft log entry |
 | /its-dead | — | Session end (part 2) | Finalize + push |
-| /read-the-tape | — | After notable sessions | Audit + improve skills |
+| /read-the-tape | — | After notable sessions | Audit; fix project-owned files, write one observation |
+| /workout | — | Weekly/fortnightly — seeds only | Promote accumulated observations into template changes |
 | /push-seeds | — | After workflow tweaks | Backport to seeds |
 | /pull-seeds | — | After seeds gains improvements | Pull templates in; gated on `seeds-version` |
 | /start-phase | — | Phase boundary (start) | Materialize the phase as GitHub Issues |

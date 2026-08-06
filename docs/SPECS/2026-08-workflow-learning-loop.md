@@ -1,6 +1,8 @@
 # Workflow learning loop — observation, accrual, promotion
 
-**Status:** Draft — not implemented
+**Status:** Implemented 2026-08-06 — Phases 1–4. Untested against real evidence: the inbox is empty
+until the first `/read-the-tape` runs under the new shape, and `@workout` has not yet judged
+anything. Phase 3 was built ahead of the sequencing note below at the operator's call.
 **Owner:** @architect
 **Implements:** DEC-S039
 **Date:** 2026-08-06
@@ -89,10 +91,18 @@ Three constraints on that shape, all load-bearing:
    difference between a rule written on one sighting and a pattern that quietly never accumulates
    evidence at all.
 
-**Open question for Phase 1:** how the file reaches seeds. Candidates — a direct push to the orphan
-branch from the project session (needs cross-repo auth, which CC has); writing to a local
-`.observations/` that a later seeds session collects; or `/push-seeds` carrying it. Start with
-whichever is least machinery; the branch layout does not depend on the answer.
+**~~Open question for Phase 1:~~ Resolved 2026-08-06 — write to the seeds worktree directly.**
+`/read-the-tape` resolves `$SEEDS` in the same order as `/pull-seeds` Step 0 (skill arg → `../seeds`
+sibling → `$SEEDS_REPO`), attaches `.observations-worktree/` there, and the agent commits and pushes
+to the `observations` branch itself. Least machinery of the three: the resolution logic already
+existed, and no cross-repo auth is needed beyond a checkout on disk. Rejected — a local
+`.observations/` collected later, because the collection step is one more ritual that can be skipped,
+and skipping it is the same evaporation this decision exists to stop; and `/push-seeds` carrying it,
+because that couples evidence capture to a sync ritual DEC-S039 already observes nobody runs.
+
+The cost, stated so it isn't a surprise: **`/read-the-tape` now hard-requires a seeds checkout** and
+stops if it can't resolve one. That is deliberate — running the audit with nowhere to write means
+producing findings and discarding them, which is the failure being removed.
 
 ## Phase 2 — the `observations` branch
 
@@ -148,6 +158,14 @@ shape of `check-docs`' exemption-existence assertion. Not built until the rot is
 
 Runs in seeds. Reads `observations/` (excluding `archive/`). Model: Opus — this is the judgment
 step, and it is the one place in the loop where being wrong is expensive.
+
+**It is deliberately not a template.** `@workout` and `/workout` live at `.claude/agents/workout.md`
+and `.claude/skills/workout/`, alongside the other seeds-only config (`routine-config.yaml`,
+`type-manifest.yaml`) — **not** under `dev/claude/`. It edits `dev/claude/**` and reads a branch
+that exists only in seeds, so no project could run it; shipping it as a template would install dead
+machinery in every project and put a skill in every project's list that fails on invocation. It is
+absent from the file-class registry for the same reason: nothing syncs it, so nothing needs to
+classify it.
 
 1. **Read the inbox and `LEDGER.md`. Never the archive.** Group new observations by pattern, and
    fold them into the ledger's existing rows — a pattern seen twice before and once more today is
