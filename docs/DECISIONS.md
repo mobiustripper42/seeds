@@ -16,10 +16,11 @@ Decisions are numbered DEC-NNN. "DEC-TBD" means the decision is flagged but unre
 - DEC-S010 — Bi-directional nightly sync via Anthropic Routine _(retired by DEC-S038 — the nightly automation only — the config, the classifier and the file-class registry it defined are still read by manual sync)_
 - DEC-S011 — Project-type gating for template files
 - DEC-S016 — ui-reviewer agent split — generic shell + project context file _(extended by DEC-S019 — the pattern generalized from one agent to any shell/context pair)_
-- DEC-S018 — File-class registry for sync-config
+- DEC-S018 — File-class registry for sync-config _(extended by DEC-S039 — the registry now also decides what /read-the-tape may edit, not only what sync may overwrite)_
 - DEC-S019 — Hybrid-file split pattern (generalization of DEC-S016)
 - DEC-S028 — The Routine emits a fleet-status digest — the read side of the SPEC hub; rolling issues are pinned by config number _(retired by DEC-S038 — the digest is dormant while the Routine that emitted it is off)_
 - DEC-S038 — The nightly sync Routine is off — seeds ↔ project sync is on-demand from CC Desktop
+- DEC-S039 — The learning loop splits observation from rule — evidence accrues in seeds, promotion is a separate, periodic act
 
 ### Session lifecycle & skills
 - DEC-S012 — Session-end flow — `/its-dead` first, merge last; PR-flow default on protected `$WORKING_BRANCH`

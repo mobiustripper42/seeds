@@ -1,0 +1,119 @@
+---
+id: DEC-S039
+title: "The learning loop splits observation from rule — evidence accrues in seeds, promotion is a separate, periodic act"
+topic: "Sync — directions, classification & file classes"
+amends:
+  - id: DEC-S018
+    relation: extends
+    scope: "the registry now also decides what /read-the-tape may edit, not only what sync may overwrite"
+---
+
+## DEC-S039: The learning loop splits observation from rule — evidence accrues in seeds, promotion is a separate, periodic act
+
+**Decision:** `/read-the-tape` stops proposing changes to shared workflow files. It becomes an
+**observer**: it may fix what the project owns, and everything else it emits as an **observation** —
+a dated, cited record of what a session actually did — appended to an orphan `observations` branch
+in seeds. A second agent, `@workout`, runs periodically **in seeds**, reads the accumulated
+observations, and promotes what recurs into template changes via one PR against `main`.
+
+### The problem
+
+Three failures, and they compound.
+
+**One: the learning is thrown away.** `/read-the-tape` applies a fix and the evidence that justified
+it disappears with the session. Nothing accumulates, so the second occurrence of a pattern is
+re-derived from scratch and the tenth is indistinguishable from the first.
+
+**Two: the fix lands in one repo.** Backporting is a line of prose in a PR body —
+`tape-reader.md` Step 6 ends with "Note: Run /push-seeds after merge to backport to seeds". A
+reminder inside an artifact you have already merged is not a mechanism. With the Routine off
+(DEC-S038) nothing else will surface the gap either.
+
+**Three, and worst: the storage is a deletion path.** `dev/claude/agents/tape-reader.md` is `logic`
+class (DEC-S018) — seeds is canonical and drift is a full-file overwrite in the pull direction. Yet
+`tape-reader.md` Step 7 instructs the reader to add newly-discovered patterns *to that same file, in
+the project*. A candidate pattern added in a project and not backported before the next
+`/pull-seeds` is **silently deleted**. The one agent designed to accumulate learning has its own
+erasure wired in.
+
+**The structural defect underneath all three:** `@tape-reader` is told "don't invent patterns from
+single occurrences — look for repetition or clear impact", and it reads exactly one transcript. It
+cannot see repetition. It is being asked for a judgment its inputs cannot support, every time it
+runs.
+
+### The cut
+
+**Observation and rule are different acts and need different homes.**
+
+An observation is cheap, high-volume, project-local, and factual: *this session read the whole plan
+file three times*. A rule change is expensive, rare, cross-project, and a judgment: *therefore
+`/its-alive` should grep*. Today one agent does both in one sitting, which is why neither is done
+well.
+
+**Where the line falls is already written down.** It is the file-class registry:
+
+- **What the project owns** — `.claude/settings.json` permission entries, project-owned reviewers
+  (DEC-S035) — `/read-the-tape` fixes now, as today. A repeated permission prompt is a local fact
+  with a local fix and no cross-project meaning.
+- **Anything `logic` class** — skills, `sync-config`, `tape-reader`, `ideas` — becomes an
+  observation. Never edited in a project. This is not a new rule; it is DEC-S018 applied to a
+  surface it was never applied to, which is why this decision `extends` it rather than standing
+  alone.
+
+### Where evidence lands
+
+An orphan **`observations` branch in seeds**, one file per run:
+`observations/YYYY-MM-DD-<repo>-<slug>.md`.
+
+Reusing DEC-S014's shape, for DEC-S014's reasons. An orphan branch is decoupled from `main`, so
+evidence never collides with template work. One file per run means N projects can write
+concurrently with no merge conflict and no index to regenerate. And it needs no review surface,
+because **evidence is not policy** — nothing in `observations` changes behaviour until `@workout`
+promotes it.
+
+Rejected: an issue per observation, which is the accretion failure DEC-S028 already paid for (34
+open `routine: last run` issues before anyone noticed). Rejected: a rolling issue, which replaces
+its body and therefore cannot accumulate. Rejected: a PR per session, which puts a review gate on
+data that nobody needs to review.
+
+### The promotion step
+
+`@workout` runs in seeds, on the operator's cadence — weekly or fortnightly, by hand, not scheduled.
+It reads what has accumulated and asks the question `@tape-reader` structurally cannot: **what
+recurs?** The same pattern in three repos over two weeks is a rule. Once, in one session, is
+evidence and stays evidence.
+
+It proposes template edits and opens **one** PR against seeds `main`, with the observations cited
+inline. It never merges. Merged rules then travel outward by `/pull-seeds` per DEC-S038.
+
+**No promotion threshold is set here.** "Three occurrences across two repos" is a number that would
+be invented rather than observed. `@workout` argues each case on its evidence, and the threshold
+gets written down once it has been seen to work — the same discipline that kept `check-docs`'
+exemption lists honest.
+
+### What this costs
+
+**A round trip.** A pattern spotted on Monday does not become a rule until the next workout. That is
+deliberate: the current design's speed is exactly what produces one-off rules justified by one
+session, and a rule written from a single occurrence is how a workflow accretes cargo.
+
+**Observations pile up.** They are small text files on a branch nobody reads by default. `@workout`
+archives what it has promoted or dismissed, so the working set stays the unpromoted tail.
+
+**It only works if the workout actually happens.** This replaces a mechanism nobody ran
+(`/push-seeds` after a merged PR) with a ritual on a calendar. That is a real bet on a human habit,
+and it is the same bet DEC-S038 already made when the Routine went off. If the workout does not
+happen, observations accumulate harmlessly and nothing regresses — which is a strictly better
+failure than today's, where the candidate pattern is deleted by the next sync.
+
+### What it does not do
+
+Not scheduled, not automatic, and it does not re-open the nightly-Routine question. The fortnightly
+PR *is* the "what happened" report the Routine never gave — one artifact, human-reviewed, with the
+transcript citations that justify each line.
+
+**Spec:** `docs/SPECS/2026-08-workflow-learning-loop.md`.
+
+**Schema:** none yet. Nothing here changes a project's on-disk contract — the observations branch
+lives in seeds, and `/read-the-tape`'s narrowed scope removes an ability rather than adding a
+requirement. A version bump comes only if `@workout` later needs a per-project file.
