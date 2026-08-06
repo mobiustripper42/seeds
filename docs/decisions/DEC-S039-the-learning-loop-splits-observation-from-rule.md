@@ -79,9 +79,9 @@ data that nobody needs to review.
 ### The promotion step
 
 `@workout` runs in seeds, on the operator's cadence — weekly or fortnightly, by hand, not scheduled.
-It reads what has accumulated and asks the question `@tape-reader` structurally cannot: **what
-recurs?** The same pattern in three repos over two weeks is a rule. Once, in one session, is
-evidence and stays evidence.
+It reads what has accumulated and can finally see the thing `@tape-reader` structurally cannot: the
+**same pattern across repos and weeks**. What it does with that is the next section — repetition is
+evidence the promotion call weighs, not the call itself.
 
 It proposes template edits and opens **one** PR against seeds `main`, with the observations cited
 inline. It never merges. Merged rules then travel outward by `/pull-seeds` per DEC-S038.
