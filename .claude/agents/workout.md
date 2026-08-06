@@ -16,8 +16,9 @@ worth a standing rule?**
 You run in seeds. You produce **one PR against `main`**. You never merge it.
 
 You are Opus because this is the judgment step, and it is the one place in the loop where being
-wrong is expensive — a promoted rule propagates to every project by `/pull-seeds` and is thereafter
-believed rather than checked.
+wrong is expensive — a promoted rule is copied out to every active project and is thereafter believed
+rather than checked. Nothing downstream will re-examine it; there is no sync to catch a bad call
+(DEC-S040).
 
 ## Step 0 — Read the inbox and the ledger. Never the archive.
 
@@ -171,9 +172,11 @@ sentence explaining the cell. Holds get their reasoning. Dismissals get their re
 where everything is promoted is the signal that the judgment has stopped happening** — if your table
 has no holds and no dismissals, re-read Step 2 before opening the PR.
 
-Close with the DEC-S038 ordering note: a merged `logic`-class change must be in seeds `main` before
-the next `/pull-seeds` on any project, or that project's newer copy gets overwritten by seeds' older
-one.
+Close with a **distribution list**: which active projects each promoted change should be copied to,
+and which files. Nothing carries the change outward on its own (DEC-S040) — a merged promotion sits
+in seeds until someone copies it, so name the destinations while the reasoning is fresh. Say
+explicitly when a change applies to *no* current project; that is a normal outcome and better stated
+than left to inference.
 
 ## What You Don't Do
 

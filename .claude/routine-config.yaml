@@ -1,14 +1,22 @@
-# Routine config — read by the nightly bi-directional sync Routine.
+# File-class registry, plus the dead config of a retired Routine.
 #
-# THE ROUTINE IS OFF (DEC-S038). Sync is on-demand from CC Desktop. This file is
-# NOT dead: `file-classes:` below is read by manual /pull-seeds and /push-seeds
-# too, and is the reason the shared scripts forward-port cleanly. Only the
-# scheduling-related keys — exclude, require, directions, the PR/branch prefixes,
-# the rolling-issue numbers, digest — are dormant. They stay so re-enabling is a
-# switch rather than a rebuild.
+# NOTHING READS THIS FILE (DEC-S040). The Routine is off (DEC-S038) and now
+# unrevivable; @sync-config, /pull-seeds and /push-seeds are deleted. Every
+# automated consumer this file ever had is gone.
 #
-# Lives in the seeds repo so it's source-controlled and editable in PRs.
-# The Routine fetches this file from `main` at the start of each run.
+# It stays for one reason: `file-classes:` below is the answer to the question
+# a manual copy actually asks — "is this file identical across every project
+# and safe to `cp` wholesale, or is it project-owned and must never be copied
+# at all?" That is now documentation for a human, not config for a machine.
+#
+#   logic   → copy wholesale; seeds is canonical
+#   context → never copy; the project owns its version
+#   hybrid  → copy the shell only; the paired context file is project-owned
+#
+# The scheduling keys below — exclude, require, directions, PR/branch prefixes,
+# the rolling-issue numbers, digest — describe a mechanism that no longer
+# exists. They are kept as a record of what it did, not as a switch. Reviving
+# scheduled sync means designing it again from DEC-S004/S010/S028/S038/S040.
 #
 # Direction model (DEC-S003, DEC-S010):
 #   upstream   = project → seeds (backport improvements that emerged in projects)
@@ -90,22 +98,25 @@ status_issue: 131
 # enumeration Steps 1–2 already perform; it never merges, pushes, or branches.
 digest: true
 
-# File-class registry (DEC-S018). Read by @sync-config at Step 1.4 before
-# hunk classification. Maps glob patterns to one of:
+# File-class registry (DEC-S018). No automated reader (DEC-S040) — this is the
+# reference a person consults before copying a file between seeds and a project.
+# Maps glob patterns to one of:
 #
-#   logic    — byte-identical-by-design across projects. Hash-compare only;
-#              drift produces a single Step 3 row, no LLM judgment.
-#   context  — project-specific. Dropped from diff scope entirely.
-#   hybrid   — generic shell + per-project context file. Only the shell
-#              participates in classification (DEC-S019).
+#   logic    — byte-identical-by-design across projects. Safe to `cp` wholesale
+#              in either direction; drift here is staleness, not customization.
+#   context  — project-specific. Never copy. The project owns its version.
+#   hybrid   — generic shell + per-project context file. Copy the shell only
+#              (DEC-S019); the paired context file is project-owned.
 #
-# Order matters — first matching glob wins. Files not matched here fall
-# back to the legacy hybrid-by-default behavior, so adding the registry
-# doesn't break sync for files yet to be classified.
+# Order matters — first matching glob wins. A file not matched here has never
+# been classified; treat it as unclassified rather than assuming a default, and
+# decide deliberately before copying it.
 #
-# Seeds-side paths only. The agent maps to project-side paths using the
-# same rules as Step 1 (e.g. `dev/claude/skills/<name>/SKILL.md` matches
-# project `.claude/skills/<name>/SKILL.md`).
+# Seeds-side paths only. Map to project-side by hand:
+#   dev/claude/skills/<name>/SKILL.md  ↔  .claude/skills/<name>/SKILL.md
+#   dev/claude/agents/<name>.md        ↔  .claude/agents/<name>.md
+#   dev/claude/scripts/<name>          ↔  scripts/<name>
+#   dev/claude/CLAUDE.md               ↔  CLAUDE.md (repo root)
 file-classes:
   - "dev/claude/skills/**": logic
   # Doc-integrity scripts (DEC-S036, DEC-S037). These became byte-identical
@@ -115,7 +126,6 @@ file-classes:
   # needs different behavior edits its config, never the script — so drift in
   # the script itself is staleness, which is exactly what `logic` handles.
   - "dev/claude/scripts/**": logic
-  - "dev/claude/agents/sync-config.md": logic
   - "dev/claude/agents/tape-reader.md": logic
   - "dev/claude/agents/ideas.md": logic   # generic curator — no project-specific content, byte-identical everywhere
   # Project-owned reviewers (DEC-S035). These three reason about the project's

@@ -14,7 +14,7 @@ session, reaches seeds, and is promoted to a rule when its severity warrants it 
 visible in one reviewable artifact per cycle.
 
 Target, measured after two cycles: every template change merged from `@workout` cites at least one
-observation, and no candidate pattern is lost to a `/pull-seeds` overwrite.
+observation, and no candidate pattern is lost to the session that found it.
 
 ## Non-goals
 
@@ -31,19 +31,22 @@ observation, and no candidate pattern is lost to a `/pull-seeds` overwrite.
 
 | Surface | Runs where | Produces | Edits |
 |---|---|---|---|
-| `/read-the-tape` → `@tape-reader` | in a project | observations + local fixes | project-owned files only |
+| `/read-the-tape` → `@tape-reader` | in a project | one cited observation | **nothing, anywhere in that repo** |
 | `observations` branch | seeds | the accumulating record | nothing — it is data |
 | `/workout` → `@workout` | in seeds | one PR against `main` | `dev/claude/**` |
 
 ## Phase 1 — `/read-the-tape` becomes an observer
 
-**Narrow what it may edit.** Split the current Step 5 by file class (DEC-S018), which the agent must
-resolve from `<seeds>/.claude/routine-config.yaml` rather than guess:
+**It edits nothing.** Not a skill, not `.claude/settings.json`, not a reviewer — no file in the repo
+it runs in. It has no `Edit` tool, so the constraint is structural rather than remembered. Its whole
+output is one observation file, written to seeds.
 
-- **project-owned** (`.claude/settings.json`, the DEC-S035 reviewers) → propose, `y/n`, apply, as
-  today. Unchanged behaviour.
-- **`logic` class** (skills, `sync-config`, `tape-reader`, `ideas`) → **never edited.** Becomes an
-  observation.
+> **Amended 2026-08-06 by DEC-S040.** As first written, this phase split findings by file class:
+> project-owned ones got a `y/n` and an edit, everything else became an observation. That line came
+> from the sync classifier — an argument about which files a sync would overwrite — and it did not
+> survive the sync being retired. With nothing to overwrite, an auditor that also edits files is
+> just an auditor with a side effect. The cost is that a repeated permission prompt (P2), the
+> cheapest possible fix, is now an observation someone applies by hand or doesn't.
 
 **Delete Step 7's instruction to edit `tape-reader.md` in the project.** That is the erasure path
 DEC-S039 names. Candidate patterns become observations like everything else.
@@ -92,13 +95,13 @@ Three constraints on that shape, all load-bearing:
    evidence at all.
 
 **~~Open question for Phase 1:~~ Resolved 2026-08-06 — write to the seeds worktree directly.**
-`/read-the-tape` resolves `$SEEDS` in the same order as `/pull-seeds` Step 0 (skill arg → `../seeds`
-sibling → `$SEEDS_REPO`), attaches `.observations-worktree/` there, and the agent commits and pushes
+`/read-the-tape` resolves `$SEEDS` (skill arg → `../seeds` sibling → `$SEEDS_REPO`), attaches `.observations-worktree/` there, and the agent commits and pushes
 to the `observations` branch itself. Least machinery of the three: the resolution logic already
 existed, and no cross-repo auth is needed beyond a checkout on disk. Rejected — a local
 `.observations/` collected later, because the collection step is one more ritual that can be skipped,
-and skipping it is the same evaporation this decision exists to stop; and `/push-seeds` carrying it,
-because that couples evidence capture to a sync ritual DEC-S039 already observes nobody runs.
+and skipping it is the same evaporation this decision exists to stop; and having a sync skill carry it,
+because that couples evidence capture to a ritual DEC-S039 already observes nobody runs — and which
+DEC-S040 has since deleted outright.
 
 The cost, stated so it isn't a surprise: **`/read-the-tape` now hard-requires a seeds checkout** and
 stops if it can't resolve one. That is deliberate — running the audit with nowhere to write means
@@ -205,9 +208,13 @@ avoid.
 ## Phase 4 — cadence
 
 Weekly or fortnightly, by hand, in seeds. The PR is the report: what recurred, what was promoted,
-what was held and why. Merged rules travel outward by `/pull-seeds` (DEC-S038), and the DEC-S038
-ordering trap applies — a `logic`-class change must be in seeds `main` before the next `/pull-seeds`
-on any project.
+what was held and why.
+
+**Getting a merged rule into a project is a fourth step, and it is manual** (DEC-S040). Nothing
+carries it outward. `@workout` closes its PR with a distribution list — which projects, which files
+— so the destinations are named while the reasoning is fresh; acting on that list is separate and
+deliberate. The DEC-S038 ordering trap is gone with the sync that caused it: no mechanism can now
+overwrite a project's newer file with seeds' older one. A person still can, by copying carelessly.
 
 ## Risks
 

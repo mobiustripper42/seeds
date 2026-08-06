@@ -14,13 +14,14 @@ Decisions are numbered DEC-NNN. "DEC-TBD" means the decision is flagged but unre
 - DEC-S003 — One sync concept, two directions, same classifier
 - DEC-S004 — Upstream = nightly remote Routine, downstream = manual skill _(amended by DEC-S038 — the upstream leg — both directions are now manual; downstream-is-manual was already right)_
 - DEC-S010 — Bi-directional nightly sync via Anthropic Routine _(retired by DEC-S038 — the nightly automation only — the config, the classifier and the file-class registry it defined are still read by manual sync)_
-- DEC-S011 — Project-type gating for template files
+- DEC-S011 — Project-type gating for template files _(revised by DEC-S040 — type gating loses its consumer with @sync-config; the manifest survives as documentation)_
 - DEC-S016 — ui-reviewer agent split — generic shell + project context file _(extended by DEC-S019 — the pattern generalized from one agent to any shell/context pair)_
-- DEC-S018 — File-class registry for sync-config _(extended by DEC-S039 — the registry now also decides what /read-the-tape may edit, not only what sync may overwrite)_
+- DEC-S018 — File-class registry for sync-config _(extended by DEC-S039 — the registry now also decides what /read-the-tape may edit, not only what sync may overwrite; revised by DEC-S040 — the registry loses every automated consumer and survives as guidance for the manual copy)_
 - DEC-S019 — Hybrid-file split pattern (generalization of DEC-S016)
 - DEC-S028 — The Routine emits a fleet-status digest — the read side of the SPEC hub; rolling issues are pinned by config number _(retired by DEC-S038 — the digest is dormant while the Routine that emitted it is off)_
-- DEC-S038 — The nightly sync Routine is off — seeds ↔ project sync is on-demand from CC Desktop
-- DEC-S039 — The learning loop splits observation from rule — evidence accrues in seeds, promotion is a separate, periodic act
+- DEC-S038 — The nightly sync Routine is off — seeds ↔ project sync is on-demand from CC Desktop _(revised by DEC-S040 — the holding that manual /push-seeds and /pull-seeds carry the steady state — both are now retired; the Routine stays off)_
+- DEC-S039 — The learning loop splits observation from rule — evidence accrues in seeds, promotion is a separate, periodic act _(revised by DEC-S040 — @tape-reader's project-owned fix path and PR, and Phase 4's outward mechanism — the observation half stands unchanged)_
+- DEC-S040 — Automated seeds ↔ project sync is retired entirely — the loop is observe, promote, copy by hand
 
 ### Session lifecycle & skills
 - DEC-S012 — Session-end flow — `/its-dead` first, merge last; PR-flow default on protected `$WORKING_BRANCH`
@@ -34,7 +35,7 @@ Decisions are numbered DEC-NNN. "DEC-TBD" means the decision is flagged but unre
 
 ### Branches, versioning & release
 - DEC-S005 — Branch model — task/* branches + PR flow
-- DEC-S006 — Schema versioning — single global integer at `seeds-version`
+- DEC-S006 — Schema versioning — single global integer at `seeds-version` _(refined by DEC-S040 — what the version integer is for, now that no skill gates on it)_
 - DEC-S007 — Project semver — `package.json` + git tag, three triggers, dev projects only
 - ~~DEC-S008 — Staging promotion via ff-merge, not PR~~ → superseded by DEC-S022
 - DEC-S022 — `main` is the active trunk; `production` is the deploy branch (replaces DEC-S008)

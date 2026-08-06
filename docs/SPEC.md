@@ -6,36 +6,42 @@ Personal template library and sync tooling for Claude Code workflows. Holds sess
 Seeds is both a template source (`dev/`, `domain/`) and a real project using its own workflow at the root.
 
 ## Philosophy
-One source of truth. Workflow improvements flow back to seeds; seeds improvements flow out to projects. No manual copy-paste drift across devices.
+Seeds is one source of truth for what the workflow *should* be. Getting a change across the boundary between seeds and a project is a **deliberate human act**, not a mechanism.
+
+That is a reversal, and it was earned rather than chosen. The original philosophy here read: *"Workflow improvements flow back to seeds; seeds improvements flow out to projects. No manual copy-paste drift across devices."* Three successive attempts to build that flow — the nightly Routine (DEC-S010), then manual `/push-seeds` + `/pull-seeds` (DEC-S038), then just `/push-seeds` — each ended by narrowing what the automation was allowed to touch, until what remained was a gate around `cp`. **The projects differ more than they agree**, and deciding which file should cross is the part that needs judgment (DEC-S040).
+
+What still flows automatically is *evidence*, not files: a session's observations reach seeds on their own (DEC-S039), because evidence is uniform in a way template files are not.
 
 ## Target Launch
-- **V1 target:** TBD
-- **V1 critical path:** Upstream sync (nightly Routine) + downstream sync (`/pull-seeds`) both work end-to-end across at least two projects, on all three devices.
+- **V1 shipped and was retired.** The sync system worked end-to-end and was removed anyway — see § V1, retired.
+- **Current critical path:** the learning loop — `/read-the-tape` observes, `@workout` promotes, a human copies. Spec: `docs/SPECS/2026-08-workflow-learning-loop.md`.
 
 ## Stack
 - **Skills / agents:** Markdown with YAML frontmatter, under `dev/claude/` (templates) and `.claude/` (seeds' own live copies)
-- **Sync classifier:** `@sync-config` agent (prompt-only, runs on Sonnet)
-- **Orchestration:** Shell scripts + Anthropic Routines (remote, scheduled)
-- **Version control:** git + GitHub, one repo per project, seeds as the hub
-- **Hosting:** None — everything runs on user's devices or inside Anthropic Routines
+- **Promotion judgment:** `@workout` agent (prompt-only, Opus, seeds-only)
+- **Orchestration:** none. Nothing is scheduled; nothing runs unattended (DEC-S038, DEC-S040)
+- **Version control:** git + GitHub, one repo per project, seeds as the hub. Two orphan branches: `sessions` per project (DEC-S014), `observations` in seeds (DEC-S039)
+- **Hosting:** None — everything runs on the user's devices
 
 ## Roles
-- **User (solo)** — develops workflow improvements in active projects, approves backport PRs to seeds, pulls seeds updates into projects on demand
+- **User (solo)** — develops workflow improvements in active projects, reviews `@workout`'s promotion PRs, and copies merged changes out to projects by hand
 
 ## Core Concepts
 - **Template family** — `dev/` or `domain/<name>/`. Defines the stock skills and agents for that kind of project.
 - **Project-level skills** — live in `<project>/.claude/skills/`, checked into the repo, ride along with clones across devices.
-- **Upstream sync** — project → seeds. Remote Routine, nightly, opens PRs.
-- **Downstream sync** — seeds → project. Manual, via `/pull-seeds` skill.
-- **Classifier** — `@sync-config` agent decides "generic improvement" vs. "project-specific tweak." Used in both directions.
+- **File class** — `logic` / `context` / `hybrid` (DEC-S018). Once the input to a classifier; now the reference a person checks before copying a file.
+- **Observation** — a cited, dated record of what one session actually did. Cheap, high-volume, factual. Flows to seeds automatically.
+- **Promotion** — turning accumulated observations into a template change. Rare, cross-project, a judgment. Made by `@workout` in seeds, on a severity call rather than a count (DEC-S039).
 
-## V1 Scope
+## V1, retired
 
-Sync-config end-to-end:
-1. De-hardcoded skill templates (no `npm run build` assumptions)
-2. Remote nightly Routine with fixed repo list
-3. Downstream `/pull-seeds` skill
-4. Documented migration path from `~/.claude/skills/` to `<project>/.claude/skills/`
+Sync-config end-to-end. Built, shipped, used, and removed:
+1. ~~De-hardcoded skill templates (no `npm run build` assumptions)~~ — kept; this outlived the sync
+2. ~~Remote nightly Routine with fixed repo list~~ — off (DEC-S038), then unrevivable (DEC-S040)
+3. ~~Downstream `/pull-seeds` skill~~ — deleted (DEC-S040)
+4. ~~Documented migration path from `~/.claude/skills/` to `<project>/.claude/skills/`~~ — done; project-level install is the settled shape
+
+The decision record is the reason this section reads as strikethrough rather than being deleted: DEC-S004, S010, S028, S038 and S040 are a sequence, and a spec that quietly forgot its own V1 would make that sequence unreadable.
 
 ## Not V1
 - Team / multi-user sync

@@ -191,16 +191,11 @@ Without a `production` branch, the project deploys straight off `main` and there
 
 `/pause-this` commits WIP on the task branch, writes a `[PAUSED HH:MM UTC]` note to the session file. `/restart-this` reloads context. Same session number, no new file.
 
-### Routine improvements back to seeds
+### Moving files between seeds and a project
 
-When the workflow gets better mid-flight:
+**By hand, one file at a time.** `/pull-seeds`, `/push-seeds`, and `@sync-config` are all retired (DEC-S040), and so is the nightly Routine that drove them (DEC-S038). Nothing crosses the boundary on its own in either direction.
 
-```
-/push-seeds       # propose backports to seeds via @sync-config
-/pull-seeds       # pull seeds template updates into this project
-```
-
-The nightly Anthropic Routine (DEC-S010) runs both directions automatically across registered repos. Manual skills are for "I want it now."
+Before copying, check `.claude/routine-config.yaml` § `file-classes` in the seeds checkout: `logic` copies wholesale, `context` never copies, `hybrid` copies the shell only. `.claude/type-manifest.yaml` says what a given project type doesn't want. `diff` tells you what currently differs — nothing enumerates it for you.
 
 ### Audit a session for anti-patterns
 
@@ -208,7 +203,9 @@ The nightly Anthropic Routine (DEC-S010) runs both directions automatically acro
 /read-the-tape    # @tape-reader reads the session's JSONL
 ```
 
-Surfaces anti-patterns (verbose responses, missed context, retries instead of root-causing, etc.). Under DEC-S039 it **fixes only what the project owns** — `.claude/settings.json`, `.claude/CLAUDE-context.md`, the DEC-S035 reviewers. Anything `logic` class (skills, `@sync-config`, `@ideas`, `@tape-reader` itself) becomes a cited **observation** pushed to seeds' `observations` branch, because a fix applied to those in a project is silently overwritten by the next `/pull-seeds`.
+Surfaces anti-patterns (verbose responses, missed context, retries instead of root-causing, etc.) and writes them up as a cited **observation** pushed to seeds' `observations` branch.
+
+**It changes nothing in this repo** (DEC-S040) — no fix, no branch, no PR, not even a `.claude/settings.json` permission entry. It has no `Edit` tool. Findings with a local fix still go in the observation; applying one is a separate deliberate act.
 
 ### Promote what accumulated (seeds only)
 
@@ -216,7 +213,7 @@ Surfaces anti-patterns (verbose responses, missed context, retries instead of ro
 /workout          # @workout reads the observation inbox + LEDGER.md
 ```
 
-Weekly or fortnightly, by hand, in seeds. Groups observations into patterns across repos and weeks — the thing `@tape-reader` structurally cannot do from one transcript — and makes the promotion call on **cost and detectability, never a count**. Output is one PR against `main`, never auto-merged; the PR is the report. Merged rules then travel outward by `/pull-seeds`.
+Weekly or fortnightly, by hand, in seeds. Groups observations into patterns across repos and weeks — the thing `@tape-reader` structurally cannot do from one transcript — and makes the promotion call on **cost and detectability, never a count**. Output is one PR against `main`, never auto-merged; the PR is the report, and it closes with a distribution list naming which projects should get which files. Acting on that list is manual (DEC-S040) — nothing carries a merged promotion outward.
 
 ### Configure permissions / hooks
 
