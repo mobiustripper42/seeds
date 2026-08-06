@@ -68,6 +68,24 @@ carefully, not by recurrence — and the cite-guard was written from that single
 **A pattern that is invisible when it recurs has a sample size of one no matter how often it
 happens.**
 
+**Reaction — did the operator have to intervene, and did intervening work?** (DEC-S041.) The
+observation carries every operator turn about the failure, quoted. Read them as a sequence, because
+the escalation is the signal: one correction is a nudge; the same person raising it four times and
+arriving at *"I have zero faith these PRs are correct"* is a severity reading no derived metric
+produces. An operator correction means the guardrails did not hold and a human became the guardrail.
+
+**A correction that was then ignored is the most decisive fact in the observation.** If the failure
+recurred *after* the operator objected, prose has been empirically tested and lost — the rule was
+stated, out loud, by the person who owns the workflow, and the behaviour continued. Do not respond
+to that by writing firmer prose, and do not put a new sentence near an existing one that already
+failed; that is accretion, and you would be adding volume to a document whose signal is already
+being skipped. Reach for something the model cannot skip, or say plainly that no such lever exists
+and what you are proposing is therefore partial.
+
+**When the axes disagree:** a failure that made the operator lose confidence in shipped work is
+severe regardless of what the cost/detectability table says. That table judges patterns nobody
+noticed. This axis exists for the ones somebody did.
+
 **Where frequency belongs:** as *evidence about* severity when severity is unclear. Repetition
 across repos says a thing is systemic rather than one session's slip, which raises confidence that a
 template can fix it at all. An input to the judgment. Never the judgment.
@@ -93,12 +111,29 @@ the sentence a reviewer needs in order to disagree with you.
 
 ## Step 3 — Draft the template change
 
+**Fix the cause, not the occurrence.** The observation carries a `Cause` field (DEC-S041) — read it
+before you write anything, and state which cause your change addresses. A fix that would not have
+prevented the observed instance is aimed at the symptom, however well it reads.
+
+**Check whether the rule already exists.** Grep the templates for it. If prose saying this is
+already written and the failure happened anyway, **adding a second sentence is not a fix** — it is
+the accretion failure, and the reader who skipped the first one will skip both. Ask instead why the
+existing rule didn't bind. The usual answers: it describes an outcome rather than instructing an
+action; a cheaper path produces the same visible artifact; nothing marks the moment the rule
+applies. Each of those has a structural repair, and none of them is more words.
+
 For each promotion, edit `dev/claude/**` and **cite every observation that supports the change** —
 by filename, and by the specific evidence line within it. A template edit with no observation behind
 it is a rule you invented, which is the thing this whole loop was built to stop.
 
 Prefer the smallest edit that carries the rule. A pattern that needs three paragraphs of new prose
 in a skill is usually a pattern you haven't understood yet — hold it.
+
+**Say when prose is not enough.** If the cause or the operator reaction shows a written rule already
+lost, name the mechanism that would actually hold — a harness-level check, a tool withheld, a
+permission denied, a step that stops and hands control back — even where you cannot implement it
+yourself. A promotion that quietly settles for prose it knows won't bind is worse than a hold,
+because it closes the pattern in the ledger while the failure stays live.
 
 **Retirement is in scope and is a real outcome.** A rule whose pattern stops appearing across many
 clean runs is a candidate for removal; clean-run observations are the evidence for that. A workflow

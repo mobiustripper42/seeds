@@ -20,7 +20,7 @@ Decisions are numbered DEC-NNN. "DEC-TBD" means the decision is flagged but unre
 - DEC-S019 — Hybrid-file split pattern (generalization of DEC-S016)
 - DEC-S028 — The Routine emits a fleet-status digest — the read side of the SPEC hub; rolling issues are pinned by config number _(retired by DEC-S038 — the digest is dormant while the Routine that emitted it is off)_
 - DEC-S038 — The nightly sync Routine is off — seeds ↔ project sync is on-demand from CC Desktop _(revised by DEC-S040 — the holding that manual /push-seeds and /pull-seeds carry the steady state — both are now retired; the Routine stays off)_
-- DEC-S039 — The learning loop splits observation from rule — evidence accrues in seeds, promotion is a separate, periodic act _(revised by DEC-S040 — @tape-reader's project-owned fix path and PR, and Phase 4's outward mechanism — the observation half stands unchanged)_
+- DEC-S039 — The learning loop splits observation from rule — evidence accrues in seeds, promotion is a separate, periodic act _(revised by DEC-S040 — @tape-reader's project-owned fix path and PR, and Phase 4's outward mechanism — the observation half stands unchanged; refined by DEC-S041 — adds a third severity input and a cause field at capture time; the cost/detectability axes and the no-count rule stand unchanged)_
 - DEC-S040 — Automated seeds ↔ project sync is retired entirely — the loop is observe, promote, copy by hand
 
 ### Session lifecycle & skills
@@ -45,6 +45,7 @@ Decisions are numbered DEC-NNN. "DEC-TBD" means the decision is flagged but unre
 - DEC-S032 — Cite-facts-label-proposals rule + tape-reader cite-guard; the muster hook trial ends with hooks dropped
 - DEC-S033 — `@architect` + `@code-review` go stack-neutral (defer to `CLAUDE-context.md § Conventions`) _(amended by DEC-S035 — the rollout paragraph only — the stack-neutral template stands)_
 - DEC-S035 — `@architect`, `@code-review`, `@ui-reviewer` become project-owned — seeds keeps templates, sync stops touching them
+- DEC-S041 — The observer captures cause and operator reaction — both perish with the session, and severity cannot be judged without them
 
 ### Model selection
 - DEC-S027 — Opus is the default model; Fable is on-demand via a bundling trigger (supersedes the PR #107 tiering)
