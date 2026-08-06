@@ -86,10 +86,40 @@ evidence and stays evidence.
 It proposes template edits and opens **one** PR against seeds `main`, with the observations cited
 inline. It never merges. Merged rules then travel outward by `/pull-seeds` per DEC-S038.
 
-**No promotion threshold is set here.** "Three occurrences across two repos" is a number that would
-be invented rather than observed. `@workout` argues each case on its evidence, and the threshold
-gets written down once it has been seen to work — the same discipline that kept `check-docs`'
-exemption lists honest.
+### Promotion is a severity call, not a count
+
+**No count threshold is set, and none should be.** "Three occurrences across two repos" is a number
+invented rather than observed, and worse, it is the wrong variable. Sometimes one occurrence is one
+too many; sometimes a pattern can run for months before it is worth a rule. The question is not *how
+often* but **what does the next occurrence cost, and would anyone notice it happening.**
+
+Two axes, both about the next occurrence rather than the ones already seen:
+
+**Cost — is it recoverable?** A wasted file read costs seconds and is undone by not doing it again.
+A fabricated rule cited as fact, a wrong number that reaches a paycheck, a decision deleted by a
+sync — none of those are undone by noticing later. Irreversible cost earns a rule on the first
+sighting.
+
+**Detectability — would it announce itself?** This is the axis that makes counting actively wrong.
+The patterns most worth fixing are the ones you cannot count, because they do not surface: a guard
+that silently stopped running, a check that abstains without saying so, a doc that is confidently
+wrong. `@tape-reader` fabricating a "no emoji rule" (DEC-S032) was caught by the operator reading
+carefully, not by recurrence — and the cite-guard was written from that single instance, correctly.
+A pattern that is invisible when it recurs has a sample size of one no matter how often it happens.
+
+**Where frequency does belong:** as *evidence about* severity when severity is unclear. Repetition
+across repos says a thing is systemic rather than one session's slip, which raises confidence that a
+template can fix it at all. It is an input to the judgment, never the judgment.
+
+The rough shape, stated so `@workout` has something to argue against rather than a blank page:
+
+| | costs time, self-announcing | irreversible, or silent |
+|---|---|---|
+| **seen once** | hold — one instance is a weak basis for a standing rule | **promote** |
+| **recurring** | promote — repetition is what makes it worth a rule | promote, and ask why it was not caught the first time |
+
+That table is a starting posture, not a gate. `@workout` states which cell it thinks a pattern is in
+and why, and being argued out of it is a normal outcome.
 
 ### What this costs
 

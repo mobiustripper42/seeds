@@ -8,8 +8,8 @@
 ## Goal
 
 Make workflow improvement accumulate instead of evaporating. A session's evidence survives the
-session, reaches seeds, and is promoted to a rule only when it recurs — with the promotion visible
-in one reviewable artifact per cycle.
+session, reaches seeds, and is promoted to a rule when its severity warrants it — with the promotion
+visible in one reviewable artifact per cycle.
 
 Target, measured after two cycles: every template change merged from `@workout` cites at least one
 observation, and no candidate pattern is lost to a `/pull-seeds` overwrite.
@@ -18,8 +18,8 @@ observation, and no candidate pattern is lost to a `/pull-seeds` overwrite.
 
 - **No scheduled automation.** `@workout` is invoked by hand. This is not the nightly Routine
   returning under a new name (DEC-S038).
-- **No promotion threshold.** Deliberately unset — see DEC-S039. `@workout` argues each case; the
-  rule gets written once it has been watched working.
+- **No count threshold.** Promotion is a severity call (DEC-S039). `@workout` argues each case
+  against the cost/detectability axes; it does not tally occurrences and compare to a number.
 - **No change to what `@tape-reader` looks for.** P1–P17 and the cite-guard (DEC-S032) stand. This
   changes where findings *go*, not how they are found.
 - **No cross-repo automation of the write.** How an observation physically reaches seeds is Phase 1's
@@ -60,6 +60,8 @@ observed: 2026-08-06
 ## P8 — Full session-log read when only recent entry needed  ·  medium
 
 **Occurrences:** 3
+**Cost if it recurs:** wasted context; recoverable — nothing wrong was produced
+**Self-announcing:** yes — the redundant read is visible in the transcript
 **Evidence:**
 - `Read docs/PROJECT_PLAN.md` (full, 412 lines) — turn 14, needed only the Phase 12 rows
 - …
@@ -72,7 +74,7 @@ observed: 2026-08-06
 **Why it might be noise:** …
 ```
 
-Two constraints on that shape, both load-bearing:
+Three constraints on that shape, all load-bearing:
 
 1. **Every occurrence carries a citation** — a turn, a tool call, a `file:line`. DEC-S032's
    cite-guard already requires this for findings; it now also gates what may be written to the
@@ -80,6 +82,12 @@ Two constraints on that shape, both load-bearing:
 2. **A proposed fix is a *sketch*, marked as such.** Including it preserves context that is cheap
    now and expensive to reconstruct later; marking it stops `@workout` anchoring on the first
    session's framing of a problem it will see from three angles.
+3. **Cost-if-it-recurs and self-announcing are recorded at capture time.** They are the two inputs
+   to the severity call (DEC-S039), and the observer is the only one positioned to answer the
+   second: whether a failure surfaced on its own or was caught by someone reading carefully is a
+   fact about *this* session that no later reader can reconstruct. Getting it wrong is the
+   difference between a rule written on one sighting and a pattern that quietly never accumulates
+   evidence at all.
 
 **Open question for Phase 1:** how the file reaches seeds. Candidates — a direct push to the orphan
 branch from the project session (needs cross-repo auth, which CC has); writing to a local
@@ -111,10 +119,20 @@ step, and it is the one place in the loop where being wrong is expensive.
 
 1. **Group by pattern across repos and dates.** This is the capability `@tape-reader` structurally
    lacks.
-2. **For each group, decide:** promote / hold / dismiss.
-   - *Promote* — it recurs, the fix is clear, and the change is one a template can carry.
-   - *Hold* — real but not yet enough evidence, or the right fix is not obvious. Stays unarchived.
+2. **For each group, make the severity call** — not a count. Per DEC-S039: what does the next
+   occurrence cost, and would it announce itself? Irreversible or silent earns a rule on one
+   sighting; recoverable and self-announcing waits for repetition. Frequency is evidence about
+   whether a thing is systemic, never the decision itself.
+
+   Then: promote / hold / dismiss.
+   - *Promote* — the fix is clear and a template can carry it. State which cell of the DEC-S039
+     table the pattern is in and why.
+   - *Hold* — real, but the right fix is not obvious, or it is recoverable and has been seen once.
+     Stays unarchived.
    - *Dismiss* — noise, or a project-specific artifact misfiled as general. Archived with a reason.
+
+   **A single-sighting promotion must say so explicitly** and name the cost that justifies it. That
+   is the sentence a reviewer needs in order to disagree.
 3. **Draft the template change**, citing every observation that supports it.
 4. **Open one PR** against seeds `main`. Never merge. If a change is significant enough to be a
    decision, draft the DEC file too — `@workout` follows the same rule as everyone else and does not
@@ -123,7 +141,8 @@ step, and it is the one place in the loop where being wrong is expensive.
    tail.
 
 **What `@workout` must not do:** invent a pattern with no observation behind it; promote from a
-single occurrence without saying that is what it is doing; edit project repos; or merge its own PR.
+single occurrence without saying that is what it is doing and why the cost justifies it; treat a
+count as the decision; edit project repos; or merge its own PR.
 
 **Retirement is in scope.** A rule whose pattern stops appearing across many clean runs is a
 candidate for removal. A workflow that only ever accretes is the failure this whole system exists to
