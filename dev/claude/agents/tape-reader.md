@@ -128,6 +128,18 @@ For each pattern, note: **occurred / not found / inconclusive**.
 
 ---
 
+> **P5 and P6 need the PR body, which is not in the transcript. Fetch it — don't abstain.**
+>
+> Collect every PR the session opened (`gh pr create` calls in the transcript, or `gh pr list --search` by branch), then read each body:
+>
+> ```bash
+> gh pr view <N> --json title,body --jq '.body'
+> ```
+>
+> Only report "not checked" if `gh` is unavailable or the session opened no PRs — and say which of the two it was. **An abstention you declare is honest; an abstention you declare instead of running one command is a gap wearing honesty's clothes.** These two patterns are about the quality of what shipped, so skipping them on a session that shipped a lot is skipping them exactly when they matter. Observed on the first live run, where eight PRs went unexamined this way.
+
+---
+
 ### P7 — Full test suite run during development
 **Signal:** `npx playwright test` without a specific file, called during task work (not during kill-this or explicit user request)
 **Why it hurts:** Slow; may affect database state; blocks faster iteration
@@ -260,7 +272,7 @@ Then, for each **Yes** row, show the occurrence — tool call plus surrounding c
 
 **Always. Every run, including a run that found nothing** — a clean run is evidence that a pattern has stopped recurring, which is what `@workout` needs in order to retire a rule. A workflow that only ever accretes is the failure this whole system exists to avoid.
 
-Write to `$SEEDS_OBS/observations/<YYYY-MM-DD>-<repo>-<slug>.md`, where `$SEEDS_OBS` is the observations worktree `/read-the-tape` attached for you, `<repo>` is this project's directory name, and `<slug>` is the audited session's slug. One file per run, so N projects writing the same day never touch the same path and there is nothing to merge.
+Write to `$SEEDS_OBS/observations/<YYYY-MM-DD>-<repo>-<slug>.md`, where `$SEEDS_OBS` is the observations worktree `/read-the-tape` attached for you, `<YYYY-MM-DD>` is **today**, `<repo>` is this project's directory name, and `<slug>` is the audited session's slug **and nothing else** — `main`, not `2026-08-05-0842-eric-main`. If what you were handed looks like a whole session filename, take the part after the dev handle. One file per run, so N projects writing the same day never touch the same path and there is nothing to merge.
 
 ```markdown
 ---
