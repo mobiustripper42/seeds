@@ -17,8 +17,8 @@
 | `docs/VELOCITY_AND_POKER_GUIDE.md` | Estimation methodology |
 | `docs/CHEATSHEET.md` | One-page printable skill reference |
 | `sessions/*.md` (on orphan `sessions` branch via `.sessions-worktree/`) | Per-session files — `YYYY-MM-DD-HHMM-<dev>-<slug>.md`. Atomic after `/its-dead` closes (DEC-S013); orphan branch decouples session log from any code branch (DEC-S014). |
-| `.claude/seeds-version` | Schema version this project was last installed at. Used by `/pull-seeds` to gate template syncs. |
-| `.claude/project-type` | Project type — `webapp` or `tool`. Used by `@sync-config` to gate template files that don't apply to this project's type (DEC-S011). Optional. |
+| `.claude/seeds-version` | Schema version this project was last installed at. Nothing reads it automatically (DEC-S040) — compare it against seeds' `seeds-version` by hand to see which migrations this project owes. |
+| `.claude/project-type` | Project type — `webapp` or `tool`. Says which template files this project has no use for (DEC-S011). Optional. |
 
 Project-specific docs are listed in `.claude/CLAUDE-context.md` under `## Additional Docs` — including BRAND.md, which is webapp-shaped and legitimately absent from a CLI or firmware project. The shell lists only docs every project has; a shell that names a doc a whole project type doesn't need is a dead reference in every one of them.
 
@@ -90,8 +90,6 @@ The generator writes the reciprocal banner into the amended decision's own file,
 | `/retro` | Phase boundary (end) | Compute per-session active time (wall − breaks) from `started`/`ended` + transcript break inference. Aggregate one phase velocity (active h/pt). Mark `[x]`, write retro, patch-bump per merged PR + minor-bump at close. |
 | `/bump-major` | Breaking change | Manually bump major version. CHANGELOG.md entry + tag on the trunk (`main`). Dev projects only |
 | `/promote-production` | Ship trunk to prod | ff-merge `main` → `production` (deploy-only; tag already on the commit), push. Projects with a `production` branch only |
-| `/push-seeds` | After workflow improvements | Backport project-side improvements to the seeds templates via @sync-config |
-| `/pull-seeds` | After seeds gets new improvements | Pull template changes into this project — schema-version-gated, applied via @sync-config |
 | `/read-the-tape` | After a session worth learning from | Audit JSONL transcript. Fixes what this project owns; records everything `logic`-class as a cited observation in seeds. Needs a resolvable seeds checkout (DEC-S039) |
 | `/doc-consistency-check` | Ad-hoc, when docs feel drifted (no scheduled trigger) | Cross-reference factual claims across `docs/*.md` + root `CLAUDE.md`; flag mismatches + unfilled placeholders. Report-only via @doc-consistency |
 
@@ -99,7 +97,11 @@ The generator writes the reciprocal banner into the amended decision's own file,
 
 **Task model:** PROJECT_PLAN.md is read at planning, written at retro. Untouched mid-phase. Current-phase tasks live as GitHub Issues. The phase ends when its issues close.
 
-**Workflow fixes don't get made here (DEC-S039).** A skill or shared agent that misbehaves in this project is **not** fixed in this project. Those files are `logic` class: seeds is canonical and drift is resolved by a full-file overwrite on the next `/pull-seeds`, so a local fix is deleted silently, taking the evidence that justified it with it. `/read-the-tape` records the failure as a cited observation on seeds' `observations` branch instead; `@workout` runs periodically in seeds, judges what has accumulated across every project, and promotes what earns it into the templates. What you *can* fix here: `.claude/settings.json`, `.claude/CLAUDE-context.md`, and this project's own `@code-review` / `@architect` / `@ui-reviewer` (DEC-S035).
+**Workflow fixes don't get made here (DEC-S039, DEC-S040).** A skill or shared agent that misbehaves in this project is **not** fixed in this project. Those files are canonical in seeds, and there is no sync in either direction any more — so a local fix does not get overwritten, it just never goes anywhere. It becomes invisible drift in a file that is meant to be identical across every project, and nothing will ever reconcile it.
+
+The route that ends somewhere: `/read-the-tape` records the failure as a cited observation on seeds' `observations` branch. `@workout` runs periodically in seeds, judges what has accumulated across every project, and promotes what earns it into the templates. Then someone copies the merged change back out, by hand.
+
+**Nothing here is exempt.** `/read-the-tape` no longer applies even the small local fixes it used to — `.claude/settings.json` permission entries included. It observes and writes one file to seeds; that is all it does. Fixing anything in this repo is your call, made deliberately, not something an audit does on its way past.
 
 ## Agents
 
@@ -109,8 +111,7 @@ The generator writes the reciprocal banner into the amended decision's own file,
 | @code-review | Sonnet | After every commit (wired into `/kill-this`) | Catch issues early |
 | @pm | Sonnet | Start/end of sessions via skills | Track progress, flag risks |
 | @ui-reviewer | Sonnet | After UI work, phase boundaries | Design quality |
-| @sync-config | Sonnet | `/push-seeds` and `/pull-seeds` | Classifies template-vs-project diffs, gates structural backports |
-| @tape-reader | Sonnet | `/read-the-tape` | Audits session JSONL for workflow anti-patterns. **Observer** (DEC-S039) — fixes project-owned files, records everything else as evidence |
+| @tape-reader | Sonnet | `/read-the-tape` | Audits session JSONL for workflow anti-patterns. **Observer** (DEC-S040) — writes one cited observation to seeds and changes nothing in this repo |
 | @doc-consistency | Sonnet | Via `/doc-consistency-check` skill, or ad-hoc | Cross-reference factual claims across project docs; flag mismatches + unfilled placeholders. Report-only |
 | @ideas | Sonnet | Park an idea, re-rank, or audit the parking lot | Curate docs/FUTURE_IDEAS.md — capture, dedupe, cross-ref, keep the index. Edits only that file, and creates it on first use |
 

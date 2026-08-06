@@ -1,16 +1,18 @@
 ---
 name: read-the-tape
-description: Reviews a recent session JSONL transcript for workflow anti-patterns. Fixes what the project owns and records everything else as a cited observation on the seeds observations branch. Run after a session you want to learn from. Optional arg: session number or file path.
+description: Reviews a recent session JSONL transcript for workflow anti-patterns and writes one cited observation to the seeds observations branch. Changes nothing in this repo. Run after a session you want to learn from. Optional arg: session number or file path.
 tools: Read, Bash, Glob, Grep, Agent
 ---
 
 You are executing the /read-the-tape skill.
 
-Under DEC-S039 this skill is an **observer**. It fixes what the project owns and writes everything else to the `observations` branch in seeds, where `@workout` can see it alongside other repos and other weeks. Steps 0 and 0.5 exist to make that write possible; without them the agent has no registry to resolve file classes against and nowhere to put the evidence.
+This skill **reads this repo and writes to seeds** (DEC-S039, DEC-S040). It creates no branch here, commits nothing here, opens no PR, and changes no file in this project — not a skill, not `.claude/settings.json`, not a reviewer. Its entire output is one observation file on the `observations` branch in seeds, where `@workout` can see it alongside other repos and other weeks. Steps 0 and 0.5 exist to make that one write possible.
+
+If a finding has a fix that belongs in this project, it still goes in the observation. Someone applies it by hand, later, or doesn't — that is the deliberate trade for an auditor whose output you can trust without reviewing a diff.
 
 ## Step 0 — Resolve the seeds checkout
 
-Same resolution order as `/pull-seeds` Step 0 — stop at the first hit:
+Stop at the first hit:
 
 1. **Skill arg:** if a path to a seeds checkout is passed, use it as `SEEDS`.
 2. **Sibling default:** `SEEDS=$(git rev-parse --show-toplevel)/../seeds` if `git -C "$SEEDS" rev-parse --git-dir` succeeds.
@@ -19,7 +21,7 @@ Same resolution order as `/pull-seeds` Step 0 — stop at the first hit:
 
 Echo: "Seeds checkout: `$SEEDS`."
 
-Do **not** gate on `seeds-version` here and do **not** require `$SEEDS` to be on `main`. This skill reads one config file and writes to an orphan branch; it changes no template and applies no sync, so the DEC-S006 version gate has nothing to protect. Refuse only if the checkout doesn't exist.
+Do **not** gate on `seeds-version` and do **not** require `$SEEDS` to be on `main`. Nothing is being synced — this writes one file to an orphan branch that no schema version describes. A project years behind on migrations still observes correctly, and refusing to record evidence because a number is stale would be exactly backwards. Refuse only if the checkout doesn't exist.
 
 **If you're running this skill inside seeds itself**, `$SEEDS` is the current repo. That is fine — seeds audits its own sessions like any other project.
 
@@ -67,26 +69,40 @@ Default to the **second-newest** JSONL (`result[1]`) — the current session's J
 
 The Glob tool is used in place of `ls *.jsonl` because the Bash form trips two harness validator rules (tree-sitter-bash on `"$VAR"/*.glob`, and a newer rule on `cd "$VAR" && ls 2>/dev/null`). See its-alive Step 5 for the full note.
 
-Also capture the audited session's **slug** — from the session filename if one was passed, otherwise ask, or derive from the branch. It names the observation file.
+### Step 1.5 — Derive the slug (just the slug)
+
+The slug names the observation file, and getting it wrong is easy in a specific way. A session file is `YYYY-MM-DD-HHMM-<dev>-<slug>.md`, so **the slug is only the part after the dev handle** — everything before it is date, time, and dev.
+
+```
+sessions/2026-08-05-0842-eric-main.md              → slug is  main
+sessions/2026-08-04-1130-eric-time-clock.md        → slug is  time-clock
+sessions/2026-08-01-0915-eric-644-crew-header.md   → slug is  644-crew-header
+```
+
+**Do not pass the whole filename or its stem.** The observation is named `<observed-date>-<repo>-<slug>.md`, so a full stem produces `2026-08-06-muster-2026-08-05-0842-eric-main.md` — the date twice, the dev handle for no reason, and a name that sorts by the *audited* session's date inside a directory that sorts by the *observation* date. Observed on the first live run; this step exists because of it.
+
+If no session file was passed, derive the slug from the branch the audited session ran on (`task/644-crew-header` → `644-crew-header`, `main` → `main`), the same mapping `/its-alive` Step 3 uses. If neither resolves, ask — don't invent one.
 
 ## Step 2 — Invoke @tape-reader
 
-Pass the transcript, both seeds paths, and the slug:
+Pass the transcript, the observations worktree, and the slug:
 
 > "Analyze the session transcript at `<path>`. Repo: `<project dir name>`. Session slug: `<slug>`.
-> Seeds checkout: `$SEEDS` — resolve file classes from `$SEEDS/.claude/routine-config.yaml`.
 > Observations worktree: `$SEEDS_OBS` — write this run's observation there and push to the `observations` branch.
-> Project skills are in `.claude/skills/`, agents in `.claude/agents/`. Fix only what the project owns; observe everything else."
+> Project skills are in `.claude/skills/`, agents in `.claude/agents/` — read them for context.
+> Change nothing in this repo. The observation is your only output."
 
-The agent handles analysis, the interactive review of project-owned fixes, the observation write, and any PR.
+The agent analyses, presents its findings, and writes the observation. `Edit` is withheld from it, which removes the habitual path — but it keeps `Write` and `Bash`, so Step 3 is the check that actually catches a violation.
 
-## Step 3 — Confirm the observation landed
+## Step 3 — Confirm the observation landed, and that nothing else did
 
-After the agent returns:
+After the agent returns, check both ends:
 
 ```bash
-git -C "$SEEDS_OBS" log --oneline -1
-git -C "$SEEDS_OBS" status --porcelain
+git -C "$SEEDS_OBS" log --oneline -1     # expect this run's observation, pushed
+git -C "$SEEDS_OBS" status --porcelain   # expect clean
+git status --porcelain                   # expect UNCHANGED from before the run
 ```
 
-Expect the newest commit to be this run's observation and a clean tree. **If the file is uncommitted or unpushed, say so plainly and surface the path** — an observation stranded in a worktree nobody looks at is indistinguishable from one that was never written, and it will be silently discarded by the next `reset --hard` in Step 0.5.
+- **The observation landed.** If the file is uncommitted or unpushed, say so plainly and surface the path — one stranded in a worktree nobody looks at is indistinguishable from one that was never written, and the next `reset --hard` in Step 0.5 discards it silently.
+- **This repo is untouched.** If `git status` shows anything the agent introduced, that is a defect in the agent, not a change to review: report it and revert it. The whole value of an observer is that its output needs no diff review (DEC-S040).

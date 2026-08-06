@@ -19,14 +19,14 @@ Personal templates and workflow tooling for Claude Code projects. Two families:
   - `code-review.md` — post-commit code reviewer
   - `pm.md` — project manager / velocity tracker
   - `ui-reviewer.md` — visual design reviewer (fill in your design system details)
-  - `sync-config.md` — template maintenance agent; classifies diffs, proposes backports, flags cross-family patterns
+  - `tape-reader.md` — session transcript observer; writes to seeds, edits nothing locally
 - `skills/` — session lifecycle slash commands (copy to `.claude/skills/` in your project)
   - `its-alive/` — session start ritual
   - `kill-this/` — session end part 1 (build, commit, draft log)
   - `its-dead/` — session end part 2 (finalize log, push, PM check)
   - `pause-this/` — mid-session pause with WIP commit
   - `restart-this/` — resume from pause
-  - `push-seeds/` — invokes @sync-config agent to push improvements back to seeds
+  - `read-the-tape/` — audits a session transcript, writes one observation to seeds
 - `docs/` — project document templates (copy to `docs/` in your project)
   - `AGENTS.md` — agent and skill reference (adapt project name/details)
   - `SPEC.md` — product specification template
@@ -85,6 +85,10 @@ Clean up this repo's .claude/settings.local.json.
    {"permissions":{}} rather than deleting the file.
 ```
 
-## Syncing improvements back
+## Moving improvements between seeds and a project
 
-Run `/push-seeds` in any active project to invoke @sync-config, which classifies diffs between live files and these templates, proposes backports, and flags patterns that might eventually warrant a `shared/` extraction.
+**By hand, one file at a time** (DEC-S040). There is no sync skill and no classifier — `/pull-seeds`, `/push-seeds`, and `@sync-config` were all retired once it became clear the projects differ more than they agree, and that choosing which file should cross is the part that needs a person.
+
+Before copying, check `.claude/routine-config.yaml` § `file-classes`: `logic` files are identical everywhere and safe to `cp` wholesale, `context` files are project-owned and must never be copied, `hybrid` means copy the shell only. `.claude/type-manifest.yaml` says which files a given project type doesn't want.
+
+What a session *reveals* by going wrong travels a different route — see `docs/SPECS/2026-08-workflow-learning-loop.md`.

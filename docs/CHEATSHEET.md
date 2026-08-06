@@ -27,17 +27,14 @@ SEMVER  ( dev projects only — needs package.json )
   patch bumps      /promote-production on each ship; or /retro
                    per merged PR if there's no production branch.
 
-REFLECT / SYNC
+REFLECT
   /read-the-tape   scan a session for anti-patterns.
                    arg: number, file path, or none = latest.
-                   fixes project-owned files; everything else
-                   becomes an observation in seeds (DEC-S039).
+                   writes ONE observation to seeds and changes
+                   nothing here — not even settings.json.
   /workout         SEEDS ONLY. judge accumulated observations,
                    promote what earns it. one PR, never merged.
                    weekly or fortnightly, by hand.
-  /push-seeds      backport workflow wins to seeds.
-  /pull-seeds      pull seeds improvements into this project.
-                   gated on `seeds-version` match.
   /doc-consistency-check
                    cross-read the doc set for drift. report-only.
                    the mechanisable half is `npm run check:docs`.
@@ -64,6 +61,6 @@ THE SHORT VERSION
   start of phase:    /start-phase
   end of phase:      /retro
   after a rough one: /read-the-tape
-  after a good one:  /push-seeds
-  refresh template:  /pull-seeds
   every week or two: /workout        ( in seeds )
+  moving any file between seeds and a project: by hand.
+    there is no sync. check file-classes first (DEC-S040).

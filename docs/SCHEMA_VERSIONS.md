@@ -15,7 +15,7 @@ It is **not** SemVer. There is no patch level. Each bump is a discrete generatio
 ## Where the version lives
 
 - **`seeds-version`** at the seeds repo root — single line, holds the latest published version. The source of truth.
-- **`<project>/.claude/seeds-version`** — single line, holds the version a project was last installed at. Created by setup; updated by `/pull-seeds` after a successful migration.
+- **`<project>/.claude/seeds-version`** — single line, holds the version a project was last installed at. Created by setup; bumped by hand at the end of a migration (DEC-S040 — nothing updates it automatically).
 
 Seeds itself does not have a `.claude/seeds-version` — it is the workflow source, not a consumer. Its only version file is the root `seeds-version`.
 
@@ -72,7 +72,7 @@ A v2 project has no version skills installed and (if deployable) no version surf
 
 **All v2 projects:**
 1. Copy the new skill directories: `dev/claude/skills/bump-major/` and `dev/claude/skills/promote-staging/` into `<project>/.claude/skills/`.
-2. Update existing skills with v3 changes — easiest via `/pull-seeds` once it's been wired to honor v3:
+2. Update existing skills with v3 changes — copy each from `dev/claude/skills/`:
    - `/its-dead` — staging-aware working-branch resolution + Step 5.3 patch bump
    - `/retro` — Step 6.5 minor bump
    - `/kill-this` — staging-aware PR base
@@ -96,8 +96,8 @@ A v2 project has no version skills installed and (if deployable) no version surf
 v4 replaces the DEC-S008 staging-flow with the DEC-S022 production-branch model. The change is a skill rename + branch-convention shift; **no data migration** (session files, PROJECT_PLAN.md, RETROSPECTIVES.md formats are unchanged).
 
 **All v3 projects:**
-1. Replace the skill directory: remove `<project>/.claude/skills/promote-staging/`, add `<project>/.claude/skills/promote-production/` (copy from `dev/claude/skills/promote-production/`). Easiest via `/pull-seeds` once it honors v4.
-2. Update existing skills with v4 changes (the `origin/staging` detection is gone — all resolve the default branch / always tag on `main`): `/kill-this`, `/retro`, `/bump-major`, `/its-alive`. Also pick up the `@sync-config` anti-churn rules.
+1. Replace the skill directory: remove `<project>/.claude/skills/promote-staging/`, add `<project>/.claude/skills/promote-production/` (copy from `dev/claude/skills/promote-production/`).
+2. Update existing skills with v4 changes (the `origin/staging` detection is gone — all resolve the default branch / always tag on `main`): `/kill-this`, `/retro`, `/bump-major`, `/its-alive`.
 3. Update `<project>/.claude/seeds-version` to `4`.
 
 **Single-branch projects (no `staging` — the common case):**
@@ -157,12 +157,12 @@ A v4 project has a monolithic `docs/DECISIONS.md` and no `docs/decisions/`. Do n
 
 **Why bump (not additive):** the record changes shape on disk and `docs/DECISIONS.md` becomes generated output. A v4 project that pulled these scripts without splitting would get a red build on every run, and a sync that forward-ported a *generated* `DECISIONS.md` into a project whose copy is hand-written would overwrite the record with an index of a directory that does not exist.
 
-## How `/pull-seeds` (downstream sync) uses this
+## How the version integer is used now
 
-When `/pull-seeds` runs in a project, it compares versions:
+**It gates nothing** (DEC-S040). No skill reads it, because the skills that did are deleted. Compare the two numbers by hand and read the result:
 
-- **`seeds-version == project.seeds-version`** → proceed with sync. Classify diffs, propose backports / forward-ports.
-- **`seeds-version > project.seeds-version`** → STOP. Surface the gap: "seeds is on v$SEEDS, project is on v$PROJECT. Run the v$PROJECT → v$SEEDS migration first (see `docs/SCHEMA_VERSIONS.md` § Migration notes)." Never auto-migrate — migrations touch session files and `PROJECT_PLAN.md`, blast radius is too high for silent runs.
-- **`seeds-version < project.seeds-version`** → unusual; usually means the project has un-pushed seeds-bound improvements that haven't been backported yet. Surface: "project is ahead of seeds — did you mean `/push-seeds`?"
+- **`seeds-version == project.seeds-version`** → the project is current on schema. Any file that differs is ordinary drift; decide per file whether to copy it.
+- **`seeds-version > project.seeds-version`** → the project owes every migration in between. Work the § Migration notes in order. Nothing will stop you copying an unrelated file in the meantime — and that is the point: a v4 project can safely take a new `read-the-tape/SKILL.md` while still owing the v5 decision-record split. **What it must not take** is the files the pending migration is about, which for v5 means `scripts/check-decisions.mjs` and friends. Read the migration note before copying anything it names.
+- **`seeds-version < project.seeds-version`** → the project is ahead. Usually means an improvement was made there and never brought back to seeds. Bring it over before it is forgotten; there is no longer any mechanism that will surface it later.
 
-`/pull-seeds` itself is Task 7. This contract describes what it must enforce when built.
+**Bumping is manual and is the last step of a migration**, not a precondition for anything. A number that is wrong now costs you a wrong answer to "what does this repo owe" — no build goes red, which makes it easier to get wrong and worth being deliberate about.
