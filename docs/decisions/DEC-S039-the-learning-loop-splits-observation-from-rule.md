@@ -127,8 +127,14 @@ and why, and being argued out of it is a normal outcome.
 deliberate: the current design's speed is exactly what produces one-off rules justified by one
 session, and a rule written from a single occurrence is how a workflow accretes cargo.
 
-**Observations pile up.** They are small text files on a branch nobody reads by default. `@workout`
-archives what it has promoted or dismissed, so the working set stays the unpromoted tail.
+**Observations pile up, and the working set has to be bounded deliberately.** They are small text
+files on a branch nobody reads by default — but "archive what was promoted" is not enough, because
+*held* patterns are exactly the ones that accumulate, and leaving them in the inbox means every
+cycle re-reads the whole history and re-derives the same judgment. So observations are **consumed**:
+the entire inbox archives after each cycle whatever the verdict, and a pattern-level ledger carries
+the accumulated judgment forward. A cycle reads new observations plus one ledger, never the archive.
+The ledger is then the one hand-maintained artifact here, and therefore the one that can rot — a
+known cost, taken because the alternative is reading everything every time. Shape in the spec.
 
 **It only works if the workout actually happens.** This replaces a mechanism nobody ran
 (`/push-seeds` after a merged PR) with a ritual on a calendar. That is a real bet on a human habit,

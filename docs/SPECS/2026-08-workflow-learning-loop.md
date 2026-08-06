@@ -101,24 +101,58 @@ via a `.observations-worktree/` checkout that `main` gitignores.
 
 ```
 observations/
-  2026-08-06-muster-time-clock.md
+  LEDGER.md                        # one row per PATTERN — the accumulating judgment
+  2026-08-06-muster-time-clock.md  # INBOX: unread by @workout
   2026-08-06-bushel-catalog-units.md
   archive/
-    2026-07/…            # promoted or dismissed, moved by @workout
+    2026-07/…                      # consumed — every verdict, not just promoted/dismissed
 ```
 
 Append-only by construction: one file per run, named for date + repo + slug, so two projects writing
-the same day never touch the same path. No index, no generator, nothing to keep fresh — the
-properties that make `docs/decisions/` need a gate are exactly the ones this avoids by not being a
-record anyone cites.
+the same day never touch the same path.
+
+### Inbox and ledger — what "processed" means
+
+**Directory position is the state.** A file in `observations/` is unread. After a cycle it moves to
+`archive/YYYY-MM/` — **regardless of verdict, held included.** No status field, nothing to keep in
+sync, and the move is atomic in git.
+
+**The ledger is what accumulates; observations are consumed.** This is the split that keeps the read
+cost bounded, and getting it wrong is the obvious way this design fails in practice: archiving only
+what was promoted or dismissed leaves every *held* observation in the inbox forever, so the working
+set grows without limit and each cycle re-derives the same judgment from the same raw evidence.
+
+`LEDGER.md` carries one row per **pattern**, not per observation:
+
+```markdown
+| pattern | state | seen | repos | first | last | note |
+|---|---|---|---|---|---|---|
+| P8 full-plan read | promoted → `/its-alive` §5 | 7 | muster, bushel | 2026-07-14 | 2026-08-06 | |
+| C3 grep-loop on one error file | held | 2 | muster | 2026-08-01 | 2026-08-06 | recoverable + self-announcing; fix unclear — three plausible shapes |
+| C7 emoji in commit subjects | dismissed | 1 | sailbook | 2026-08-02 | — | style, not workflow |
+```
+
+So a cycle reads **the inbox plus the ledger** — never the archive. Cost scales with how much
+happened since the last run, not with how long the loop has been running. A held pattern's row
+carries the reasoning, so the next cycle argues *from* the prior judgment rather than re-inventing
+it, and a pattern that stays held for months is visible as a row that keeps gaining occurrences
+without ever earning a promotion — which is itself a signal worth reading.
+
+**The ledger is the one hand-maintained artifact in this system, which makes it the one that can
+rot.** That is a known cost, accepted because the alternative — deriving state from the archive —
+means reading everything every time, which is the failure this section exists to prevent. Mitigation
+if it bites: a check asserting every archived observation is cited by exactly one ledger row, in the
+shape of `check-docs`' exemption-existence assertion. Not built until the rot is real.
 
 ## Phase 3 — `@workout`
 
 Runs in seeds. Reads `observations/` (excluding `archive/`). Model: Opus — this is the judgment
 step, and it is the one place in the loop where being wrong is expensive.
 
-1. **Group by pattern across repos and dates.** This is the capability `@tape-reader` structurally
-   lacks.
+1. **Read the inbox and `LEDGER.md`. Never the archive.** Group new observations by pattern, and
+   fold them into the ledger's existing rows — a pattern seen twice before and once more today is
+   one row with three occurrences, not three findings. Grouping across repos and dates is the
+   capability `@tape-reader` structurally lacks.
 2. **For each group, make the severity call** — not a count. Per DEC-S039: what does the next
    occurrence cost, and would it announce itself? Irreversible or silent earns a rule on one
    sighting; recoverable and self-announcing waits for repetition. Frequency is evidence about
@@ -137,8 +171,10 @@ step, and it is the one place in the loop where being wrong is expensive.
 4. **Open one PR** against seeds `main`. Never merge. If a change is significant enough to be a
    decision, draft the DEC file too — `@workout` follows the same rule as everyone else and does not
    hand-write index rows or banners (DEC-S036).
-5. **Archive** what was promoted or dismissed, in the same PR, so the working set is the unpromoted
-   tail.
+5. **Update `LEDGER.md`** — one row per pattern, with the verdict and, for a hold, the reasoning
+   the next cycle should argue from.
+6. **Archive the whole inbox** to `archive/YYYY-MM/`, in the same PR. Every file, every verdict. An
+   observation left in the inbox is a claim that it has not been read.
 
 **What `@workout` must not do:** invent a pattern with no observation behind it; promote from a
 single occurrence without saying that is what it is doing and why the cost justifies it; treat a
@@ -162,7 +198,12 @@ on any project.
   sync. But the loop delivers nothing until the ritual is real.
 - **Observation volume swamps signal.** If every session emits a file and most are empty, `@workout`
   spends its budget reading nothing. Mitigation: emit the file always, but keep clean runs to a
-  single line; revisit if the read cost shows up.
+  single line. The inbox/ledger split bounds the *total* read cost; it does not stop one cycle's
+  inbox being mostly noise.
+- **The ledger rots.** It is hand-maintained by an agent, and this system's own history says that
+  decays — a hand-updated index is what DEC-S036 replaced with a generator. It cannot be generated
+  here, because it carries judgment rather than derived facts. Watch for rows whose occurrence
+  counts stop moving while observations for that pattern keep arriving.
 - **`@workout` becomes a rubber stamp.** The same failure the splitter's over-broad hint regex nearly
   caused in the V5 rollout — a report that flags everything gets skimmed. Its output is a PR, and a
   PR that is always "promote all" is the signal that the judgment has stopped happening.
