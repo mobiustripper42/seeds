@@ -29,6 +29,10 @@ SEMVER  ( dev projects only — needs package.json )
 REFLECT / SYNC
   /read-the-tape   scan a session for anti-patterns.
                    arg: number, file path, or none = latest.
+                   fixes what this project owns; skills and other
+                   shared files become an observation in seeds,
+                   never a local edit (DEC-S039). needs a seeds
+                   checkout — sibling ../seeds, or pass the path.
   /push-seeds      backport workflow wins to seeds.
   /pull-seeds      pull seeds improvements into this project.
                    gated on `seeds-version` match.

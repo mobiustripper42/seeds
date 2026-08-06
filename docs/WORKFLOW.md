@@ -208,7 +208,15 @@ The nightly Anthropic Routine (DEC-S010) runs both directions automatically acro
 /read-the-tape    # @tape-reader reads the session's JSONL
 ```
 
-Surfaces anti-patterns (verbose responses, missed context, retries instead of root-causing, etc.) and proposes targeted improvements to skill/agent files.
+Surfaces anti-patterns (verbose responses, missed context, retries instead of root-causing, etc.). Under DEC-S039 it **fixes only what the project owns** — `.claude/settings.json`, `.claude/CLAUDE-context.md`, the DEC-S035 reviewers. Anything `logic` class (skills, `@sync-config`, `@ideas`, `@tape-reader` itself) becomes a cited **observation** pushed to seeds' `observations` branch, because a fix applied to those in a project is silently overwritten by the next `/pull-seeds`.
+
+### Promote what accumulated (seeds only)
+
+```
+/workout          # @workout reads the observation inbox + LEDGER.md
+```
+
+Weekly or fortnightly, by hand, in seeds. Groups observations into patterns across repos and weeks — the thing `@tape-reader` structurally cannot do from one transcript — and makes the promotion call on **cost and detectability, never a count**. Output is one PR against `main`, never auto-merged; the PR is the report. Merged rules then travel outward by `/pull-seeds`.
 
 ### Configure permissions / hooks
 

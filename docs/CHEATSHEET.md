@@ -30,6 +30,11 @@ SEMVER  ( dev projects only — needs package.json )
 REFLECT / SYNC
   /read-the-tape   scan a session for anti-patterns.
                    arg: number, file path, or none = latest.
+                   fixes project-owned files; everything else
+                   becomes an observation in seeds (DEC-S039).
+  /workout         SEEDS ONLY. judge accumulated observations,
+                   promote what earns it. one PR, never merged.
+                   weekly or fortnightly, by hand.
   /push-seeds      backport workflow wins to seeds.
   /pull-seeds      pull seeds improvements into this project.
                    gated on `seeds-version` match.
@@ -61,3 +66,4 @@ THE SHORT VERSION
   after a rough one: /read-the-tape
   after a good one:  /push-seeds
   refresh template:  /pull-seeds
+  every week or two: /workout        ( in seeds )

@@ -1,7 +1,11 @@
 logs/
 .claude/settings.local.json
 .sessions-worktree/
+.observations-worktree/
 
 # Python bytecode
 __pycache__/
 *.pyc
+
+# Local memory harvest for triage — never commit
+.memory-harvest/

@@ -92,12 +92,14 @@ The generator writes the reciprocal banner into the amended decision's own file,
 | `/promote-production` | Ship trunk to prod | ff-merge `main` → `production` (deploy-only; tag already on the commit), push. Projects with a `production` branch only |
 | `/push-seeds` | After workflow improvements | Backport project-side improvements to the seeds templates via @sync-config |
 | `/pull-seeds` | After seeds gets new improvements | Pull template changes into this project — schema-version-gated, applied via @sync-config |
-| `/read-the-tape` | After a session worth learning from | Audit JSONL transcript, find anti-patterns, propose skill improvements |
+| `/read-the-tape` | After a session worth learning from | Audit JSONL transcript. Fixes what this project owns; records everything `logic`-class as a cited observation in seeds. Needs a resolvable seeds checkout (DEC-S039) |
 | `/doc-consistency-check` | Ad-hoc, when docs feel drifted (no scheduled trigger) | Cross-reference factual claims across `docs/*.md` + root `CLAUDE.md`; flag mismatches + unfilled placeholders. Report-only via @doc-consistency |
 
 **Dev identity:** `~/.claude/devname` (one-line file with handle, e.g. `eric`). Set once per machine.
 
 **Task model:** PROJECT_PLAN.md is read at planning, written at retro. Untouched mid-phase. Current-phase tasks live as GitHub Issues. The phase ends when its issues close.
+
+**Workflow fixes don't get made here (DEC-S039).** A skill or shared agent that misbehaves in this project is **not** fixed in this project. Those files are `logic` class: seeds is canonical and drift is resolved by a full-file overwrite on the next `/pull-seeds`, so a local fix is deleted silently, taking the evidence that justified it with it. `/read-the-tape` records the failure as a cited observation on seeds' `observations` branch instead; `@workout` runs periodically in seeds, judges what has accumulated across every project, and promotes what earns it into the templates. What you *can* fix here: `.claude/settings.json`, `.claude/CLAUDE-context.md`, and this project's own `@code-review` / `@architect` / `@ui-reviewer` (DEC-S035).
 
 ## Agents
 
@@ -108,7 +110,7 @@ The generator writes the reciprocal banner into the amended decision's own file,
 | @pm | Sonnet | Start/end of sessions via skills | Track progress, flag risks |
 | @ui-reviewer | Sonnet | After UI work, phase boundaries | Design quality |
 | @sync-config | Sonnet | `/push-seeds` and `/pull-seeds` | Classifies template-vs-project diffs, gates structural backports |
-| @tape-reader | Sonnet | `/read-the-tape` | Audits session JSONL for workflow anti-patterns |
+| @tape-reader | Sonnet | `/read-the-tape` | Audits session JSONL for workflow anti-patterns. **Observer** (DEC-S039) — fixes project-owned files, records everything else as evidence |
 | @doc-consistency | Sonnet | Via `/doc-consistency-check` skill, or ad-hoc | Cross-reference factual claims across project docs; flag mismatches + unfilled placeholders. Report-only |
 | @ideas | Sonnet | Park an idea, re-rank, or audit the parking lot | Curate docs/FUTURE_IDEAS.md — capture, dedupe, cross-ref, keep the index. Edits only that file, and creates it on first use |
 

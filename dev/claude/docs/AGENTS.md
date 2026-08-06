@@ -90,14 +90,18 @@ Several agents and slash-command skills support the development workflow. All ru
 
 ### 6. @tape-reader
 
-**Purpose:** Audits session JSONL transcripts for workflow anti-patterns and proposes targeted improvements to skill and agent files.
+**Purpose:** Audits session JSONL transcripts for workflow anti-patterns. Under DEC-S039 it is an **observer**: it fixes what this project owns and records everything else as cited evidence, rather than editing shared workflow files.
 
 **When to invoke:**
 - Via `/read-the-tape`, after a session worth learning from
 
 **Spec:** `.claude/agents/tape-reader.md`
 
-**Output:** Anti-pattern findings (covers a known checklist; surfaces new candidate patterns) with proposed skill/agent edits.
+**Output:** Two things. (1) Proposed edits to **project-owned** files only — `.claude/settings.json` and the DEC-S035 reviewers — each gated on an explicit `y/n`. (2) One **observation file** per run, always, pushed to the `observations` branch in seeds: cited occurrences, plus `Cost if it recurs` and `Self-announcing` for each. Those two fields are the inputs to `@workout`'s promotion call, and the second is one only the observer can answer — whether a failure surfaced on its own or was caught by someone reading carefully is a fact about *that session* that no later reader can reconstruct.
+
+**What it deliberately cannot do:** edit any `logic`-class file, in any repo. Not the skills, not `@sync-config`, not its own pattern list. Seeds is canonical for that class and drift is a full-file overwrite in the pull direction (DEC-S038), so a fix applied in a project is deleted by the next `/pull-seeds` together with the evidence behind it. New patterns reach the checklist by `@workout` promoting them into a seeds PR — never by a project session editing `tape-reader.md`.
+
+**Requires:** a resolvable seeds checkout (same order as `/pull-seeds` Step 0: skill arg → `../seeds` sibling → `$SEEDS_REPO`) with the `observations` branch fetched. Without it the audit has nowhere to write, so the skill stops rather than producing findings it will discard.
 
 ---
 
@@ -236,7 +240,7 @@ Slash commands manage session lifecycle. Time tracking is automatic.
 | @pm | Sonnet | Start/end of sessions | Track progress, flag risks |
 | @ui-reviewer | Sonnet | After UI work, phase boundaries | Design quality |
 | @doc-consistency | Sonnet | Via `/doc-consistency-check`, ad-hoc when docs feel drifted | Cross-reference facts across docs; flag mismatches + placeholders. Report-only |
-| @tape-reader | Sonnet | Via `/read-the-tape` | Audit JSONL transcripts for anti-patterns, propose skill improvements |
+| @tape-reader | Sonnet | Via `/read-the-tape` | Audit JSONL transcripts for anti-patterns. Fixes project-owned files; records the rest as observations (DEC-S039) |
 | @sync-config | Sonnet | Via `/push-seeds` / `/pull-seeds`, nightly Routine | Classify template diffs, propose backports/forward-ports |
 | @ideas | Sonnet | Park an idea, re-rank, or audit the parking lot | Curate `docs/FUTURE_IDEAS.md`; edits only that file |
 | /its-alive | — | Session start | Open session file + timestamp + briefing |
@@ -251,7 +255,7 @@ Slash commands manage session lifecycle. Time tracking is automatic.
 | /doc-consistency-check | — | Ad-hoc, when docs feel drifted | Invokes @doc-consistency; cross-refs `docs/*.md` + root `CLAUDE.md` |
 | /push-seeds | — | After workflow improvements | Backport project-side improvements to seeds templates |
 | /pull-seeds | — | After seeds gets new improvements | Pull template changes into this project |
-| /read-the-tape | — | After a session worth learning from | Audit session JSONL for anti-patterns |
+| /read-the-tape | — | After a session worth learning from | Audit session JSONL for anti-patterns; write one cited observation to seeds |
 
 **Per-session files:** the workflow uses `sessions/YYYY-MM-DD-HHMM-<dev>-<slug>.md` (one file per session) on the orphan `sessions` branch via `.sessions-worktree/` (DEC-S014). `<dev>` comes from `~/.claude/devname` (one-line file, falls back to `$USER`). The slug is derived from the branch name (`task/X-foo` → `X-foo`, `main` → `main`, etc.). The active JSONL transcript path is captured in the file's frontmatter for later `/read-the-tape` audits.
 
