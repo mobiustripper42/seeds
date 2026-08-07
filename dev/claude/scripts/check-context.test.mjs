@@ -76,6 +76,16 @@ describe("check", () => {
     expect(failures[2]).toMatch(/nowhere.*does not exist/);
   });
 
+  it("resolves a glob under a Next dynamic segment, whose brackets are not a character class", () => {
+    // `globSync` reads `[shiftId]` as "one character from s,h,i,f,t,I,d" and matches nothing, so
+    // every dynamic route in an App Router project was uncitable in the two always-loaded docs —
+    // the check reported the doc as wrong for being right. `isClaim` above already asserts these
+    // are real directories, which is what made the pair contradict each other.
+    expect(check([{ path: "f.md", text: "`app/(crew)/crew/shift/[shiftId]/**`" }])).toEqual([]);
+    // Still a negative control: escaping must not turn every bracket pattern into a pass.
+    expect(check([{ path: "f.md", text: "`app/(crew)/crew/nope/[shiftId]/**`" }])[0]).toMatch(/does not exist/);
+  });
+
   it("resolves a real glob and a real brace expansion", () => {
     expect(
       check([{ path: "fixture.md", text: "`src/adapters/*-channel.ts` and `scripts/{check,gen}-decisions*.mjs`" }]),

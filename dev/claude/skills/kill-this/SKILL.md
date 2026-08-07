@@ -72,14 +72,36 @@ Read the project's trigger table from `.claude/CLAUDE-context.md` under `## Blas
 
 **The test, when a path isn't listed:** *does a number this code produces end up on someone's paycheck or invoice?* If yes, it's the money path — whether or not a payment provider is anywhere near it. The first two rows exist separately because defining "money" by **where money moves** misses where it is **computed**: a time-clock table can land with no payment file in the diff, and a wrong timestamp, a mis-bucketed pay period, or a double-counted punch is a wrong payment that no provider-shaped trigger would ever catch.
 
-If one or more hit, print exactly this and continue — never block, never run it:
+**If one or more hit, run the free local pass first, then surface the paid one.** A trigger that only ever produces a suggestion to spend money produces nothing on the days you decide not to spend it — and those are exactly the PRs it fired on.
+
+1. **Run `/security-review`** against the branch. It is local, unbilled, and aimed at this class: authorization boundaries, injection, secret handling, unsafe defaults, failure modes that fail open. This is not a duplicate of Step 3 — `@code-review` hunts the project's conventions and invariants; this hunts the ways a hostile or malformed input gets through. Fold its findings into the PR body under their own heading, so the reviewer can see which pass produced what.
+2. **Then print exactly this and continue** — never block, never run the billed tool:
 
 ```
 ⚠ This PR touches: <triggers>.
-  Consider `/code-review ultra` before merging — it's yours to run; I can't.
+  Ran /security-review (local, free) — findings above.
+  `/code-review ultra` is the deeper multi-agent pass: yours to run, I can't.
 ```
 
-If none hit, print nothing. Docs, seeds, agent/skill files, dev tooling, and single-surface UI never trigger it — their blast radius stops at the dev environment.
+**Where each one earns its cost:** `/security-review` reads the diff once, carefully. `/code-review ultra` fans out across several independent agents and filters by confidence, which is what catches the finding a single careful read talks itself out of. Run the local pass always on a trigger; save the billed one for a genuinely novel money or auth path, where being wrong is expensive and one reviewer's confidence is not enough.
+
+If none hit, run nothing extra. Docs, seeds, agent/skill files, dev tooling, and single-surface UI never trigger it — their blast radius stops at the dev environment.
+
+### Step 3.6 — Say what actually ran
+
+**Print this every time, including when nothing triggered.** Not as a summary of findings — as a receipt of which passes happened.
+
+```
+Review passes:
+  ✓ @code-review       — <N> findings: <one-line verdict>
+  ✓ /security-review   — <N> findings: <one-line verdict>      ← only when a trigger hit
+  ⊘ /security-review   — not run (no blast-radius trigger)     ← otherwise
+  ⊘ /code-review ultra — never automatic; yours to invoke
+```
+
+**Why this is its own step.** With three possible passes, "no news" is ambiguous in the one direction that matters: a review that silently didn't run looks exactly like a review that ran clean. That ambiguity was already reported on the two-pass version — a `⚠ consider ultra` line appeared and the operator could not tell from the output whether `@code-review` had run at all. Adding a third pass makes it worse unless the receipt is unconditional.
+
+**A pass that errored is `✗`, not a missing line.** If `@code-review` fails to return, or `/security-review` can't run, say so on its row and continue to the PR — but never let a failed pass render as a quiet absence. The whole point of the receipt is that absence is never something the reader has to infer.
 
 **Why this is a step and not a rule to remember:** the trigger is a property of the diff, and the moment you'd need to recall it is the moment you're least likely to (late, task finished, PR ready). Checking the diff is reliable; remembering is not.
 
@@ -110,7 +132,7 @@ One-line description.
 Bulleted list from `git diff --name-only $BASE..HEAD`.
 
 **## Code review**
-Findings from Step 3 (or "Clean bill of health.").
+Lead with the Step 3.6 receipt — which passes ran, which didn't, and why — then the findings from each, under its own sub-heading so the reviewer can tell them apart. "Clean bill of health" is a statement about a pass that *ran*; never write it in place of a pass that didn't.
 
 **## Test plan**
 Step-by-step scenarios you generated yourself from `git diff --name-only $BASE..HEAD`. Specific URL → action → expected result. Migration files → `supabase db push` verification. RLS / pgTAP touches → `supabase test db`. UI paths → per-screen scenario. Never empty, never generic.
