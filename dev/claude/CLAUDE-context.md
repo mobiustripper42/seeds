@@ -63,6 +63,20 @@ Project-specific overrides to the shell's `## Micro Workflow` steps. The shell's
 
 (None — the shell's default workflow applies as-is.)
 
+## Blast-Radius Triggers
+Read by `/kill-this` Step 3.5. When a branch diff hits one of these, the skill runs `/security-review` locally and surfaces `/code-review ultra` as the optional deeper pass. **Name paths, not categories** — "the money path" is unmatchable against a diff; `src/billing/**` is.
+
+If this section is absent the skill falls back to four generic triggers (money moving, money computed, auth/capability URL, data-changing migration), which are better than nothing and worse than a real list — a generic trigger can't know that this project's payroll export is the dangerous file.
+
+| Trigger | Paths |
+|---|---|
+| Money moving | `<e.g. src/payments/**, app/api/webhooks/stripe/**>` |
+| Money computed | `<e.g. src/domain/pay-period/**, anything producing an amount that reaches an invoice or paycheck>` |
+| Auth / capability URL | `<e.g. src/auth/**, middleware.ts, signed-link minting and validation>` |
+| Data-changing migration | `<migrations containing drop / alter … type / update / delete — an additive add column does not trigger>` |
+
+**The test when a path isn't listed:** *does a number this code produces end up on someone's paycheck or invoice?* If yes it's the money path, whether or not a payment provider is anywhere near the diff. Add it here the first time you notice it, not the second.
+
 ## Migration Protocol (project)
 The migration **discipline** lives in the shell's `## Migration Protocol`. This section holds the project's **toolchain**. Projects without a database: replace everything below with "N/A — no database."
 
