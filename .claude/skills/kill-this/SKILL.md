@@ -60,7 +60,7 @@ When addressing review findings before opening the PR: Read every file before ed
 
 `@code-review` hunts the project's known invariants. `/code-review ultra` is a different tool — it launches multiple agents to audit the branch independently from different angles and filters by confidence. It is **user-triggered and billed; Claude cannot launch it.** Do not attempt to run it via Bash or otherwise.
 
-Read the project's trigger table from `.claude/CLAUDE-context.md` under `## Blast-Radius Triggers` and match it against the branch diff (`git diff $(git merge-base HEAD main)...HEAD --name-only`). If that section is absent, fall back to the four generic triggers below.
+Get the project's trigger table from `.claude/CLAUDE-context.md` under `## Blast-Radius Triggers` **with the Read tool** — not `sed`, `grep`, `awk`, or `cat`. Read is allowlisted and never prompts; a shell one-liner extracting a section is the kind of command that can miss an allow-pattern match and stop the skill dead on a permission prompt, which is what happened the first time this step ran in a remote session. Reading the whole file costs less than the interruption. Then match the table against the branch diff (`git diff $(git merge-base HEAD main)...HEAD --name-only`). If that section is absent, fall back to the four generic triggers below.
 
 | Trigger | What to match |
 |---|---|
