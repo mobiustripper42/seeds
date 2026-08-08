@@ -163,6 +163,8 @@ So when the diff touches anything rendered, the hand section answers, in whateve
 
 **Non-UI changes still get both sections.** A migration's hand step is applying it and confirming the expected shape and row counts, plus what happens to existing rows. A money-path change is reconciling an amount end to end. A capability-URL change is confirming a stale or forged token is refused.
 
+**Every number in the body says which kind it is** — `issue #699`, `PR #707`, never a bare `#699`. Issues and PRs come from one shared GitHub counter, so they interleave and nothing in the number distinguishes them. **The single exception is the `closes #<issue>` line**, which is GitHub syntax and stops auto-closing if you prefix it. Write that one bare and say the kind in the prose around it.
+
 Try in order:
 1. `gh pr create --base "$BASE" --head "$BRANCH" --title "$SUBJECT" --body "$BODY"`
 2. MCP `mcp__github__create_pull_request` fallback.
@@ -183,7 +185,7 @@ Compose the task block:
 - <bullet list of what got done, with file paths>
 
 **Code review:** <findings summary or "Clean">
-**PR:** [#<PR_NUMBER>](<PR_URL>)
+**PR:** [PR #<PR_NUMBER>](<PR_URL>)
 **Points:** <effort estimate>
 **Blocked:** <only if blocked>
 **Branch:** <BRANCH>
