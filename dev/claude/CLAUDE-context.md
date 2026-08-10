@@ -56,12 +56,18 @@ npx supabase gen types typescript --local > src/lib/supabase/types.ts
 ## Additional Docs
 Project-specific docs beyond the baseline table in the `CLAUDE.md` shell's `## Key Docs`. Add rows here as the project grows its own docs. (None yet — delete this note when you add the first.)
 
-## Workflow Overrides
-Project-specific overrides to the shell's `## Micro Workflow` steps. The shell's default workflow is webapp-shaped (Playwright + pgTAP + 375px screenshot). A tool project with no database/UI overrides those steps here — e.g.:
+## Workflow Mechanisms
+The shell's `## Micro Workflow` says what three steps must achieve and names a slot for how (DEC-S042). Fill each one here. **These are slots, not overrides** — the shell states no default to correct, and nothing here should cite a step *number*: numbers move, and a stale cross-reference in an always-loaded file fails silently.
 
-> Step 5 — no pgTAP; unit-test the changed module. Step 6 — `npm test path/to/file.test.js`, not `supabase test db`. Step 7 — no mobile screenshot.
+| Slot | What it answers | This project |
+|---|---|---|
+| **Proof** | What counts as a check written before the change | `<e.g. Playwright integration test; pgTAP if RLS-touching — or: Vitest against the domain core>` |
+| **Proof command** | How to run the checks covering what you touched | `<e.g. npx playwright test tests/foo.spec.ts --project=desktop — or: npx vitest run src/foo.test.ts>` |
+| **Surface check** | How to confirm the change is right where a person meets it | `<e.g. 375px screenshot — or: flash the bench node and read one packet — or: none, no human-facing surface>` |
 
-(None — the shell's default workflow applies as-is.)
+**The gate** (`npm run verify`, `cargo test`, …) is what `/kill-this` and `/pause-this` run before committing — name it under `## Commands`, not here.
+
+**Every slot gets a real answer, including "none".** `Surface check: none — this is a library with no UI` is a fact a reader can check and a doc-consistency pass can question. A blank slot is indistinguishable from one nobody has thought about, which is the state this replaced.
 
 ## Blast-Radius Triggers
 Read by `/kill-this` Step 3.5. When a branch diff hits one of these, the skill runs `/security-review` locally and surfaces `/code-review ultra` as the optional deeper pass. **Name paths, not categories** — "the money path" is unmatchable against a diff; `src/billing/**` is.

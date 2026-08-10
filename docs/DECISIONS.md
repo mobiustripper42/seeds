@@ -17,7 +17,7 @@ Decisions are numbered DEC-NNN. "DEC-TBD" means the decision is flagged but unre
 - DEC-S011 — Project-type gating for template files _(revised by DEC-S040 — type gating loses its consumer with @sync-config; the manifest survives as documentation)_
 - DEC-S016 — ui-reviewer agent split — generic shell + project context file _(extended by DEC-S019 — the pattern generalized from one agent to any shell/context pair)_
 - DEC-S018 — File-class registry for sync-config _(extended by DEC-S039 — the registry now also decides what /read-the-tape may edit, not only what sync may overwrite; revised by DEC-S040 — the registry loses every automated consumer and survives as guidance for the manual copy)_
-- DEC-S019 — Hybrid-file split pattern (generalization of DEC-S016)
+- DEC-S019 — Hybrid-file split pattern (generalization of DEC-S016) _(refined by DEC-S042 — how the shell/context boundary is drawn inside Micro Workflow — the split itself, and every other section's use of it, stands)_
 - DEC-S028 — The Routine emits a fleet-status digest — the read side of the SPEC hub; rolling issues are pinned by config number _(retired by DEC-S038 — the digest is dormant while the Routine that emitted it is off)_
 - DEC-S038 — The nightly sync Routine is off — seeds ↔ project sync is on-demand from CC Desktop _(revised by DEC-S040 — the holding that manual /push-seeds and /pull-seeds carry the steady state — both are now retired; the Routine stays off)_
 - DEC-S039 — The learning loop splits observation from rule — evidence accrues in seeds, promotion is a separate, periodic act _(revised by DEC-S040 — @tape-reader's project-owned fix path and PR, and Phase 4's outward mechanism — the observation half stands unchanged; refined by DEC-S041 — adds a third severity input and a cause field at capture time; the cost/detectability axes and the no-count rule stand unchanged)_
@@ -58,6 +58,7 @@ Decisions are numbered DEC-NNN. "DEC-TBD" means the decision is flagged but unre
 - DEC-S031 — CLAUDE.md shell audit — cut bloat, merge duplicates, add the memory keepers
 - DEC-S036 — One decision, one file, behind a generated index — with amendments declared once and generated both ways
 - DEC-S037 — Doc consistency is a ratchet in the verify chain, not an audit
+- DEC-S042 — The shell states invariants and the context file fills named slots — overrides are a patch where the structure was wrong
 
 ### Tooling & safety
 - DEC-S009 — Supabase prod-write guard — discipline + wrapper script

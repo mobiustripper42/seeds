@@ -27,19 +27,19 @@ Project-specific docs are listed in `.claude/CLAUDE-context.md` under `## Additi
 1. **Spec it** — poker estimate + acceptance criteria. Before writing code, pin what "done" looks like: enumerate the concrete set from source and confirm it with me. My live words override prior docs. **Get the whole spec down before step 4** — the model does its best work on a complete brief given in one turn, not assembled across a dozen exchanges. (Issue exists from `/start-phase`.)
 2. **Plan it** — summarize what you're going to do. Wait for explicit approval before writing code or running commands.
 3. **Cut the branch** — once approved: `git checkout -b task/X.Y-short-description`.
-4. **Write the failing test FIRST** — when behavior is changing, the test comes before the code: write it, run it, and watch it fail *for the reason you expect*. That failure is the proof the test actually bites; a test written afterwards has never been observed failing, so it may be asserting nothing. Playwright integration test + pgTAP if RLS-touching. The test must exercise the function named in its own title — a test named for one thing that calls another is worse than no test, because it turns an unverified claim into an apparently-verified one.
+4. **Prove it first** — when behaviour is changing, the check comes before the change: write it, run it, and watch it fail *for the reason you expect*. That failure is what proves the check bites; one written afterwards has never been observed failing, so it may be asserting nothing. The check must exercise the thing named in its own title — a test named for one thing that calls another is worse than none, because it turns an unverified claim into an apparently-verified one. **What counts as a check here is the `Proof` slot in `.claude/CLAUDE-context.md` § Workflow Mechanisms.**
 5. **Build it** — until the test passes. If you find yourself writing code first and then reconstructing the proof by deleting it to watch the test fail, you have done step 4 the long way round.
-6. **Run targeted tests** — `npx playwright test tests/foo.spec.ts --project=desktop`. `supabase test db` if RLS-touching. Do NOT run full suite — that's the user's call.
-7. **Mobile screenshot** — confirm 375px viewport passes
+6. **Run the proof** — the checks covering what you touched, not the whole suite; the full suite is my call, never automatic. **Command: the `Proof command` slot in `.claude/CLAUDE-context.md` § Workflow Mechanisms.**
+7. **Check the surface** — confirm the change is right where a person actually meets it, which a passing check does not tell you. **How: the `Surface check` slot in `.claude/CLAUDE-context.md` § Workflow Mechanisms.**
 8. **STOP. The task is built, not shipped.** Report what changed and what passes, then **stop and wait**. Do not commit, do not push, do not open a PR, do not start the next task. This is a hard stop, and it is the point of the whole workflow: it is where I look at the work. Waiting is the correct end of a build turn — including when everything is green, the next task is obvious, and stopping feels like leaving something unfinished. It isn't. Handing back *is* the finished state.
 9. **`/kill-this` — I invoke it, you don't.** It commits, pushes, runs `@code-review`, opens the PR with `closes #<issue>`, and appends a `## Task <N>` block to the session file (on the orphan `sessions` branch). Run per task; multiple per session. **Reaching the same end state by hand is not the same thing and is never acceptable** — a hand-typed `git push` + `gh pr create` produces a PR that looks identical and has never been read by `@code-review`. That is the only automatic read of the diff before it merges, and its absence announces itself to nobody. If you believe a task is ready, say so and stop; that belief is not a trigger.
 10. **Pick up another task or close out** — start step 1 with a new branch, or run `/its-dead` once at the end of the Claude window. Merge PRs whenever — order doesn't matter.
 
-**No test, no push.**
+**No proof, no push.**
 
-**Full suite (`npx playwright test`) is never run automatically.** Ask first.
+**Steps 4, 6 and 7 name a slot rather than a tool** (DEC-S042). The shell states what the step must achieve; `.claude/CLAUDE-context.md` § Workflow Mechanisms says how it is done here. They are filled, not overridden — there is no default to correct, and nothing cites a step *number*, because numbers move and a stale cross-reference in an always-loaded file fails silently.
 
-Project-specific step overrides (e.g. a tool project with no database swaps the test steps) live in `.claude/CLAUDE-context.md` under `## Workflow Overrides`.
+**An unfilled slot is a real answer and must be written as one.** `Surface check: none — no human-facing surface` is a fact a reader can check. Leaving it blank is not.
 
 ## Migration Protocol
 
