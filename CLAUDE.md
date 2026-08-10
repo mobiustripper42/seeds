@@ -61,6 +61,8 @@ dev/
       check-decisions.test.mjs # vitest suite for both of the above
       check-context.mjs        # Asserts paths cited in the always-loaded context docs resolve
       check-docs.mjs           # Doc-set ratchet — DEC refs, npm scripts, issue links, rosters, paths (DEC-S037)
+      drift.mjs                # SEEDS-SIDE, read-only. What differs between these templates and one
+                               # project. Enumerates; never copies, never says which side wins
       split-decisions.mjs      # ONE-TIME v4→v5 migration: monolithic DECISIONS.md → docs/decisions/
       throughput.py            # Throughput extraction for /retro
       safe-supabase.sh         # Supabase prod-write guard (DEC-S009). Wrap with shell alias.
@@ -181,6 +183,18 @@ Seeds' ids are `DEC-S###` with no numeric main line, so `docs/decisions/_config.
 **There is no sync.** The pull-seeds and push-seeds skills and the sync-config agent are deleted — named without backticks throughout this section, because backticks would read as a claim that they still resolve. A template change reaches a project when someone copies it, one file at a time, with `cp`. A project's improvement reaches seeds the same way, in the other direction.
 
 **Why:** every attempt to automate the crossing ended by narrowing what it was allowed to touch. `context` class carved out (DEC-S018), whole files carved out by project type (DEC-S011), the three substantive reviewers carved out entirely (DEC-S035), `CLAUDE.md` split in half so one half could be left alone (DEC-S019). Each of those was right. Together they were a machine whittled down to the files where copying was already trivial — and then the version gate blocked the first copy that actually mattered. **The projects differ more than they agree, and choosing which file should cross is the part that needs a person.**
+
+**Before copying anything, run the differ:**
+
+```
+node dev/claude/scripts/drift.mjs /path/to/project
+```
+
+Read-only. It prints which `logic`-class files differ, which are absent, and whether the project owes a schema migration — so you are choosing what should cross rather than guessing at the state. It refuses to run against seeds itself, deliberately: this repo's root `CLAUDE.md` and `dev/claude/CLAUDE.md` are **different documents that share a filename**, and comparing them would report the whole shell as drift.
+
+`/its-alive` runs it at session start in a project, which is why there is no fleet list — a dormant repo's drift only matters the day you open it, and that is when the briefing tells you.
+
+**It enumerates and stops there.** It has no opinion about which side is right, and must never grow one: the moment it does, it has re-acquired the judgment DEC-S040 removed, and every argument for deleting the classifier applies to it instead.
 
 **What tells you what to copy:**
 

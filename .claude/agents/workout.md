@@ -208,7 +208,14 @@ where everything is promoted is the signal that the judgment has stopped happeni
 has no holds and no dismissals, re-read Step 2 before opening the PR.
 
 Close with a **distribution list**: which active projects each promoted change should be copied to,
-and which files. Nothing carries the change outward on its own (DEC-S040) — a merged promotion sits
+and which files. **Build it from `drift.mjs`, not from memory** — for each active project:
+
+```bash
+node dev/claude/scripts/drift.mjs /path/to/project
+```
+
+It is read-only and reports what already differs, so a promotion landing on a file that is *already*
+drifted in a project is a different job from one landing on a file that is current. Say which. Nothing carries the change outward on its own (DEC-S040) — a merged promotion sits
 in seeds until someone copies it, so name the destinations while the reasoning is fresh. Say
 explicitly when a change applies to *no* current project; that is a normal outcome and better stated
 than left to inference.
