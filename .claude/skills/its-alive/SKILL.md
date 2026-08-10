@@ -20,9 +20,9 @@ Run `git fetch origin` to refresh remote state. Capture `BRANCH=$(git branch --s
 - `main`: `git pull --ff-only origin main`. On divergence, show `git log --oneline origin/main..HEAD` and `git log --oneline HEAD..origin/main`, then ask: **"(a) rebase, (b) reset to origin/main, (c) abort?"** Wait for the choice.
 - Anything else (manual non-standard branch): if `git status --porcelain` is dirty, stop and ask the user to commit/stash. If clean, ask the user **"Stay on `$BRANCH` or switch to `main`?"** Wait for the choice.
 
-### Step 0.5 — Orphan branch + unmerged PR scan
+### Step 0.5 — Orphan branch + PR-state scan
 
-Before stamping time, check for leftover work from prior sessions. The CC platform creates a new `claude/*` branch per session, so previous sessions' branches and PRs stay alive on the remote until explicitly merged or deleted.
+Before stamping time, check for leftover work from prior sessions. The CC platform creates a new `claude/*` branch per session, so previous sessions' branches and PRs stay alive on the remote until explicitly merged or deleted. After a **squash merge** (GitHub's default for this workflow), the branch's original commits never appear on `$WORKING_BRANCH` — which has only the squashed commit — so a naive "commits not on main" scan flags every shipped branch as an orphan. Step 0.5 must cross-reference PR state to avoid that false alarm.
 
 **Resolve `WORKING_BRANCH`:**
 ```
@@ -34,21 +34,26 @@ The active trunk is always `main` (DEC-S022); a `production` branch, if present,
 ```
 git for-each-ref refs/remotes/origin/claude/ --format='%(refname:short)'
 ```
-For each `origin/claude/<slug>` (other than the current branch): `git log --oneline origin/$WORKING_BRANCH..<ref>`. If non-empty, it's a candidate.
+For each `origin/claude/<slug>` (other than the current branch): `git log --oneline origin/$WORKING_BRANCH..<ref>`. If non-empty, it's a Scan-A candidate.
 
-**Scan B — open PRs from prior sessions:**
-- `gh pr list --state open --base "$WORKING_BRANCH" --json number,title,headRefName,createdAt,updatedAt --limit 20` (or `mcp__github__list_pull_requests` if `gh` is unavailable).
+**Scan B — PRs (open AND closed) keyed by branch:**
+- `gh pr list --state all --base "$WORKING_BRANCH" --json number,title,headRefName,state,mergedAt,createdAt,updatedAt --limit 50` (or `mcp__github__list_pull_requests` with `state: all` if `gh` is unavailable).
 
-**Cross-reference** the two scans:
+For each Scan-A candidate, find the most recent PR whose `headRefName` matches the branch's short name (strip the `origin/` prefix; highest PR number wins). The PR's state and merge status determine the category:
+
 | Category | Definition | Action |
 |----------|------------|--------|
-| Open-with-PR | Branch has unmerged commits AND an open PR | Tell the user; don't touch. In-flight. |
-| Orphan-without-PR | Branch has unmerged commits AND no open PR | **Real problem.** Surface: "(a) open a PR now, (b) cherry-pick onto current branch, (c) delete (commits lost)?" Wait. |
-| Stale-no-commits | Branch on remote but no commits ahead | Suggest `git push origin --delete <ref>` if more than one such ref exists. |
+| Open-with-PR | Most recent PR is OPEN | Silent. In-flight — nothing to do. |
+| Merged-cleanable | Most recent PR is CLOSED with `mergedAt` set (non-null) | Silent. Squash-merge artifact, safe to delete but harmless. Don't prompt. |
+| Orphan-abandoned | Most recent PR is CLOSED with `mergedAt` null | Silent. PR closed without merging — the close was the decision. |
+| Orphan-without-PR | Branch has commits but NO PR was ever opened for it | **Real problem — work has no shipping path.** Surface and **wait**: "(a) open a PR now, (b) cherry-pick onto current branch, (c) delete (commits lost)?" |
+| Stale-no-commits | Branch on remote, zero commits ahead of `$WORKING_BRANCH` and no associated PR commits | Silent. |
 
-Also flag any open PR `createdAt` older than 24h — likely forgotten merges.
+**Why the PR cross-reference still runs even though only one category surfaces.** Scan B is not optional decoration — it's what keeps **Orphan-without-PR** honest. Without the merged-state lookup, every squash-merged branch (whose original commits never land on `$WORKING_BRANCH`) would match "branch has commits, looks like no PR" and false-alarm every session. The cross-reference is what tells a genuinely-orphaned branch apart from a shipped-and-squashed one. Keep the scan; suppress the output.
 
-Gating for orphans-without-PR; advisory otherwise. If `gh` and MCP are both unavailable, skip silently and note in Context.
+**Gating rule.** Surface **exactly one** category: **Orphan-without-PR**, and only when it's non-empty — that's real lost work with no shipping path, and it blocks the briefing until the user decides. Every other category is computed silently and produces **no output and no prompt**. The old per-session nag (merged-branch cleanup prompts, abandoned-PR advisories, stale-branch deletion suggestions) is gone — it printed "nothing wrong" every session and trained you to ignore it. If you ever want to reap merged/stale branches, that's an explicit ad-hoc ask, not a session-open ritual.
+
+**Tool-outage fallback.** If `gh` and `mcp__github__list_pull_requests` are both unavailable, skip Scan B entirely and surface every Scan-A candidate as "branch has commits — PR state check unavailable, do not assume orphan." Don't false-alarm during a tool outage. Note the skipped check in the session Context section.
 
 ### Step 0.6 — Ensure `.sessions-worktree/` (DEC-S014)
 
@@ -97,13 +102,11 @@ TIME_PART=$(date -u +%H%M)
 
 ## Step 2 — Resolve dev identity
 
-Use the **Read** tool on `~/.claude/devname`. If it succeeds, `DEV` = the trimmed file contents.
+Use the **Read** tool on `~/.claude/devname`. If it succeeds, `DEV` = the trimmed file contents. Done.
 
-If Read errors (file doesn't exist), fall back via Bash: `echo "$USER"`. Trim and assign to `DEV`.
+If Read errors (file does not exist), prompt the user once for their dev handle and offer to write `~/.claude/devname` via the **Write** tool. Once written, `DEV` = the handle. Done.
 
-If both are empty, prompt the user for their dev handle and offer to write `~/.claude/devname` via the **Write** tool.
-
-(Read + a single clean `echo` keeps the harness validator silent — no `||`, no `2>/dev/null`, no command substitution chain.)
+**Do NOT fall back to `echo "$USER"` or any other Bash-based identity probe.** The `$USER` branch was removed because: (a) the harness validator flags `$USER`-shaped Bash commands on a rolling cadence as new patterns land — so every fix to the validator-silence wording was only good until the next validator pattern landed; (b) `$USER` is unreliable in sandboxed environments where `~/.claude/devname` doesn't persist between sessions anyway, so the fallback was solving the wrong problem; (c) the prompt + Write path resolves to a real persistent value that future sessions read directly. The Read + Write path is the only path. If Read fails, the prompt is mandatory.
 
 ## Step 3 — Derive the slug
 
@@ -172,15 +175,16 @@ transcript: <TRANSCRIPT>
 **Context:**
 ```
 
-Commit and push **on the sessions branch from inside the worktree**:
+Commit and push **on the sessions branch** using `git -C` to target the worktree directory (no `cd` — shell state doesn't persist between Bash tool calls):
 
 ```
-cd .sessions-worktree
-git add sessions/$(basename "$SESSION_FILE")
-git commit -m "Open Session $SESSION_NUM entry"
-git push origin sessions
-cd ..
+git -C .sessions-worktree add sessions/$(basename "$SESSION_FILE")
+git -C .sessions-worktree commit -m "Open Session $SESSION_NUM entry"
+git -C .sessions-worktree push origin sessions
+git -C .sessions-worktree checkout sessions 2>/dev/null || true
 ```
+
+The final `checkout sessions` re-pins the worktree HEAD to the `sessions` branch — guards against a detached-HEAD state.
 
 ## Step 7 — Read last session context
 
@@ -201,7 +205,9 @@ Extract:
 
 ## Step 8 — Read project state
 
-Grep `docs/PROJECT_PLAN.md`:
+**Skip-when-directed.** If the user already named a task or goal when they launched this session, you do **not** need to compute a recommendation — they've told you what they're doing. Skip the recommendation-building below; Step 7's context read (last session, Next Steps, gotchas) is the part that always matters. The recommendation exists for the cold open, when you start a session with no task in hand. Don't spend the session's first move ranking the backlog the user has already overruled.
+
+When a recommendation *is* wanted (cold open), grep `docs/PROJECT_PLAN.md`:
 - Unchecked: `grep "\[ \]" docs/PROJECT_PLAN.md`
 - Deferred: `grep "\[~\]" docs/PROJECT_PLAN.md`
 - Priority: `grep "Next session priority" docs/PROJECT_PLAN.md -A 2`
@@ -209,6 +215,24 @@ Grep `docs/PROJECT_PLAN.md`:
 - Velocity: `grep "Velocity baseline" docs/PROJECT_PLAN.md -A 1`
 
 If the project uses phase-rituals: `gh issue list --label "phase:current" --state open --json number,title,labels --limit 50`.
+
+## Step 8.5 — Drift against seeds
+
+Resolve the seeds checkout (skill arg → `../seeds` sibling → `$SEEDS_REPO`; the same order `/read-the-tape` uses), then:
+
+```
+node <seeds>/dev/claude/scripts/drift.mjs .
+```
+
+Read-only. It prints which `logic`-class files differ from the templates, which are absent, and whether this project owes a schema migration.
+
+**Report it in the briefing only when there is something to report** — a `DRIFT` count, or a `seeds-version` gap. Silence when clean; a line every session that always says "nothing differs" is a line nobody reads by the third one.
+
+**Why this check lives here rather than in seeds.** A repo's drift only matters when you are about to work in it, and that is exactly when this runs. A dormant project can sit twelve template changes behind for months at no cost — the day you open it for a one-line bugfix, the briefing says so and you decide whether to sync first or ignore it. That also means there is no fleet list to maintain, and no report enumerating repos nobody has touched since spring.
+
+**It reports; it does not act.** Do not sync, do not copy, do not offer to. Deciding what should cross is the part that needs a person (DEC-S040), and this exists so that person is not guessing at the state.
+
+If seeds doesn't resolve, skip silently and say so in Context. A session must never be blocked by a checkout not being on this machine.
 
 ## Step 9 — Present briefing
 
@@ -224,12 +248,12 @@ Last session: [one-line summary]
 Next Steps from last session: [verbatim or paraphrased]
 Context to remember: [gotchas worth mentioning]
 
-Recommended task: [task ID + name + why]
+Recommended task: [task ID + name + why — OMIT this line entirely if the user opened with their own task]
 
 Branch already cut: <BRANCH> — good to go. Each task today gets its own /kill-this; the session file lives on the orphan `sessions` branch independent of any task branch.
 ```
 
-Then ask: **"Ready to go? Confirm the task or redirect me."**
+Then ask: **"Ready to go? Confirm the task or redirect me."** — or, if the user already named the task, just confirm you've got the context and restate their task in one line: **"Context loaded. Picking up <their task> — go?"**
 
 Stop. Do not begin work until the user confirms.
 
