@@ -240,17 +240,82 @@ What survived the Routine, and then survived the sync: `.claude/routine-config.y
 registry and `.claude/type-manifest.yaml`. Both kept their contents and lost their readers. See
 § Moving Files Between Seeds and a Project.
 
-## Verbosity
+## How Work Happens Here
 
-End-of-turn summaries: one or two sentences. What changed, what's next. Stop there.
+Seeds is markdown. There is no build, no test suite, and deliberately no `package.json` — adding one would switch on the semver skills, which detect it at the repo root. The workflow is the same shape as the one this repo ships to projects, with the mechanism slots (DEC-S042) filled for a docs repo:
 
-Do not recap work I just watched you do. Do not restate the task. Do not explain why an obvious step was obvious. The summary exists so I can re-enter context next session — not so you can demonstrate effort.
+1. **Spec it** — what changes and why. For a template edit, name the failure it fixes; a rule with no observed failure behind it is cargo.
+2. **Plan it** — say what you'll touch. Wait for approval before editing.
+3. **Cut the branch** — `git checkout -b task/<slug>`.
+4. **Prove it first** — *`Proof` slot:* the doc gates. A change to a decision, an id, a roster, or a cited path has a mechanical check; run it and watch it fail before the fix if you can. **Prose has no mechanical proof — say so plainly rather than implying the gates covered it.**
+5. **Make the change** — template under `dev/claude/`, then mirror to `.claude/` if the file is one seeds dogfoods.
+6. **Run the proof** — *`Proof command` slot:*
 
-If a turn ends with a tidy bullet list followed by three paragraphs of prose, the prose is wrong. Delete it.
+   ```
+   node dev/claude/scripts/gen-decisions-index.mjs   # after editing any decision
+   node dev/claude/scripts/check-decisions.mjs
+   node dev/claude/scripts/check-docs.mjs
+   ```
 
-Mid-session updates: one sentence per state change. "Found X." "Switching to Y." "Build green." Not a paragraph.
+   From the repo root, so seeds validates the files it ships rather than a copy. `check-context.mjs` is **not** run here — it asserts `.claude/CLAUDE-context.md` exists, and seeds doesn't use the DEC-S019 split.
+7. **Check the surface** — *`Surface check` slot:* read the edited section as the project that will receive it. A shell change lands in muster and soundings verbatim; a sentence that only makes sense in a webapp is a defect no gate catches.
+8. **STOP. The change is written, not shipped.** Report and wait. Don't commit, don't push, don't open a PR, don't start the next thing. This is where I look at it.
+9. **`/kill-this` — I invoke it, you don't.** Hand-typing `git push` + `gh pr create` reaches the same end state without `@code-review` ever reading the diff, and its absence announces itself to nobody.
+10. **Next task or `/its-dead`.**
 
-This rule applies double at session end. The session-summary block is the first thing I read next session — make it dense, not voluminous. Five bullets of work and a wall of text means I cannot actually use the summary. Cut the wall.
+**Mirrors:** several files exist twice — `dev/claude/<x>` is the template, `.claude/<x>` is seeds' live copy. Edit the template, copy to the mirror, and `diff` them before committing. A drifted mirror means seeds is running different rules than it ships.
+
+## Workflow Notes
+
+- **Diagnostic commands** (the gates, `git status`, `diff`): run them directly.
+- **Environment-changing commands** (`git push`, deletes, anything outside this repo): surface them rather than assuming.
+- **Read files with the Read tool — never `sed`, `grep`, `awk` or `cat` to pull a section out.** Read is allowlisted and never prompts; a shell one-liner extracting a section can miss an allow-pattern match and stop a skill dead mid-run. `grep` to *search* across many files is fine.
+- **Never write a bare `#N`. Say which kind: `issue #149`, `PR #167`.** GitHub draws issues and PRs from one shared counter, so they interleave permanently and the number can't tell you which it is. `closes #N` stays bare — it's GitHub syntax.
+- **A scripted edit must fail loudly when its anchor doesn't match.** A `read_text()` / `.replace()` / `write_text()` script writes the file back unchanged and exits 0. Assert the match count, or the file it silently skipped looks reviewed.
+- **Before asserting what a template says or does, read it in the same turn.** This repo's whole subject is documents about documents, and a confident claim about a file's contents is one `grep` from being checked.
+
+## Approval Before Action
+
+State what you'll change and why, list the commands you'll run, and wait for "go". This holds for edits as much as for pushes — a template change lands in every project that copies it.
+
+**Trust my statements the first time.** "It's fixed" is a fact, not an invitation to re-verify.
+
+## Scope Discipline
+
+Check `docs/SPEC.md` before adding anything. Apply a change to the surface I named and don't propagate it to siblings.
+
+**A workflow rule needs an observed failure behind it.** This repo's failure mode is accretion — rules that sound right, were never triggered by anything, and are skimmed past forever after. If you can't cite the session, transcript, or PR that produced it, it's a proposal, and it should say so.
+
+**Prefer removing.** A retired rule with a decision explaining why it went is worth more than a new one.
+
+## Model Selection
+
+**Opus 5 is the standing model**; **Sonnet** handles cheap, scoped work. `@workout` runs Opus because promotion is the one judgment in the loop that's expensive to get wrong. Reviewers stay Sonnet. New agents default to Sonnet — pin `model: opus` only when the standing job needs it.
+
+`effort` buys more than a model jump: start at `xhigh` for hard work and `high` elsewhere, then try lower.
+
+## Tone
+
+Occasional dry humor and sarcasm welcome. One good line beats three forced ones.
+
+## Communication
+
+**Pick the kind of reply before writing it.** Not a label on the output — a decision about its shape. "Be concise" is a disposition and it erodes over a session; this is a discrete choice, so it doesn't.
+
+- **Lookup** — *where is that file, did the gate pass, what's the current value.* The answer is a fact. Give it in a line or two and stop. **Hard cap: do not add the extra sentence even when it is true and relevant** — that sentence is always true and relevant, which is why nothing ever cuts it. If the fact took work, cite where you got it on the same line.
+- **Action** — *you did the thing; report what happened.* Result first, then only what **changes what I do next**: a blocker, a surprise, something I'm about to trip over, a thing you did differently than asked. Nothing else — no recap of work I just watched, no restatement of the task, no summary of your reasoning. Specifically: **one artifact**, and **don't bolt on the adjacent concern** you noticed while answering — raise it after, in one line, or not at all.
+- **Judgment** — *why did this fail, which approach, what's the tradeoff.* The reasoning **is** the answer; a one-liner is useless. Explain at whatever length it takes. Do not compress a real explanation to look terse — that costs three follow-ups to reassemble. The complaint is never that you explained something; it is explaining the answer to a question I could have grepped.
+- **Session summary** — end of turn: one or two sentences, what changed and what's next. First thing I read next session. If a turn ends with a bullet list plus three paragraphs, the prose is wrong.
+
+Unsure which? If one tool call and no thinking would have answered it, it's Lookup.
+
+**In all four, the first line is the answer** — not the route you took to it.
+
+**When I push back, say less — never explain.** "Trim", "again", "too many words", "this is confusing": re-answer shorter, immediately. Explaining why the confusing thing was confusing is the same failure recursing, and it reads as arguing.
+
+**Never lead with a false premise.** If you don't know the cause, ask. What's banned is stating a made-up cause as fact and explaining at length on top of it.
+
+**Cite facts; label proposals.** Any claim about a file, a rule, or a decision cites a file:line or a tool result. If you can't cite it, ask instead of asserting. This never restricts *ideas* — propose freely, just mark them "proposed / not in the repo".
 
 ## Cost and Waste
 
