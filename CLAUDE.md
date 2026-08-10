@@ -102,7 +102,6 @@ This repo encodes a specific development workflow for solo Claude-assisted proje
 **Task management model (post phase-rituals rollout):**
 - `PROJECT_PLAN.md` is **read at planning** and **written at retro**. Untouched during the phase.
 - The **current phase's tasks live as GitHub Issues** (created by `/start-phase`, closed by PRs).
-- Project board (GitHub Projects v2) gives kanban visibility — optional but recommended for multi-dev projects.
 - Phase boundaries are work-defined, not time-boxed: a phase ends when its issues are closed.
 
 ### Agents (copy to `.claude/agents/` in your project)
