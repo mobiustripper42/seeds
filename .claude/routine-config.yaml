@@ -125,6 +125,10 @@ file-classes:
   # roster and exemption lists in `.claude/doc-check.json`. A project that
   # needs different behavior edits its config, never the script — so drift in
   # the script itself is staleness, which is exactly what `logic` handles.
+  # Seeds-side only: /its-alive invokes it from the seeds checkout, so a project
+  # never holds a copy and its absence is not drift. Listed BEFORE the scripts
+  # glob because first match wins.
+  - "dev/claude/scripts/drift.mjs": seeds-only
   - "dev/claude/scripts/**": logic
   - "dev/claude/agents/tape-reader.md": logic
   - "dev/claude/agents/ideas.md": logic   # generic curator — no project-specific content, byte-identical everywhere
