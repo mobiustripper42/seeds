@@ -27,6 +27,13 @@
       "Bash(chmod -R 777*)",
       "Bash(chmod 777 *)",
       "Bash(* > /dev/*)",
+      "Bash(npx *)",
+      "Bash(bunx *)",
+      "Bash(uvx *)",
+      "Bash(pnpm dlx *)",
+      "Bash(yarn dlx *)",
+      "Bash(bun dlx *)",
+      "Bash(pipx run *)",
       "Bash(sudo *)",
       "Bash(curl *)",
       "Bash(wget *)",
@@ -43,6 +50,20 @@
       "Read(**/.ssh/**)",
       "Read(**/id_ed25519*)",
       "Read(**/id_rsa*)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/no-remote-exec.sh\"",
+            "timeout": 10
+          }
+        ]
+      }
     ]
   }
 }
