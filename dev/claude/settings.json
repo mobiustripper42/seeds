@@ -27,6 +27,13 @@
       "Bash(chmod -R 777*)",
       "Bash(chmod 777 *)",
       "Bash(* > /dev/*)",
+      "Bash(npx *)",
+      "Bash(bunx *)",
+      "Bash(uvx *)",
+      "Bash(pnpm dlx *)",
+      "Bash(yarn dlx *)",
+      "Bash(bun dlx *)",
+      "Bash(pipx run *)",
       "Bash(sudo *)",
       "Bash(curl *)",
       "Bash(wget *)",
@@ -42,7 +49,10 @@
       "Read(**/.envrc)",
       "Read(**/.ssh/**)",
       "Read(**/id_ed25519*)",
-      "Read(**/id_rsa*)"
+      "Read(**/id_rsa*)",
+      "Edit(.claude/settings.json)",
+      "Edit(.claude/settings.local.json)",
+      "Edit(~/.claude/settings.json)"
     ]
   }
 }
