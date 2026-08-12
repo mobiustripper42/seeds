@@ -130,6 +130,15 @@ file-classes:
   # glob because first match wins.
   - "dev/claude/scripts/drift.mjs": seeds-only
   - "dev/claude/scripts/**": logic
+  # The permission policy (DEC-S023, DEC-S044). Neither `logic` nor `context`:
+  # its CONTENTS are distributed by hand per machine and a project may legitimately
+  # carry a different revision, so comparing them would be noise and would imply
+  # seeds' copy wins — an opinion the differ must never hold. Its PRESENCE is not a
+  # matter of opinion. A project without this file has no repo-level policy at all,
+  # and on phone/web sessions it is the only policy that reaches the container
+  # (DEC-S023) — so its absence is silent and total. `presence` means: report when
+  # missing, never diff.
+  - "dev/claude/settings.json": presence
   - "dev/claude/agents/tape-reader.md": logic
   - "dev/claude/agents/ideas.md": logic   # generic curator — no project-specific content, byte-identical everywhere
   # Project-owned reviewers (DEC-S035). These three reason about the project's
