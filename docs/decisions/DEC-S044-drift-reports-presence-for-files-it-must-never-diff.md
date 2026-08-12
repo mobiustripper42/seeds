@@ -25,7 +25,7 @@ MISSING — no copy here, and nothing else reports it (1):
 
 **The gap this closes.** `.claude/settings.json` was in no file class at all, and `drift.mjs` skips anything it cannot classify. So a project with **no repo-level permission policy whatsoever** produced no mention of it — verified before the change against a fixture project holding a `CLAUDE.md` and a `seeds-version` and nothing else: 23 rows of "also absent", not one of them the settings file.
 
-That silence has already cost twice. muster lost its copy at DEC-S032 and soundings never had one; both went unnoticed for months, and both were found by hand in a session that went looking. Neither `check-docs` nor `drift.mjs` reports it, because to `check-docs` it is not a doc and to `drift.mjs` it did not exist.
+That silence has already cost twice. Per the session 32 close-out notes (2026-08-11), muster lost its copy at DEC-S032 and soundings never had one; both went unnoticed for months, and both were found by hand in a session that went looking, not by any check. Those are claims about other repositories and cannot be verified from this checkout — they are recorded here as the observation that motivated the change, with their source named. Neither `check-docs` nor `drift.mjs` reported it, because to `check-docs` it is not a doc and to `drift.mjs` it did not exist.
 
 **Why absence and contents are different questions.** DEC-S023 distributes this file **by hand, per machine**, and says so deliberately: permission guardrails are security posture, and a project legitimately carries whatever revision was last copied to it. A "differs" row would therefore be noise on every project simultaneously — and worse, it would assert that seeds' copy is the correct one. That is precisely the judgment DEC-S040 removed when it deleted `@sync-config`, and `drift.mjs` is written under an explicit standing instruction never to reacquire it.
 
@@ -41,7 +41,7 @@ Absence is not that kind of claim. It is checkable, it is never correct, and —
 - **Staleness of a present file.** A project holding a two-revision-old policy reads as fine, by design. That is the accepted cost of not comparing contents.
 - **Drift appearing after the run.** Unchanged from `drift.mjs`'s existing caveat.
 
-**Proof:** verified in both directions before and after, against a throwaway fixture — silent when the file is absent (the bug), reported when absent (the fix), silent when present, and **silent when present with deliberately different contents** (the property that keeps it an enumerator). muster and soundings both report nothing, correctly.
+**Proof:** verified in both directions before and after, against a throwaway fixture — silent when the file is absent (the bug), reported when absent (the fix), silent when present, and **silent when present with deliberately different contents** (the property that keeps it an enumerator). Run against muster and soundings on 2026-08-12, both correctly reported nothing; that is a statement about those checkouts on that date, not a standing guarantee.
 
 **Schema:** additive — a new class value that older readers ignore, and there are no automated readers left to break (DEC-S040). No version bump.
 

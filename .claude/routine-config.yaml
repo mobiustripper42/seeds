@@ -102,11 +102,17 @@ digest: true
 # reference a person consults before copying a file between seeds and a project.
 # Maps glob patterns to one of:
 #
-#   logic    — byte-identical-by-design across projects. Safe to `cp` wholesale
-#              in either direction; drift here is staleness, not customization.
-#   context  — project-specific. Never copy. The project owns its version.
-#   hybrid   — generic shell + per-project context file. Copy the shell only
-#              (DEC-S019); the paired context file is project-owned.
+#   logic      — byte-identical-by-design across projects. Safe to `cp` wholesale
+#                in either direction; drift here is staleness, not customization.
+#   context    — project-specific. Never copy. The project owns its version.
+#   hybrid     — generic shell + per-project context file. Copy the shell only
+#                (DEC-S019); the paired context file is project-owned.
+#   presence   — must EXIST in every project; its contents are never compared
+#                (DEC-S044). For a file distributed by hand per machine, where a
+#                project legitimately carries a different revision but having no
+#                copy at all is never right.
+#   seeds-only — lives here and nowhere else. A project never holds a copy, so
+#                its absence downstream is not drift.
 #
 # Order matters — first matching glob wins. A file not matched here has never
 # been classified; treat it as unclassified rather than assuming a default, and
