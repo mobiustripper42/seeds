@@ -22,6 +22,8 @@ amends:
 
 **Precedence gotcha (Claude Code):** `deny` beats `allow` — once denied you cannot re-allow a subset. So the `.env` deny is **enumerated** (`.env`, `.env.local`, `.env.*.local`, `.env.{development,production,preview,staging,test}`, `.envrc`) not a blanket `Read(**/.env.*)`, so `.env.example`/`.env.sample` stay readable. Trade-off: a novel `.env.<custom>` secret name isn't caught — add it explicitly.
 
+> **No longer true as written — DEC-S043 reversed this paragraph specifically.** The trade-off's "novel name isn't caught" was not theoretical: two uncovered files turned up in one repo. Renaming the template to `env.example`, out of the `.env*` namespace, removed the reason for the enumeration, and the deny is now a blanket per tool. The precedence gotcha itself still holds and is why the rename was the fix rather than a wider glob. Stated inline because this paragraph makes a **live-state** claim about what the deny list contains, which a reader checking "what is denied today" would otherwise take at face value from the body.
+
 **Distribution — master → machines (the real model):**
 - **Real machines (windows laptop, mill-dev, bee-grace — distinct boxes):** copy the master into each machine's **user-global** `~/.claude/settings.json` (Windows: `%USERPROFILE%\.claude\settings.json`). One global file = every repo + every ad-hoc dir on that box. Globals don't travel via git; set once per machine.
 - **Phone (CC on web — ephemeral container):** no editable global. Covered only by the **committed per-repo `.claude/settings.json`** (cloned with the repo). Reminder lives in the README: before a code-heavy phone session, confirm that repo's committed file matches the master.

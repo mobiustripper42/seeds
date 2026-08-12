@@ -47,6 +47,8 @@ Neither miss is exotic. `.env.local.backup` is what a person makes by hand befor
 
 **Migration:** `git mv .env.example env.example` per repo, replace the `.gitignore` env block with `.env*`, and update any doc that names the old path (muster: one reference, `docs/RUNNING.md`). Distribution of `settings.json` itself is unchanged and still manual — DEC-S023's procedure stands.
 
+**Migration is not optional once the blanket ships, and this is the cost of the decision.** `.env.sample` and `.env.template` are equally conventional names for the same file, and the blanket catches both with **no carve-out available** — deny beats allow, so a project that keeps a dotted template name simply loses the ability to read it, silently, with no error explaining why. Any repo adopting this deny list must rename its template in the same change. That is a real constraint on twelve-plus repos, accepted because the alternative is the enumeration whose whole failure mode is that it only covers names someone predicted.
+
 **Schema:** additive — no skill reads either file. No version bump.
 
 **Alternatives considered:** `Read(**/.env/*)` (rejected — matches children of a *directory* named `.env`, so it matches nothing at all). Keeping the enumeration and appending the two muster names (rejected — treats the symptom; the next hand-made backup file is unnamed today). Denying `Bash(cat *.env*)` and friends (rejected — unbounded, and a script defeats it in one line).
