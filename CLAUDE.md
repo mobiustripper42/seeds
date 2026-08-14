@@ -207,7 +207,7 @@ Read-only. It prints which `logic`-class files differ, which are absent, and whe
 
 | Question | Where the answer is |
 |---|---|
-| Is this file identical everywhere, or project-owned? | `.claude/routine-config.yaml` § `file-classes` — `logic` copies wholesale, `context` never copies, `hybrid` copies the shell only |
+| Is this file identical everywhere, or project-owned? | `.claude/routine-config.yaml` § `file-classes` — `logic` copies wholesale, `context` never copies, `hybrid` copies the shell only, `presence` must exist but is never compared (DEC-S044), `seeds-only` never leaves this repo |
 | Does this project type even use the file? | `.claude/type-manifest.yaml` |
 | How far behind is this project, and what does it owe? | `<project>/.claude/seeds-version` vs `seeds-version`, then `docs/SCHEMA_VERSIONS.md` |
 | What actually differs right now? | `diff`. Nothing enumerates it for you any more — that was the real loss, and it is deliberate |

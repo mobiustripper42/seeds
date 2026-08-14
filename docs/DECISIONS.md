@@ -16,12 +16,13 @@ Decisions are numbered DEC-NNN. "DEC-TBD" means the decision is flagged but unre
 - DEC-S010 — Bi-directional nightly sync via Anthropic Routine _(retired by DEC-S038 — the nightly automation only — the config, the classifier and the file-class registry it defined are still read by manual sync)_
 - DEC-S011 — Project-type gating for template files _(revised by DEC-S040 — type gating loses its consumer with @sync-config; the manifest survives as documentation)_
 - DEC-S016 — ui-reviewer agent split — generic shell + project context file _(extended by DEC-S019 — the pattern generalized from one agent to any shell/context pair)_
-- DEC-S018 — File-class registry for sync-config _(extended by DEC-S039 — the registry now also decides what /read-the-tape may edit, not only what sync may overwrite; revised by DEC-S040 — the registry loses every automated consumer and survives as guidance for the manual copy)_
+- DEC-S018 — File-class registry for sync-config _(extended by DEC-S039 — the registry now also decides what /read-the-tape may edit, not only what sync may overwrite; revised by DEC-S040 — the registry loses every automated consumer and survives as guidance for the manual copy; extended by DEC-S044 — adds a fourth file class, `presence`; the existing three and their meanings are unchanged)_
 - DEC-S019 — Hybrid-file split pattern (generalization of DEC-S016) _(refined by DEC-S042 — how the shell/context boundary is drawn inside Micro Workflow — the split itself, and every other section's use of it, stands)_
 - DEC-S028 — The Routine emits a fleet-status digest — the read side of the SPEC hub; rolling issues are pinned by config number _(retired by DEC-S038 — the digest is dormant while the Routine that emitted it is off)_
 - DEC-S038 — The nightly sync Routine is off — seeds ↔ project sync is on-demand from CC Desktop _(revised by DEC-S040 — the holding that manual /push-seeds and /pull-seeds carry the steady state — both are now retired; the Routine stays off)_
 - DEC-S039 — The learning loop splits observation from rule — evidence accrues in seeds, promotion is a separate, periodic act _(revised by DEC-S040 — @tape-reader's project-owned fix path and PR, and Phase 4's outward mechanism — the observation half stands unchanged; refined by DEC-S041 — adds a third severity input and a cause field at capture time; the cost/detectability axes and the no-count rule stand unchanged)_
 - DEC-S040 — Automated seeds ↔ project sync is retired entirely — the loop is observe, promote, copy by hand
+- DEC-S044 — `drift.mjs` gains a `presence` class — report the absence, never the contents
 
 ### Session lifecycle & skills
 - DEC-S012 — Session-end flow — `/its-dead` first, merge last; PR-flow default on protected `$WORKING_BRANCH`
@@ -63,7 +64,7 @@ Decisions are numbered DEC-NNN. "DEC-TBD" means the decision is flagged but unre
 ### Tooling & safety
 - DEC-S009 — Supabase prod-write guard — discipline + wrapper script
 - DEC-S020 — settings.json merge strategy — deferred at DEC-S018, resolved by DEC-S023 _(resolved by DEC-S023 — settings.json ships as a manual-merge template, not an auto-synced JSON merge)_
-- DEC-S023 — Permission policy — default-allow with a deny guardrail; master in seeds, distributed by hand (resolves DEC-S020) _(revised by DEC-S043 — the enumerated `.env` Read denies become one blanket per tool; the default-allow posture and the distribution model are unchanged)_
+- DEC-S023 — Permission policy — default-allow with a deny guardrail; master in seeds, distributed by hand (resolves DEC-S020) _(revised by DEC-S043 — the enumerated `.env` Read denies become one blanket per tool; the default-allow posture and the distribution model are unchanged; refined by DEC-S044 — the per-repo settings.json now has one thing that notices when it is missing; distribution of its contents stays manual and unwatched)_
 - DEC-S043 — `.env.example` loses its leading dot, so the secret deny can be a blanket
 
 ### Open questions

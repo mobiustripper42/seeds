@@ -89,6 +89,6 @@ Clean up this repo's .claude/settings.local.json.
 
 **By hand, one file at a time** (DEC-S040). There is no sync skill and no classifier — `/pull-seeds`, `/push-seeds`, and `@sync-config` were all retired once it became clear the projects differ more than they agree, and that choosing which file should cross is the part that needs a person.
 
-Before copying, check `.claude/routine-config.yaml` § `file-classes`: `logic` files are identical everywhere and safe to `cp` wholesale, `context` files are project-owned and must never be copied, `hybrid` means copy the shell only. `.claude/type-manifest.yaml` says which files a given project type doesn't want.
+Before copying, check `.claude/routine-config.yaml` § `file-classes`: `logic` files are identical everywhere and safe to `cp` wholesale, `context` files are project-owned and must never be copied, `hybrid` means copy the shell only, `presence` must exist in every project but is never compared (DEC-S044), and `seeds-only` never leaves this repo. `.claude/type-manifest.yaml` says which files a given project type doesn't want.
 
 What a session *reveals* by going wrong travels a different route — see `docs/SPECS/2026-08-workflow-learning-loop.md`.
