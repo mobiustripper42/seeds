@@ -73,7 +73,7 @@ mill-dev and bee-grace are **separate machines** — two separate globals. Globa
 
 The `SessionEnd` hook that feeds `/read-the-tape --queue` is **user-global only**, and rides the same hand-distribution as the policy above. It must **not** go in a repo's committed `.claude/settings.json`: that file reaches the cloud container, which has no durable filesystem and no seeds checkout, so the hook there would fire on every session to no effect.
 
-Per machine:
+Install:
 
 ```
 cp dev/claude/scripts/tape-capture.sh ~/.claude/tape-capture.sh
@@ -125,6 +125,6 @@ Clean up this repo's .claude/settings.local.json.
 
 **By hand, one file at a time** (DEC-S040). There is no sync skill and no classifier — `/pull-seeds`, `/push-seeds`, and `@sync-config` were all retired once it became clear the projects differ more than they agree, and that choosing which file should cross is the part that needs a person.
 
-Before copying, check `.claude/routine-config.yaml` § `file-classes`: `logic` files are identical everywhere and safe to `cp` wholesale, `context` files are project-owned and must never be copied, `hybrid` means copy the shell only. `.claude/type-manifest.yaml` says which files a given project type doesn't want.
+Before copying, check `.claude/routine-config.yaml` § `file-classes`: `logic` files are identical everywhere and safe to `cp` wholesale, `context` files are project-owned and must never be copied, `hybrid` means copy the shell only, `presence` must exist in every project but is never compared (DEC-S044), and `seeds-only` never leaves this repo. `.claude/type-manifest.yaml` says which files a given project type doesn't want.
 
 What a session *reveals* by going wrong travels a different route — see `docs/SPECS/2026-08-workflow-learning-loop.md`.
