@@ -135,6 +135,11 @@ file-classes:
   # never holds a copy and its absence is not drift. Listed BEFORE the scripts
   # glob because first match wins.
   - "dev/claude/scripts/drift.mjs": seeds-only
+  # Installed to ~/.claude/ per MACHINE, not to any repo (DEC-S045). A project holding
+  # a copy would be the mistake, so `logic` — which reads its absence as drift — had
+  # every project reporting a missing file it must never have. Caught on chiplog's
+  # first drift run after the hook landed. Listed before the scripts glob: first match wins.
+  - "dev/claude/scripts/tape-capture.sh": seeds-only
   - "dev/claude/scripts/**": logic
   # The permission policy (DEC-S023, DEC-S044). Neither `logic` nor `context`:
   # its CONTENTS are distributed by hand per machine and a project may legitimately
