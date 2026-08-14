@@ -42,6 +42,16 @@ it runs in. `Edit` is withheld from it; `Write`/`Bash` are not, so Step 3's post
 check is the real backstop rather than the tool list. Its whole
 output is one observation file, written to seeds.
 
+> **Amended 2026-08-14 by DEC-S045 — capture split from distillation.** As written, this phase made
+> *both* halves a ritual: you had to remember to run `/read-the-tape`, on a session you had already
+> judged "worth learning from", before the transcript aged out at `cleanupPeriodDays` (default 30,
+> deleted at startup). Two failures in one trigger — the evidence expires, and the pre-filter drops
+> exactly the sessions nobody suspected were interesting. Capture is now a `SessionEnd` hook
+> (`tape-capture.sh` → `~/.claude/tape-queue/`), unforgettable because the harness runs it. This
+> phase's subject — what the observer looks for and what it may write — is **unchanged**; only the
+> trigger moved. `/read-the-tape` gains a `--queue` drain mode and keeps its single-transcript path.
+> Coverage is partial by construction: cloud-container sessions cannot be captured at all.
+
 > **Amended 2026-08-06 by DEC-S040.** As first written, this phase split findings by file class:
 > project-owned ones got a `y/n` and an edit, everything else became an observation. That line came
 > from the sync classifier — an argument about which files a sync would overwrite — and it did not
