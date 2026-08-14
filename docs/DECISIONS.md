@@ -20,7 +20,7 @@ Decisions are numbered DEC-NNN. "DEC-TBD" means the decision is flagged but unre
 - DEC-S019 — Hybrid-file split pattern (generalization of DEC-S016) _(refined by DEC-S042 — how the shell/context boundary is drawn inside Micro Workflow — the split itself, and every other section's use of it, stands)_
 - DEC-S028 — The Routine emits a fleet-status digest — the read side of the SPEC hub; rolling issues are pinned by config number _(retired by DEC-S038 — the digest is dormant while the Routine that emitted it is off)_
 - DEC-S038 — The nightly sync Routine is off — seeds ↔ project sync is on-demand from CC Desktop _(revised by DEC-S040 — the holding that manual /push-seeds and /pull-seeds carry the steady state — both are now retired; the Routine stays off)_
-- DEC-S039 — The learning loop splits observation from rule — evidence accrues in seeds, promotion is a separate, periodic act _(revised by DEC-S040 — @tape-reader's project-owned fix path and PR, and Phase 4's outward mechanism — the observation half stands unchanged; refined by DEC-S041 — adds a third severity input and a cause field at capture time; the cost/detectability axes and the no-count rule stand unchanged)_
+- DEC-S039 — The learning loop splits observation from rule — evidence accrues in seeds, promotion is a separate, periodic act _(revised by DEC-S040 — @tape-reader's project-owned fix path and PR, and Phase 4's outward mechanism — the observation half stands unchanged; refined by DEC-S041 — adds a third severity input and a cause field at capture time; the cost/detectability axes and the no-count rule stand unchanged; refined by DEC-S045 — the trigger for evidence capture only; the observation/promotion split, @tape-reader's job, and @workout's manual cadence are unchanged)_
 - DEC-S040 — Automated seeds ↔ project sync is retired entirely — the loop is observe, promote, copy by hand
 - DEC-S044 — `drift.mjs` gains a `presence` class — report the absence, never the contents
 
@@ -47,6 +47,7 @@ Decisions are numbered DEC-NNN. "DEC-TBD" means the decision is flagged but unre
 - DEC-S033 — `@architect` + `@code-review` go stack-neutral (defer to `CLAUDE-context.md § Conventions`) _(amended by DEC-S035 — the rollout paragraph only — the stack-neutral template stands)_
 - DEC-S035 — `@architect`, `@code-review`, `@ui-reviewer` become project-owned — seeds keeps templates, sync stops touching them
 - DEC-S041 — The observer captures cause and operator reaction — both perish with the session, and severity cannot be judged without them
+- DEC-S045 — Capture is a hook, distillation stays a ritual — the loop's front end stops depending on memory
 
 ### Model selection
 - DEC-S027 — Opus is the default model; Fable is on-demand via a bundling trigger (supersedes the PR #107 tiering)
@@ -64,7 +65,7 @@ Decisions are numbered DEC-NNN. "DEC-TBD" means the decision is flagged but unre
 ### Tooling & safety
 - DEC-S009 — Supabase prod-write guard — discipline + wrapper script
 - DEC-S020 — settings.json merge strategy — deferred at DEC-S018, resolved by DEC-S023 _(resolved by DEC-S023 — settings.json ships as a manual-merge template, not an auto-synced JSON merge)_
-- DEC-S023 — Permission policy — default-allow with a deny guardrail; master in seeds, distributed by hand (resolves DEC-S020) _(revised by DEC-S043 — the enumerated `.env` Read denies become one blanket per tool; the default-allow posture and the distribution model are unchanged; refined by DEC-S044 — the per-repo settings.json now has one thing that notices when it is missing; distribution of its contents stays manual and unwatched)_
+- DEC-S023 — Permission policy — default-allow with a deny guardrail; master in seeds, distributed by hand (resolves DEC-S020) _(revised by DEC-S043 — the enumerated `.env` Read denies become one blanket per tool; the default-allow posture and the distribution model are unchanged; refined by DEC-S044 — the per-repo settings.json now has one thing that notices when it is missing; distribution of its contents stays manual and unwatched; extended by DEC-S045 — adds a user-global-only hooks stanza to the hand-distribution list; the permission policy itself is untouched)_
 - DEC-S043 — `.env.example` loses its leading dot, so the secret deny can be a blanket
 
 ### Open questions

@@ -63,6 +63,9 @@ dev/
       check-docs.mjs           # Doc-set ratchet — DEC refs, npm scripts, issue links, rosters, paths (DEC-S037)
       drift.mjs                # SEEDS-SIDE, read-only. What differs between these templates and one
                                # project. Enumerates; never copies, never says which side wins
+      tape-capture.sh          # SessionEnd hook (DEC-S045). Copies the ending session's transcript to
+                               # ~/.claude/tape-queue/ for /read-the-tape --queue. Installed per machine
+                               # into ~/.claude/, wired in the USER-GLOBAL settings.json — never a repo's
       split-decisions.mjs      # ONE-TIME v4→v5 migration: monolithic DECISIONS.md → docs/decisions/
       throughput.py            # Throughput extraction for /retro
       safe-supabase.sh         # Supabase prod-write guard (DEC-S009). Wrap with shell alias.
@@ -96,7 +99,7 @@ This repo encodes a specific development workflow for solo Claude-assisted proje
 | `/retro` | Phase boundary (end) | Computes per-session active time (wall − breaks, breaks inferred from the transcript) from each session's `started`/`ended`. Aggregates to one phase velocity (active h/pt). Marks tasks `[x]`, prompts retro notes, appends to RETROSPECTIVES.md, runs version bumps (patch per merged PR + minor at phase close), optionally chains into `/start-phase` (DEC-S013) |
 | `/bump-major` | Breaking change | Manually bumps major version. CHANGELOG entry + tag on the trunk (`main`). Dev projects only |
 | `/promote-production` | Ship trunk to prod | ff-merges `main` → `production` (deploy-only; tag already on the commit), pushes. Projects with a `production` branch only |
-| `/read-the-tape` | After a session worth learning from | Invokes @tape-reader to audit the JSONL transcript and write one cited observation to seeds' `observations` branch. **Changes nothing in the project** (DEC-S040). Requires a resolvable seeds checkout |
+| `/read-the-tape` | `--queue` on a weekly-ish cadence; bare for one session now | Invokes @tape-reader to audit session JSONL and write one cited observation per session to seeds' `observations` branch. Drain mode works through everything the `SessionEnd` hook captured (DEC-S045); bare mode audits one transcript. **Changes nothing in the project** (DEC-S040). Requires a resolvable seeds checkout |
 | `/doc-consistency-check` | Ad-hoc, when docs feel drifted (no scheduled trigger) | Invokes @doc-consistency to cross-reference factual claims across `docs/*.md` + root `CLAUDE.md` and flag mismatches and unfilled placeholders. Report-only |
 
 **Dev identity:** skills resolve `DEV` from `~/.claude/devname` (one-line file) with `$USER` as fallback. Set once per machine. Used in session filenames so two devs never collide.
@@ -224,7 +227,8 @@ Three steps, exactly one of them automated. Spec: `docs/SPECS/2026-08-workflow-l
 
 | Surface | Runs where | Produces | May edit |
 |---|---|---|---|
-| `/read-the-tape` → `@tape-reader` | in a project | one cited observation | **nothing, anywhere in that repo** |
+| `SessionEnd` hook → `tape-capture.sh` | every session, every repo, on a real machine | one queued transcript + index line | **nothing** — it copies bytes to `~/.claude/tape-queue/` |
+| `/read-the-tape --queue` → `@tape-reader` | in a project | one cited observation per queued session | **nothing, anywhere in that repo** |
 | `observations` branch | seeds | the accumulating record | nothing — it is data |
 | `/workout` → `@workout` | **seeds only** | one PR against `main` | `dev/claude/**` |
 | copying the merged change outward | from seeds | a changed project | whatever you choose, by hand |
@@ -240,6 +244,10 @@ Three steps, exactly one of them automated. Spec: `docs/SPECS/2026-08-workflow-l
 **Promotion is a severity call, not a count.** No threshold exists and none should be invented. The question is what the next occurrence costs and whether it would announce itself — irreversible or silent earns a rule on one sighting; recoverable and self-announcing waits for repetition. Frequency is evidence *about* severity, never severity. Full table in DEC-S039.
 
 **`@workout` is seeds-only and deliberately not a template.** It edits `dev/claude/**` and reads a branch that exists only here, so a project could never run it; shipping it in `dev/claude/agents/` would install dead machinery in every project and put it in every project's skill list. It lives at `.claude/agents/workout.md` + `.claude/skills/workout/`, alongside the other seeds-only files (`routine-config.yaml`, `type-manifest.yaml`).
+
+**Capture is the one automated step (DEC-S045).** A `SessionEnd` hook runs `tape-capture.sh`, which copies the ending session's transcript into `~/.claude/tape-queue/` and appends an index line. No model call, no seeds checkout, no judgment, nothing written to any repo. It exists because the other two steps could afford to slip and this one could not: `cleanupPeriodDays` defaults to 30 and deletes transcripts *at startup*, so a session not taped within the month is deleted rather than delayed — and "run it after a session worth learning from" asked a person to predict which sessions carried an anti-pattern, when the ones that matter are the ones nobody suspected. `/read-the-tape --queue` distils the backlog on your cadence.
+
+**That is not DEC-S038 coming back.** What was retired was unattended *judgment* — a Routine opening and merging PRs. This schedules nothing, opens nothing, merges nothing and reads nothing; it stages bytes. **Coverage is partial and looks complete:** cloud-container sessions can't be captured at all (the filesystem dies with them), and a box without the install captures nothing — on 2026-08-14, 12 of 18 logged sessions were cloud.
 
 **Cadence: weekly or fortnightly, by hand.** Not scheduled — this is not the Routine returning under a new name (DEC-S038). The honest failure mode is that the workout doesn't happen; observations then pile up harmlessly and nothing regresses, which still beats a candidate pattern evaporating with the session that found it.
 

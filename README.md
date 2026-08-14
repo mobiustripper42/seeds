@@ -69,6 +69,42 @@ mill-dev and bee-grace are **separate machines** — two separate globals. Globa
 
 > ⚠ **Phone reminder:** the cloud container has no editable global. Before a code-heavy phone/web session, confirm that repo's **committed** `.claude/settings.json` matches the master — that file is the only thing that reaches the container.
 
+### Learning loop — the capture hook (DEC-S045)
+
+The `SessionEnd` hook that feeds `/read-the-tape --queue` is **user-global only**, and rides the same hand-distribution as the policy above. It must **not** go in a repo's committed `.claude/settings.json`: that file reaches the cloud container, which has no durable filesystem and no seeds checkout, so the hook there would fire on every session to no effect.
+
+Install:
+
+```
+cp dev/claude/scripts/tape-capture.sh ~/.claude/tape-capture.sh
+chmod +x ~/.claude/tape-capture.sh
+```
+
+Then add to `~/.claude/settings.json` alongside `permissions` (not inside it):
+
+```json
+"hooks": {
+  "SessionEnd": [
+    { "hooks": [ { "type": "command", "command": "/home/eric/.claude/tape-capture.sh" } ] }
+  ]
+}
+```
+
+**Absolute path, not `~`.** Tilde expansion in a hook `command` is not something the docs promise, and every failure mode here is silent — a hook that never resolves looks exactly like a hook that fires and finds nothing.
+
+No `matcher` — every `reason` should capture. Needs `jq`; without it the script exits silently, which is the correct behaviour for a hook that must never block a session and the reason the queue filling up is the only signal that capture works. **Check it occasionally:** `wc -l ~/.claude/tape-queue/index.jsonl`.
+
+Per machine:
+
+| Where | Install | Note |
+|-------|---------|------|
+| **mill-dev** | done 2026-08-14 | `/home/eric/.claude/tape-capture.sh` |
+| **bee-grace** | same steps | adjust the absolute path if the home dir differs |
+| **windows laptop** | `%USERPROFILE%\.claude\settings.json` | the script is bash — needs Git Bash or WSL, and the `command` must be a path that shell can run. Untried; expect to adjust it |
+| **phone (CC on web)** | **not applicable** | no editable global, and the container's filesystem dies with the session. Nothing to capture and nowhere to keep it |
+
+> ⚠ **Coverage is partial and will look complete.** This captures sessions that end on a machine with a durable filesystem. Cloud-container sessions (phone, web) cannot be captured at all — the container dies with the session — and a box without the hook installed captures nothing. As of 2026-08-14 the session log shows 12 of 18 sessions ran in cloud containers. A green queue is not full coverage; it is coverage of the boxes you installed it on.
+
 **Changing the policy.** Don't fiddle with `/permissions` per-machine. The recurring trigger is never a simple missing command (default-allow covers those) — it's something gnarly that got denied. Bring it to a Claude session in seeds: it edits the master and hands you the redistribute steps above.
 
 **Cleaning up `.claude/settings.local.json`** (per-repo, gitignored — accumulates "always allow" entries). Under default-allow most become redundant. Paste this into a CC session in any repo to prune it (preserves your personal denies):
