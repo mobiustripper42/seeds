@@ -142,8 +142,9 @@ file-classes:
   - "dev/claude/scripts/tape-capture.sh": seeds-only
   # Cross-repo lifetime extractor, run from a seeds checkout against one or more
   # project paths. `/retro` does NOT shell out to it — Step 2 computes phase
-  # throughput inline from GitHub data — and the only template that names it cites
-  # the seeds-side path (`skills/retro/SKILL.md:283`), which resolves nowhere else.
+  # throughput inline from GitHub data — and both templates that name it cite the
+  # seeds-side path, which resolves nowhere else: `skills/retro/SKILL.md:283` and
+  # `docs/VELOCITY_AND_POKER_GUIDE.md:33-42`.
   #
   # THIRD carve-out from the glob below, and the pattern is now the finding: the
   # blanket `scripts/**: logic` asserts every project holds a copy of every script,
