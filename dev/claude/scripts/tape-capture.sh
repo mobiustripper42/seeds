@@ -71,6 +71,14 @@ REASON=$(printf '%s' "$PAYLOAD" | jq -r '.reason // "unknown"' 2>/dev/null)
 # `--path-format=absolute` is required because it returns a bare relative `.git` otherwise.
 # That flag needs git >= 2.31; on anything older the command fails, `COMMON` is empty, and
 # this falls back to the old basename behaviour rather than writing a wrong name loudly.
+# Same benign fallback if the cwd is gone or git refuses it for dubious ownership.
+#
+# NOT defended against, stated so it isn't mistaken for handled: `GIT_DIR` or
+# `GIT_COMMON_DIR` exported into the hook's environment override `-C` entirely, and would
+# attribute the session to whatever repo they name. Nothing here can detect that, and a
+# session's shell would not normally carry them — but the failure would be a wrong,
+# plausible repo name rather than a fallback, which is the outcome the rest of this
+# comment is at pains to avoid.
 COMMON=$($T git -C "${CWD:-.}" rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true)
 #
 # `REPO_ROOT` is recorded for the same reason and is NOT the same field as `cwd`. The drain
@@ -79,7 +87,20 @@ COMMON=$($T git -C "${CWD:-.}" rev-parse --path-format=absolute --git-common-dir
 # "if cwd no longer exists, audit without project context" escape hatch never fires: the
 # agent would silently get an empty context directory. `cwd` stays as written because it is
 # the factual record of where the session ran; `repo_root` is where its files are.
+#
+# The `.git/modules/` arm is the same bug in a second costume, and it is here because the
+# first fix did not cover it. A submodule's common dir is `<super>/.git/modules/<name>` —
+# git's own bookkeeping, which EXISTS and holds `HEAD`, `config`, `hooks` and no `.claude`.
+# It matches neither `*/.git` nor a trailing `.git` to strip, so it fell through to the
+# `?*` arm unchanged and pointed `repo_root` at an internal directory. Existing-but-empty
+# is precisely the failure this whole change is about: the drain's "directory is gone, skip
+# project context" escape hatch never fires, so the agent gets nothing and cannot tell.
+# For a submodule the working tree is what we want, and `--show-toplevel` returns it — the
+# one case where that is the right call rather than the trap it is inside a worktree.
 case "$COMMON" in
+  */.git/modules/*)
+           REPO_ROOT=$($T git -C "${CWD:-.}" rev-parse --show-toplevel 2>/dev/null || true)
+           [ -n "$REPO_ROOT" ] || REPO_ROOT="${CWD:-}" ;;
   */.git)  REPO_ROOT=$(dirname "$COMMON") ;;            # normal checkout or linked worktree
   ?*)      REPO_ROOT="${COMMON%.git}" ;;                # bare repo, or GIT_DIR pointing elsewhere
   *)       REPO_ROOT="${CWD:-}" ;;                      # not a repo, or git too old
