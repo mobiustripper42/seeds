@@ -57,13 +57,57 @@ REASON=$(printf '%s' "$PAYLOAD" | jq -r '.reason // "unknown"' 2>/dev/null)
 [ -n "$SESSION_ID" ] || exit 0
 [ -n "$TRANSCRIPT" ] && [ -f "$TRANSCRIPT" ] || exit 0
 
-REPO=$(basename "${CWD:-unknown}")
+# The repo name comes from the git COMMON dir, not the cwd basename.
+#
+# A session run inside a linked worktree has a cwd whose last component is the worktree
+# directory, not the repository: `/home/eric/muster/.sessions-worktree` yielded a `repo`
+# of `.sessions-worktree`, and the drain would have filed that session's observation
+# under a repo that does not exist. Observed in the queue on 2026-08-14, one entry of six.
+# Every project has a `.sessions-worktree/` by design (DEC-S014), and `/its-alive` runs
+# `git -C` against it constantly, so this is a normal place to be standing, not an edge.
+#
+# `--show-toplevel` does NOT fix it — inside a worktree it returns the worktree path.
+# `--git-common-dir` is the one that resolves to the MAIN repo's `.git` from either place;
+# `--path-format=absolute` is required because it returns a bare relative `.git` otherwise.
+# That flag needs git >= 2.31; on anything older the command fails, `COMMON` is empty, and
+# this falls back to the old basename behaviour rather than writing a wrong name loudly.
+COMMON=$($T git -C "${CWD:-.}" rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true)
+#
+# `REPO_ROOT` is recorded for the same reason and is NOT the same field as `cwd`. The drain
+# reads the session's `.claude/skills/` and `.claude/agents/` for context, and a worktree
+# holds none of those — only `sessions/`. Worse, the worktree path *exists*, so the drain's
+# "if cwd no longer exists, audit without project context" escape hatch never fires: the
+# agent would silently get an empty context directory. `cwd` stays as written because it is
+# the factual record of where the session ran; `repo_root` is where its files are.
+case "$COMMON" in
+  */.git)  REPO_ROOT=$(dirname "$COMMON") ;;            # normal checkout or linked worktree
+  ?*)      REPO_ROOT="${COMMON%.git}" ;;                # bare repo, or GIT_DIR pointing elsewhere
+  *)       REPO_ROOT="${CWD:-}" ;;                      # not a repo, or git too old
+esac
+REPO=$(basename "${REPO_ROOT:-${CWD:-unknown}}")
 DATE=$(date -u +%Y-%m-%d)
 BRANCH=$($T git -C "${CWD:-.}" branch --show-current 2>/dev/null || true)
 SHA=$($T git -C "${CWD:-.}" rev-parse --short HEAD 2>/dev/null || true)
 
 mkdir -p "$QUEUE" 2>/dev/null || exit 0
-COPY="$QUEUE/${DATE}-${REPO}-${SESSION_ID}.jsonl"
+
+# If this session is ALREADY indexed, write to the path that index line names — never
+# recompute one. `$DATE` is today, and a session that spans midnight UTC fires once on
+# each side of it: recomputing gave the second fire a different filename, so it wrote a
+# NEW copy while the index line (written once, keyed on session_id) still pointed at the
+# first. The result is an orphan the drain can never see and nothing ever cleans, and the
+# drain reads the STALE, shorter transcript. Observed on 2026-08-16 in a session opened on
+# the 14th: 650088 bytes indexed, 967248 bytes orphaned. Long sessions are the ones most
+# worth auditing, so this preferentially corrupted the best evidence.
+#
+# Reusing the indexed path also survives a copy being renamed by hand, which is how the
+# worktree-misnaming above had to be repaired for entries captured before that fix.
+EXISTING=""
+if [ -f "$INDEX" ]; then
+  EXISTING=$(grep -F "\"session_id\":\"$SESSION_ID\"" "$INDEX" 2>/dev/null | tail -1 \
+             | jq -r '.transcript // empty' 2>/dev/null || true)
+fi
+COPY="${EXISTING:-$QUEUE/${DATE}-${REPO}-${SESSION_ID}.jsonl}"
 
 # Overwrite the copy rather than skip: if this fires more than once for a session, the
 # later transcript is the more complete one. The INDEX LINE is written once and never
@@ -76,22 +120,25 @@ cp -f "$TRANSCRIPT" "$COPY" 2>/dev/null || exit 0
 # One index line per session_id, ever. grep -F on the raw id is enough — these are uuids,
 # and `jq -c` emits no whitespace, so the literal match is exact.
 #
-# `cwd` is recorded because the drain needs it: an observation has to be filed under the
-# repo the session actually ran in, and read its skills and agents from there. Without it
-# a drain run from seeds would hand @tape-reader seeds' own files as context for someone
-# else's session, silently.
+# `cwd` and `repo_root` are both recorded and are not interchangeable. Without either, a
+# drain run from seeds would hand @tape-reader seeds' own files as context for someone
+# else's session, silently. `cwd` is where the session actually ran — a fact, kept as
+# written. `repo_root` is where that session's `.claude/` lives, and is the one the drain
+# must read context from: in a linked worktree the two differ, and only `repo_root` has
+# any skills or agents under it.
 if ! [ -f "$INDEX" ] || ! grep -qF "\"session_id\":\"$SESSION_ID\"" "$INDEX" 2>/dev/null; then
   jq -cn \
     --arg observed "$DATE" \
     --arg repo "$REPO" \
     --arg cwd "$CWD" \
+    --arg repo_root "$REPO_ROOT" \
     --arg branch "$BRANCH" \
     --arg session_id "$SESSION_ID" \
     --arg transcript "$COPY" \
     --arg origin "$TRANSCRIPT" \
     --arg sha "$SHA" \
     --arg reason "$REASON" \
-    '{observed:$observed, repo:$repo, cwd:$cwd, branch:$branch, session_id:$session_id, transcript:$transcript, origin:$origin, sha:$sha, reason:$reason}' \
+    '{observed:$observed, repo:$repo, cwd:$cwd, repo_root:$repo_root, branch:$branch, session_id:$session_id, transcript:$transcript, origin:$origin, sha:$sha, reason:$reason}' \
     >> "$INDEX" 2>/dev/null || exit 0
 fi
 
