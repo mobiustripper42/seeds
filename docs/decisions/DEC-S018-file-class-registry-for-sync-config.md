@@ -10,6 +10,7 @@ topic: "Sync — directions, classification & file classes"
 > **Extended by DEC-S039 — the registry now also decides what /read-the-tape may edit, not only what sync may overwrite**
 > **Revised by DEC-S040 — the registry loses every automated consumer and survives as guidance for the manual copy**
 > **Extended by DEC-S044 — adds a fourth file class, `presence`; the existing three and their meanings are unchanged**
+> **Refined by DEC-S046 — the registry's stated rule for an unmatched file now has something that enforces it; the file classes themselves are untouched**
 <!-- /amended-by -->
 
 **Date:** 2026-05-19

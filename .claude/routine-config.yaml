@@ -140,6 +140,19 @@ file-classes:
   # every project reporting a missing file it must never have. Caught on chiplog's
   # first drift run after the hook landed. Listed before the scripts glob: first match wins.
   - "dev/claude/scripts/tape-capture.sh": seeds-only
+  # Cross-repo lifetime extractor, run from a seeds checkout against one or more
+  # project paths. `/retro` does NOT shell out to it — Step 2 computes phase
+  # throughput inline from GitHub data — and both templates that name it cite the
+  # seeds-side path, which resolves nowhere else: `skills/retro/SKILL.md:283` and
+  # `docs/VELOCITY_AND_POKER_GUIDE.md:33-42`.
+  #
+  # THIRD carve-out from the glob below, and the pattern is now the finding: the
+  # blanket `scripts/**: logic` asserts every project holds a copy of every script,
+  # so each seeds-side tool has been caught by it and corrected one at a time, after
+  # shipping — drift.mjs (PR #172), tape-capture.sh (PR #180), this. The default is
+  # backwards for anything a project never runs; a fourth instance should invert it
+  # rather than add a fourth line here.
+  - "dev/claude/scripts/throughput.py": seeds-only
   - "dev/claude/scripts/**": logic
   # The permission policy (DEC-S023, DEC-S044). Neither `logic` nor `context`:
   # its CONTENTS are distributed by hand per machine and a project may legitimately
@@ -152,6 +165,11 @@ file-classes:
   - "dev/claude/settings.json": presence
   - "dev/claude/agents/tape-reader.md": logic
   - "dev/claude/agents/ideas.md": logic   # generic curator — no project-specific content, byte-identical everywhere
+  # Report-only and project-agnostic: it compares docs against each other, so it
+  # needs no knowledge of the project's substance — unlike the DEC-S035 three below.
+  # Its `[Project Name]`-style brackets are the placeholders it HUNTS FOR, not
+  # placeholders to fill (`doc-consistency.md:42,88`).
+  - "dev/claude/agents/doc-consistency.md": logic
   # Project-owned reviewers (DEC-S035). These three reason about the project's
   # *substance* — its architecture, its correctness rules, its design system —
   # so a good one is necessarily project-specific and cannot be derived from a
@@ -173,7 +191,22 @@ file-classes:
   - "dev/claude/agents/ui-reviewer.md": context
   - "dev/claude/agents/architect.md": context
   - "dev/claude/agents/code-review.md": context
+  # Same family, one file later than the other three. @pm reasons about THIS
+  # project's plan, phases and risks, and its template still ships a `[Project]`
+  # placeholder in `description:`. It was left unclassified when DEC-S035 named
+  # the reviewers, which made it invisible to the differ rather than exempt from it.
+  - "dev/claude/agents/pm.md": context
   - "dev/claude/CLAUDE.md": hybrid
+  # The DEC-S019 context TEMPLATE. Copied once at setup, filled in, and owned by
+  # the project forever after — the whole point of splitting it out of the shell.
+  - "dev/claude/CLAUDE-context.md": context
+  # A blank starting log. What a project accumulates in it is the project's.
+  - "dev/claude/session-log.md": context
+  # Installs to `<project>/src/components/VersionTag.tsx` and gets wired into that
+  # project's component tree (setup step 11). Note the install path is NOT one the
+  # differ's seeds→project mapping can express — it is the one template whose
+  # destination lives outside `.claude/`, `docs/` and `scripts/`.
+  - "dev/claude/templates/**": context
   - "dev/claude/docs/SPEC.md": context
   - "dev/claude/docs/BRAND.md": context
   - "dev/claude/docs/DECISIONS.md": context
@@ -183,6 +216,17 @@ file-classes:
   - "dev/claude/docs/decisions/**": context
   - "dev/claude/doc-check.json": context
   - "dev/claude/docs/PROJECT_PLAN.md": context
+  # Both open with a `[Project]` title line and both get adapted on install —
+  # AGENTS.md to the roster the project actually carries, CHEATSHEET.md to the
+  # skills it actually has. bushel's copies of both had drifted to list retired
+  # skills and neither was reported, because neither was classified.
+  - "dev/claude/docs/AGENTS.md": context
+  - "dev/claude/docs/CHEATSHEET.md": context
+  # Deploy wiring, CHANGELOG shape and PR-review notes — stack-shaped.
+  - "dev/claude/docs/DEV_REFERENCE.md": context
+  # Pure estimation methodology: Fibonacci sizing, velocity arithmetic, worked
+  # examples with no project in them. Nothing to fill in, so drift is staleness.
+  - "dev/claude/docs/VELOCITY_AND_POKER_GUIDE.md": logic
   - "dev/claude/docs/RETROSPECTIVES.md": context
   - "dev/claude/docs/USER_STORIES.md": context
   - "dev/claude/docs/FUTURE_IDEAS.md": context

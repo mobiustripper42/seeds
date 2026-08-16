@@ -6,7 +6,7 @@ A lightweight solo-dev process for tracking effort, estimating work, and knowing
 
 ## Part 1: Velocity Tracking
 
-> **The quick version** — how to *read* the numbers, with worked examples — lives in `docs/THROUGHPUT_QUICKREF.md` in the **seeds** checkout. This part is the *why*. The full decision record is DEC-S026 in `DECISIONS.md`.
+> **The quick version** — how to *read* the numbers, with worked examples — is the THROUGHPUT_QUICKREF doc, which lives in the **seeds** checkout and is deliberately not written as a path here: this file is copied verbatim into every project (`logic` class), and a project-relative path to a seeds-only doc fails that project's `check:docs` gate. This part is the *why*. The full decision record is DEC-S026.
 
 ### What it measures
 
