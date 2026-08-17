@@ -189,7 +189,9 @@ Every dev project carries a SemVer version in `package.json`, mirrored to a git 
 
 **Tag rule:** all tags are applied on the active trunk (`main`) at bump time (DEC-S022) — by `/promote-production` (patch, on ship), `/retro` (minor), or `/bump-major` (major). `production` only ever receives an already-tagged `main` commit via ff-merge.
 
-**Detection:** these skills check `package.json` exists at the repo root before bumping. If it doesn't (template/markdown-only project), they no-op silently.
+**Detection:** these skills check the repo root has a `package.json` **with a `version` field** before bumping — `node -e "process.exit(require('./package.json').version ? 0 : 1)" 2>/dev/null || echo "not versioned"`. If there's no manifest, or one without a version, they no-op silently.
+
+The gate is the field rather than the file because "has a `package.json`" was only ever a proxy for "is a versioned thing", and the two came apart as soon as a repo wanted a test runner without a version. A project that ships software has both, so nothing changes for it.
 
 ### Deploy + review reference
 
