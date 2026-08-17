@@ -184,7 +184,13 @@ git push origin <BRANCH>
 
 ## Step 8 — Version bumps (dev projects only — DEC-S013 moved patch bumps from `/its-dead` here)
 
-Run only if `package.json` exists at the repo root (dev-project signal — DEC-S007).
+Run only if the repo root has a `package.json` **with a `version` field** (versioned-project signal — DEC-S007):
+
+```
+node -e "process.exit(require('./package.json').version ? 0 : 1)" 2>/dev/null || echo "not versioned"
+```
+
+If it prints `not versioned`, skip Step 8 entirely. The gate is the field, not the file: a repo can carry a `private`, version-less manifest purely to get a test runner, and bumping it would be inventing a version for something that has none.
 
 Resolve working branch — always the active trunk (DEC-S022):
 ```

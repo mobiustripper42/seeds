@@ -178,14 +178,20 @@ After setup, run `/its-alive` in the new project to start the first session.
 
 ## Seeds' Own Decision Record
 
-Seeds eats its own dogfood: its decisions live one per file in `docs/decisions/` and `docs/DECISIONS.md` is generated (DEC-S036). Seeds has **no `package.json` on purpose** — adding one would switch on the semver bump skills, which detect it at the repo root — so run the gate directly:
+Seeds eats its own dogfood: its decisions live one per file in `docs/decisions/` and `docs/DECISIONS.md` is generated (DEC-S036). Run the gates and the suite:
 
 ```
-node dev/claude/scripts/gen-decisions-index.mjs   # after editing any decision
-node dev/claude/scripts/check-decisions.mjs       # gate: index freshness, ids, edges, references
-node dev/claude/scripts/check-docs.mjs            # gate: DEC refs, rosters, issue links, paths
-node dev/claude/scripts/check-mirrors.mjs         # gate: seeds' .claude/ copies match the dev/claude/ templates
+npm run gen:decisions    # after editing any decision
+npm run check:decisions  # gate: index freshness, ids, edges, references
+npm run check:docs       # gate: DEC refs, rosters, issue links, paths
+npm run check:mirrors    # gate: seeds' .claude/ copies match the dev/claude/ templates
+npm test                 # the script suite — check-decisions + check-context
+npm run verify           # all four, in order
 ```
+
+Each gate is a thin wrapper over `node dev/claude/scripts/<name>.mjs`, which still works if you'd rather type it.
+
+**Seeds' `package.json` has no `version` field, and that is the point** (issue #186). It exists to carry `vitest`, because seeds shipped two test files it had never executed — one of them asserting a directory layout only one repo has. It used to have no manifest at all, because `/bump-major`, `/retro` and `/promote-production` gated on "`package.json` exists" and would have started versioning a markdown library. Those three now gate on the **`version` field** instead, so a `private`, version-less manifest is skipped exactly as no manifest was. Don't add a `version` key unless you mean to start releasing seeds.
 
 Run them from the repo root — they resolve `docs/` relative to the working directory, so seeds validates the exact template files it ships rather than a copy that could drift. `check-context.mjs` is **not** run here: it asserts `.claude/CLAUDE-context.md` exists, and seeds doesn't use the DEC-S019 shell/context split — its `CLAUDE.md` describes this repo, not a project.
 
@@ -274,23 +280,21 @@ registry and `.claude/type-manifest.yaml`. Both kept their contents and lost the
 
 ## How Work Happens Here
 
-Seeds is markdown. There is no build, no test suite, and deliberately no `package.json` — adding one would switch on the semver skills, which detect it at the repo root. The workflow is the same shape as the one this repo ships to projects, with the mechanism slots (DEC-S042) filled for a docs repo:
+Seeds is markdown plus the scripts it ships. There is no build, and its `package.json` carries no `version` field on purpose — see § Seeds' Own Decision Record. There **is** a test suite now (issue #186): the two script tests under `dev/claude/scripts/`, run with `npm test`. The workflow is the same shape as the one this repo ships to projects, with the mechanism slots (DEC-S042) filled for a docs repo:
 
 1. **Spec it** — what changes and why. For a template edit, name the failure it fixes; a rule with no observed failure behind it is cargo.
 2. **Plan it** — say what you'll touch. Wait for approval before editing.
 3. **Cut the branch** — `git checkout -b task/<slug>`.
-4. **Prove it first** — *`Proof` slot:* the doc gates. A change to a decision, an id, a roster, or a cited path has a mechanical check; run it and watch it fail before the fix if you can. **Prose has no mechanical proof — say so plainly rather than implying the gates covered it.**
+4. **Prove it first** — *`Proof` slot:* the doc gates, plus `npm test` when the change touches a script under `dev/claude/scripts/`. A change to a decision, an id, a roster, or a cited path has a mechanical check; run it and watch it fail before the fix if you can. **Prose has no mechanical proof — say so plainly rather than implying the gates covered it.**
 5. **Make the change** — template under `dev/claude/`, then mirror to `.claude/` if the file is one seeds dogfoods.
 6. **Run the proof** — *`Proof command` slot:*
 
    ```
-   node dev/claude/scripts/gen-decisions-index.mjs   # after editing any decision
-   node dev/claude/scripts/check-decisions.mjs
-   node dev/claude/scripts/check-docs.mjs
-   node dev/claude/scripts/check-mirrors.mjs        # only meaningful after step 5's mirror copy
+   npm run gen:decisions   # after editing any decision
+   npm run verify          # check:decisions, check:docs, check:mirrors, then npm test
    ```
 
-   From the repo root, so seeds validates the files it ships rather than a copy. `check-context.mjs` is **not** run here — it asserts `.claude/CLAUDE-context.md` exists, and seeds doesn't use the DEC-S019 split.
+   From the repo root, so seeds validates the files it ships rather than a copy. `check-context.mjs` is **not** run as a gate here — it asserts `.claude/CLAUDE-context.md` exists, and seeds doesn't use the DEC-S019 split. Its *tests* do run, against a fixture tree rather than this repo, which is what makes them portable.
 7. **Check the surface** — *`Surface check` slot:* read the edited section as the project that will receive it. A shell change lands in muster and soundings verbatim; a sentence that only makes sense in a webapp is a defect no gate catches.
 8. **STOP. The change is written, not shipped.** Report and wait. Don't commit, don't push, don't open a PR, don't start the next thing. This is where I look at it.
 9. **`/kill-this` — I invoke it, you don't.** Hand-typing `git push` + `gh pr create` reaches the same end state without `@code-review` ever reading the diff, and its absence announces itself to nobody.
