@@ -97,7 +97,7 @@ The generator writes the pointer under that spec section's heading — never han
 
 **The index is a list of subjects, not a summary of what is current.** An in-file amendment leaves the index row showing the original title and date. The current answer is in the file.
 
-**The gate.** `npm run check:decisions` fails on a stale index, a duplicate id, an unknown topic or relation, a dangling reference, a backwards-pointing amendment, and a declared spec amendment that never landed. Its siblings `check:context` and `check:docs` cover the always-loaded context files and the rest of the doc set. All three run before the slow stages of `verify` — they fail in milliseconds. Project-specific knobs live in `docs/decisions/_config.json` and `.claude/doc-check.json`; the scripts themselves are shared and identical everywhere, so don't edit them per-project.
+**The gate.** `npm run check:decisions` fails on a stale index, a duplicate id, an unknown topic, a dangling reference, and a declared spec amendment that never landed. Its siblings `check:context` and `check:docs` cover the always-loaded context files and the rest of the doc set. All three run before the slow stages of `verify` — they fail in milliseconds. Project-specific knobs live in `docs/decisions/_config.json` and `.claude/doc-check.json`; the scripts themselves are shared and identical everywhere, so don't edit them per-project.
 
 ## Session Skills
 

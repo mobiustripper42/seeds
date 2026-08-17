@@ -2,13 +2,12 @@
 id: DEC-S022
 title: "`main` is the active trunk; `production` is the deploy branch (replaces DEC-S008)"
 topic: "Branches, versioning & release"
-amends:
-  - id: DEC-S008
-    relation: supersedes
-    scope: ""
 ---
 
 ## DEC-S022: `main` is the active trunk; `production` is the deploy branch (replaces DEC-S008)
+
+**See also** — decisions this one changed part of:
+- Supersedes DEC-S008
 
 **Decision:** Every project's **default branch (`main`) is the always-active development trunk**. Deployable projects add an optional **`production`** branch that the host (Vercel, etc.) watches; shipping is `main` → `production` via fast-forward merge through the new `/promote-production` skill. This replaces the DEC-S008 staging-flow, where the active branch was `staging` (non-default) and `main` was the release branch.
 

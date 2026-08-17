@@ -2,13 +2,12 @@
 id: DEC-S043
 title: "`.env.example` loses its leading dot, so the secret deny can be a blanket"
 topic: "Tooling & safety"
-amends:
-  - id: DEC-S023
-    relation: revises
-    scope: "the enumerated `.env` Read denies become one blanket per tool; the default-allow posture and the distribution model are unchanged"
 ---
 
 ## DEC-S043: `.env.example` loses its leading dot, so the secret deny can be a blanket
+
+**See also** — decisions this one changed part of:
+- Revises DEC-S023 — the enumerated `.env` Read denies become one blanket per tool; the default-allow posture and the distribution model are unchanged
 
 **Decision:** The env-var template file is named **`env.example`**, with no leading dot, in every project. With the example out of the `.env*` namespace, the permission deny collapses from nine enumerated `Read()` patterns to one blanket per tool:
 

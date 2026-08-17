@@ -2,13 +2,12 @@
 id: DEC-S042
 title: "The shell states invariants and the context file fills named slots — overrides are a patch where the structure was wrong"
 topic: "Docs, decisions & context discipline"
-amends:
-  - id: DEC-S019
-    relation: refines
-    scope: "how the shell/context boundary is drawn inside Micro Workflow — the split itself, and every other section's use of it, stands"
 ---
 
 ## DEC-S042: The shell states invariants and the context file fills named slots — overrides are a patch where the structure was wrong
+
+**See also** — decisions this one changed part of:
+- Refines DEC-S019 — how the shell/context boundary is drawn inside Micro Workflow — the split itself, and every other section's use of it, stands
 
 **Decision:** `## Micro Workflow` states what every step must *achieve* and names a **slot** for how. Each project fills its slots in `.claude/CLAUDE-context.md` under `## Workflow Mechanisms`. `## Workflow Overrides` — which corrected the shell's defaults by step number — is retired.
 

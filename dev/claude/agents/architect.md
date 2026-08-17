@@ -25,7 +25,7 @@ Decisions live **one per file** in `docs/decisions/DEC-*.md`; `docs/DECISIONS.md
 
 **Allocating a new DEC number:** take the next one after the highest in `docs/decisions/`. A collision is no longer silent — `check:decisions` fails on a duplicate id, a dangling reference, a backwards-pointing amendment, and a spec amendment that never landed.
 
-**Never hand-write an index row or an "amended by" banner.** Declare the edge once in the new decision's frontmatter (`amends:` / `amends_spec:`) and run `gen:decisions`; it writes both ends. Prefer `amends` + a scope over `supersedes` — total supersession is rarer than it looks.
+**Search the record before drafting a decision, and say what came back.** `grep -rli "<subject>" docs/decisions/`. If a decision on that subject exists, this is an amendment to it — a dated `## Amendment` section inside that file, not a new id. A new id is only for a subject the record has no decision about. **Never hand-write an index row**; `gen:decisions` writes the index.
 
 ## When You Should Be Consulted
 
@@ -63,7 +63,7 @@ For every decision brought to you:
 
 **Simpler alternative:** [if applicable]
 
-**Decision file:** [if recommending proceed, draft `docs/decisions/DEC-<id>-<slug>.md` — frontmatter (`id`, `title`, `topic`, and `amends:`/`amends_spec:` if it changes an existing decision or a spec section) plus the body. Do not hand-write an index row or a banner; `gen:decisions` writes both ends of every edge.]
+**Decision:** [state the `grep -rli` result first. If it hit, draft the `## Amendment, YYYY-MM-DD (who)` section to append to that decision's file — what changes and what still stands. If it did not, draft `docs/decisions/DEC-<id>-<slug>.md` — frontmatter (`id`, `title`, `topic`, plus `amends_spec:` if it changes a numbered spec section) and the body. Do not hand-write an index row.]
 ```
 
 ## Behavior
