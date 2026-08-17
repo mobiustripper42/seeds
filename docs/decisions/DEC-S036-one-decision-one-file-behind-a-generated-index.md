@@ -27,3 +27,45 @@ topic: "Docs, decisions & context discipline"
 **Scope:** new `dev/claude/scripts/{gen-decisions-index,check-decisions,check-decisions.test,split-decisions}.mjs`; new `dev/claude/docs/decisions/{_config.json,_preamble.md,DEC-001-example…md}`; `dev/claude/docs/DECISIONS.md` becomes generated output; `dev/claude/CLAUDE.md` gains `## Decision Record`; `dev/claude/agents/{architect,code-review,pm,ideas}.md` gain the read-the-record step and the citation rule; `.claude/routine-config.yaml` file-class registrations.
 
 **Schema:** **V5.** A project's decision record changes shape on disk and `/pull-seeds` must not install these scripts into a project still carrying a monolithic `DECISIONS.md`. See `docs/SCHEMA_VERSIONS.md`.
+
+---
+
+## Amendment, 2026-08-16 (operator) — an amendment goes in the decision it amends; `amends:` retires
+
+**Changes how a decision is revised. The file model stands** — one decision, one file, a
+generated topic index, and no hand-editing of `DECISIONS.md`.
+
+**What the record is for.** One question: *what did we decide about X, and what is true
+now?* Four properties make that answerable, and they are the test for any change to how
+the record works:
+
+- **One place per subject.** The current answer is in one file, not assembled from several.
+- **Updatable.** A change to a subject updates that subject's file.
+- **Searchable.** You find the file by searching for the subject.
+- **Lossless.** Superseded reasoning stays readable; history is appended, never overwritten.
+- **Scannable.** A session reads the one file it needs, never a monolith. This is the
+  reason the record was split into files at all, and it is defeated just as thoroughly by
+  four files on one subject as by one file holding everything.
+
+**The rule.** A change to what a decision decided goes **in that decision's file**, as a
+dated `## Amendment, YYYY-MM-DD (who)` section appended at the bottom. A new id is only
+for a subject the record has no decision about — one worth writing even if nothing before
+it existed. An amendment states what changed **and what still stands**, so a reader knows
+which parts of the original survived it.
+
+**`amends:` and its relation vocabulary retire**, along with `amends_spec`, the reciprocal
+banner generation in `gen-decisions-index.mjs`, and the edge validation in
+`check-decisions.mjs`. Decisions that merely relate carry a plain **see also**, named in
+both files.
+
+**Why the field could not simply be discouraged.** It attached the word *amend* to the one
+mechanism that does not amend: `amends:` is frontmatter on a **new file**. A session that
+correctly concludes "this is an amendment" reaches for the thing labelled amend and gets a
+new decision — which fails one place per subject, and with it updatable and scannable. The
+field was not being misused; using it correctly was the error.
+
+**Cost, since nothing enforces it.** An in-file amendment generates nothing: no edge, no
+index annotation, no banner. A decision amended in August still shows its original title
+and date on the index row. **The index is a list of subjects, not a summary of what is
+current** — the current answer is in the file, which is where the reader has to go anyway.
+A last-amended date on the index row would recover most of this and is not built.

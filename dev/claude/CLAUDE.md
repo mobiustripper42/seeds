@@ -58,23 +58,32 @@ Project coding conventions — typing, component structure, data fetching, auth/
 
 **Reading.** Read one decision by reading its file: `grep -rl DEC-NNN docs/decisions/` resolves any id, and `grep -rl 'topic: "Auth' docs/decisions/` pulls a whole topic. Don't load the whole record to answer one question, and **don't cite a decision you only saw in the index** — the index carries titles, not holdings, and a confident citation of a decision you didn't read is how a stale answer gets laundered into a fact.
 
-**Writing.** Edit the file, then `npm run gen:decisions`. A new id is the next one after the highest in `docs/decisions/`; a collision is no longer silent, it's a red build on whichever branch merges second.
+**Writing — search before you write, every time.** Name the subject, search the record for it, and **say what came back**:
 
-**Amendments are declared once, in frontmatter, and generated in both directions:**
-
-```yaml
-amends:
-  - id: DEC-NNN
-    relation: refines          # or supersedes / revises / reverses / retires / extends / corrects / resolves / reframes
-    scope: "the retry policy only — the transport choice stands"
-amends_spec:
-  - section: "2.4"             # a NUMBERED section of docs/SPEC.md
-    scope: "the availability rule; the surface below is unchanged"
+```
+grep -rli "<subject>" docs/decisions/
 ```
 
-The generator writes the reciprocal banner into the amended decision's own file, the annotation onto its index row, and the pointer under the amended spec section's heading. **Never hand-write any of those ends.** Declaring it once is what makes them agree — a reader arriving by `Ctrl-F`, a code comment, or another doc's citation lands in the *body*, not the index, and an index-only pointer never reaches them.
+- **A decision on that subject exists → you are amending it.** Open that file. This is the common case and gets more common as the record matures.
+- **Nothing comes back → new decision.** Next id after the highest in `docs/decisions/`. Then `npm run gen:decisions`.
 
-**Prefer `amends` + scope over `supersedes`.** A strike-through says the whole holding is dead. In the project this pattern came from, an audit of 138 decisions found *zero* fully superseded — every struck row still had a live leg. Total supersession is rarer than it looks.
+State the search result in the PR — *"`grep -rli deposit` returned DEC-107; this changes its posture, so it amends"*, or *"nothing on rate limiting; new id."* **That sentence is the whole control.** A session that has to write "DEC-107 covers deposits and this is not that" cannot do it when it's false, and no definition of "amendment" catches what that catches.
+
+**An amendment goes in the decision's own file**, appended at the bottom:
+
+```markdown
+## Amendment, YYYY-MM-DD (who) — one line on what changed
+
+**What this changes, and what still stands.** Then context, decision, why.
+```
+
+Say what still stands. An amendment that only states the new position leaves a reader guessing which parts of the original survived — and the original is not edited or struck through, so both remain readable in order.
+
+**There is no new decision that amends an old one.** If it changes what an existing decision decided, it is that decision, later — not a new subject. A new id is for something worth writing even if nothing before it existed. Two decisions that merely relate carry a plain **see also**, named in both files.
+
+**What this protects:** one place per subject, so *"what did we decide about X"* has one answer; and a session reading the one file it needs rather than a monolith — which four files on one subject defeats just as thoroughly as one file holding everything.
+
+**The index is a list of subjects, not a summary of what is current.** An in-file amendment leaves the index row showing the original title and date. The current answer is in the file.
 
 **The gate.** `npm run check:decisions` fails on a stale index, a duplicate id, an unknown topic or relation, a dangling reference, a backwards-pointing amendment, and a declared spec amendment that never landed. Its siblings `check:context` and `check:docs` cover the always-loaded context files and the rest of the doc set. All three run before the slow stages of `verify` — they fail in milliseconds. Project-specific knobs live in `docs/decisions/_config.json` and `.claude/doc-check.json`; the scripts themselves are shared and identical everywhere, so don't edit them per-project.
 
