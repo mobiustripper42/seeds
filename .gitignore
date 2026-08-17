@@ -9,3 +9,4 @@ __pycache__/
 
 # Local memory harvest for triage — never commit
 .memory-harvest/
+node_modules/
