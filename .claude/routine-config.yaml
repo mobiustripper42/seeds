@@ -153,6 +153,22 @@ file-classes:
   # backwards for anything a project never runs; a fourth instance should invert it
   # rather than add a fourth line here.
   - "dev/claude/scripts/throughput.py": seeds-only
+  # Compares seeds' own dev/claude/ templates against seeds' own .claude/ copies
+  # (DEC-S047). There is no second copy in a project to compare — a project has
+  # only one of each file — so a project holding this would be the mistake.
+  #
+  # FOURTH carve-out, which is the one DEC-S046 pre-committed to: "a fourth
+  # instance should invert it rather than add a fourth line here." This IS the
+  # fourth line, added anyway and deliberately, because the alternative was
+  # shipping a differ that tells five projects to copy a script that cannot run
+  # there — and inverting the default is a decision with its own blast radius
+  # (every remaining `scripts/**` file has to be individually re-asserted as
+  # something a project really does hold), which does not belong inside a
+  # promotion PR that no observation asked for it in. The debt is now explicit
+  # and dated rather than rediscovered on the fifth: invert this glob, and list
+  # the five doc-integrity scripts + safe-supabase.sh + split-decisions.mjs as
+  # the `logic` exceptions.
+  - "dev/claude/scripts/check-mirrors.mjs": seeds-only
   - "dev/claude/scripts/**": logic
   # The permission policy (DEC-S023, DEC-S044). Neither `logic` nor `context`:
   # its CONTENTS are distributed by hand per machine and a project may legitimately
