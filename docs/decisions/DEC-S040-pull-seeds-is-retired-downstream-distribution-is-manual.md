@@ -2,25 +2,16 @@
 id: DEC-S040
 title: "Automated seeds ↔ project sync is retired entirely — the loop is observe, promote, copy by hand"
 topic: "Sync — directions, classification & file classes"
-amends:
-  - id: DEC-S038
-    relation: revises
-    scope: "the holding that manual /push-seeds and /pull-seeds carry the steady state — both are now retired; the Routine stays off"
-  - id: DEC-S039
-    relation: revises
-    scope: "@tape-reader's project-owned fix path and PR, and Phase 4's outward mechanism — the observation half stands unchanged"
-  - id: DEC-S018
-    relation: revises
-    scope: "the registry loses every automated consumer and survives as guidance for the manual copy"
-  - id: DEC-S011
-    relation: revises
-    scope: "type gating loses its consumer with @sync-config; the manifest survives as documentation"
-  - id: DEC-S006
-    relation: refines
-    scope: "what the version integer is for, now that no skill gates on it"
 ---
 
 ## DEC-S040: Automated seeds ↔ project sync is retired entirely — the loop is observe, promote, copy by hand
+
+**See also** — decisions this one changed part of:
+- Revises DEC-S038 — the holding that manual /push-seeds and /pull-seeds carry the steady state — both are now retired; the Routine stays off
+- Revises DEC-S039 — @tape-reader's project-owned fix path and PR, and Phase 4's outward mechanism — the observation half stands unchanged
+- Revises DEC-S018 — the registry loses every automated consumer and survives as guidance for the manual copy
+- Revises DEC-S011 — type gating loses its consumer with @sync-config; the manifest survives as documentation
+- Refines DEC-S006 — what the version integer is for, now that no skill gates on it
 
 **Decision:** `/pull-seeds`, `/push-seeds`, and `@sync-config` are deleted. `@tape-reader` edits
 **nothing** in the repo it runs in. The workflow loop is three steps, of which exactly one is

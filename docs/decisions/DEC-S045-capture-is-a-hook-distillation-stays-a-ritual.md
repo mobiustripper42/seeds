@@ -2,16 +2,13 @@
 id: DEC-S045
 title: "Capture is a hook, distillation stays a ritual — the loop's front end stops depending on memory"
 topic: "Agents & review"
-amends:
-  - id: DEC-S039
-    relation: refines
-    scope: "the trigger for evidence capture only; the observation/promotion split, @tape-reader's job, and @workout's manual cadence are unchanged"
-  - id: DEC-S023
-    relation: extends
-    scope: "adds a user-global-only hooks stanza to the hand-distribution list; the permission policy itself is untouched"
 ---
 
 ## DEC-S045: Capture is a hook, distillation stays a ritual — the loop's front end stops depending on memory
+
+**See also** — decisions this one changed part of:
+- Refines DEC-S039 — the trigger for evidence capture only; the observation/promotion split, @tape-reader's job, and @workout's manual cadence are unchanged
+- Extends DEC-S023 — adds a user-global-only hooks stanza to the hand-distribution list; the permission policy itself is untouched
 
 **Decision:** Cut the learning loop one level below where DEC-S039 cut it. **Evidence capture** becomes a deterministic `SessionEnd` hook — `dev/claude/scripts/tape-capture.sh`, wired in each machine's **user-global** `~/.claude/settings.json` — which copies the ending session's transcript into `~/.claude/tape-queue/` and appends one line to `index.jsonl`. **Distillation** and **promotion** stay exactly as manual as they were: `/read-the-tape` gains a `--queue` drain mode run on a human cadence, and `@workout` is untouched.
 

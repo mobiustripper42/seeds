@@ -2,16 +2,13 @@
 id: DEC-S046
 title: "`drift.mjs` reports what the registry never classified — silence is not an answer"
 topic: "Sync — directions, classification & file classes"
-amends:
-  - id: DEC-S044
-    relation: refines
-    scope: "S044's holding stands untouched — the `presence` class, its semantics and its sole member are unchanged, and nothing here operates on that branch. What is refined is its reach: S044 treated one unclassified file by classifying it, leaving intact the mechanism that made it invisible, and that mechanism produced two more instances"
-  - id: DEC-S018
-    relation: refines
-    scope: "the registry's stated rule for an unmatched file now has something that enforces it; the file classes themselves are untouched"
 ---
 
 ## DEC-S046: `drift.mjs` reports what the registry never classified — silence is not an answer
+
+**See also** — decisions this one changed part of:
+- Refines DEC-S044 — S044's holding stands untouched — the `presence` class, its semantics and its sole member are unchanged, and nothing here operates on that branch. What is refined is its reach: S044 treated one unclassified file by classifying it, leaving intact the mechanism that made it invisible, and that mechanism produced two more instances
+- Refines DEC-S018 — the registry's stated rule for an unmatched file now has something that enforces it; the file classes themselves are untouched
 
 **Decision:** `drift.mjs` distinguishes **a class it does not diff** from **no class at all**, and reports the second. A template file matching no glob in `.claude/routine-config.yaml` § `file-classes` prints in its own block, last, phrased as a seeds-side gap:
 

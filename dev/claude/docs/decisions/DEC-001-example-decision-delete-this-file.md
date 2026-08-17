@@ -18,18 +18,18 @@ instead of a scroll, and makes the index generatable rather than hand-maintained
 makes forgetting it a red build rather than a silent stale index, which is the whole point — the
 hand-maintained version decayed precisely because nothing noticed.
 
-**Declaring an amendment** — if this decision later replaced one leg of an earlier decision, its
-frontmatter would carry:
+**Amending an earlier decision** — you do not do it from here. A change to what an earlier decision
+decided is appended to **that decision's own file**, and gets no id:
 
-```yaml
-amends:
-  - id: DEC-NNN
-    relation: refines
-    scope: "the retry policy only — the transport choice stands"
+```markdown
+## Amendment, 2026-08-16 (eric) — one line on what changed
+
+**What this changes, and what still stands.** Then context, decision, why.
 ```
 
-and the generator would write the reciprocal banner into that decision's own file and the
-annotation onto its index row. Never hand-write either end.
+A new file like this one is only for a subject the record has no decision about yet. Two decisions
+that merely relate name each other in a plain **see also** — there is no generated pointer between
+decisions, and nothing to keep in sync.
 
 **Declaring a spec change** — if it rewrote §2.4 of `docs/SPEC.md`:
 

@@ -2,13 +2,12 @@
 id: DEC-S041
 title: "The observer captures cause and operator reaction — both perish with the session, and severity cannot be judged without them"
 topic: "Agents & review"
-amends:
-  - id: DEC-S039
-    relation: refines
-    scope: "adds a third severity input and a cause field at capture time; the cost/detectability axes and the no-count rule stand unchanged"
 ---
 
 ## DEC-S041: The observer captures cause and operator reaction — both perish with the session, and severity cannot be judged without them
+
+**See also** — decisions this one changed part of:
+- Refines DEC-S039 — adds a third severity input and a cause field at capture time; the cost/detectability axes and the no-count rule stand unchanged
 
 **Decision:** `@tape-reader` records two more things per finding, both cited, neither a proposal:
 

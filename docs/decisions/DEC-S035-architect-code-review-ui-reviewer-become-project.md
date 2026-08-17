@@ -2,13 +2,12 @@
 id: DEC-S035
 title: "`@architect`, `@code-review`, `@ui-reviewer` become project-owned — seeds keeps templates, sync stops touching them"
 topic: "Agents & review"
-amends:
-  - id: DEC-S033
-    relation: amends
-    scope: "the rollout paragraph only — the stack-neutral template stands"
 ---
 
 ## DEC-S035: `@architect`, `@code-review`, `@ui-reviewer` become project-owned — seeds keeps templates, sync stops touching them
+
+**See also** — decisions this one changed part of:
+- Amends DEC-S033 — the rollout paragraph only — the stack-neutral template stands
 
 **Decision:** Reclassify the three reviewing agents from `hybrid` to **`context`** in `routine-config.yaml`'s file-class registry. `@sync-config` Step 1.4 drops `context` pairs from diff scope entirely — both directions, both `interactive` and `auto`. Seeds' `dev/claude/agents/*.md` remain **install-time starting points** (Setup step 5 copies them once); after install each project owns its copy and no sync ever writes to it again.
 

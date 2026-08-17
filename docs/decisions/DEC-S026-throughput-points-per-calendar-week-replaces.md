@@ -2,13 +2,12 @@
 id: DEC-S026
 title: "Throughput (points per calendar week) replaces transcript-based active-time velocity (supersedes DEC-S024)"
 topic: "Velocity, retro math & throughput"
-amends:
-  - id: DEC-S024
-    relation: supersedes
-    scope: ""
 ---
 
 ## DEC-S026: Throughput (points per calendar week) replaces transcript-based active-time velocity (supersedes DEC-S024)
+
+**See also** — decisions this one changed part of:
+- Supersedes DEC-S024
 
 **Decision:** Velocity is **throughput — points shipped per calendar week — computed from GitHub issue `closedAt` dates + `points:N` labels.** The transcript-dependent `active = wall − breaks` model (DEC-S024) is retired entirely, along with break inference, `wall_clock / point`, and any `active_time`. hrs/pt was secretly doing two jobs — forecasting and estimate calibration — and neither needs the transcript: forecasting → throughput; calibration → a per-task re-estimate tally at retro. `wall_clock` survives only as the `/its-dead` on-screen gut-check, never quoted as a velocity.
 
