@@ -89,7 +89,7 @@ git checkout -b task/X.Y-thing      # cut a task branch from main
 ```
 
 `/kill-this` runs **once per task**. It:
-- Runs `npm run build` (or whatever `.claude/CLAUDE-context.md §Commands` defines).
+- Runs the project's build command, whatever `.claude/CLAUDE-context.md §Commands` defines.
 - Commits code on the task branch.
 - Pushes the task branch.
 - Runs `@code-review`.

@@ -2,12 +2,86 @@
 //
 // The value of this suite is almost entirely in the NEGATIVE cases. A path checker that finds
 // nothing looks identical whether it is working or whether its matcher stopped matching — the
-// #589 failure. So the cases below pin what it deliberately ignores as hard as what it catches,
-// and the last block asserts the real docs are clean.
+// #589 failure. So the cases below pin what it deliberately ignores as hard as what it catches.
+//
+// EVERYTHING RUNS AGAINST A FIXTURE TREE, not against the repo the suite happens to sit in.
+// That is the whole reason this file was rewritten. `check-context.mjs` reads the filesystem
+// through the cwd — `ROOTS` is built from `readdirSync('.')` at module load, and `resolves()`
+// calls `existsSync` on a relative path — so every assertion below is a claim about the layout
+// of whatever repo runs it. The original suite asserted that `src/adapters/twilio-channel.ts`
+// and `app/(crew)/crew/shift/[shiftId]` were real, which is true in exactly one repo. It passed
+// there and failed 9 ways in seeds, and nobody knew, because seeds had no test runner (issue
+// #186) and no other project ran the script tests either. A suite that can only pass in the
+// repo it was written in is not portable, and this one ships to every project.
+//
+// So: build the tree the assertions describe, `chdir` into it, and import the module afterwards
+// so its cwd-derived constants are computed against the fixture. The import must come after the
+// chdir — `ROOTS` is module-load-time state, which is exactly why this can't be done with a
+// plain top-level import.
+//
+// What this deliberately gives up: the old `check()` case asserted the REAL docs of the host
+// repo were clean. That assertion belongs to the gate — running `check-context.mjs` in `verify`
+// is what checks a project's actual docs, on every run, against the real tree. A unit suite
+// doing it too only bought a second opinion in one repo while making it unrunnable everywhere.
 
-import { existsSync } from "node:fs";
-import { describe, expect, it } from "vitest";
-import { check, expandBraces, isClaim } from "./check-context.mjs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+
+let check, expandBraces, isClaim;
+let fixture;
+let cwdBefore;
+
+/**
+ * The tree the assertions below describe. Shaped like a Next.js + App Router project because
+ * that is what the checker's own comments cite as the motivating cases: a route group, a dynamic
+ * segment whose brackets are not a character class, and an adapter glob.
+ */
+const FIXTURE_FILES = [
+  "CLAUDE.md",
+  ".claude/CLAUDE-context.md",
+  "src/adapters/twilio-channel.ts",
+  "src/adapters/sms-channel.ts",
+  "app/lib/channel.ts",
+  "app/(crew)/crew/shift/[shiftId]/page.tsx",
+  "docs/decisions/DEC-143-x.md",
+  "scripts/check-decisions.mjs",
+  "scripts/gen-decisions-index.mjs",
+  // A top-level `components/` so the `<placeholder>` case proves the angle-bracket rule rather
+  // than passing for the uninteresting reason that `components` is not a root here.
+  "components/.keep",
+];
+
+// Deliberately ABSENT from the fixture, and each absence is load-bearing:
+//   dev/                        — so `dev/claude/...` reads as another repo's path, not a claim
+//   origin/, feature/           — so those spans read as git refs
+//   @core/                      — so the tsconfig alias is not a path
+//   app/(crew)/crew/ask/        — the dead-brace case cites `{ask,nowhere}`, and `patternMatches`
+//                                 passes a brace pattern if ANY alternative resolves (`.some()`
+//                                 at check-context.mjs:122). So BOTH alternatives have to be
+//                                 missing for that expansion to count as dead. Creating `ask/`
+//                                 here silently turned the negative control green — caught only
+//                                 because the assertion pins an exact failure count.
+
+beforeAll(async () => {
+  fixture = mkdtempSync(join(tmpdir(), "check-context-fixture-"));
+  for (const rel of FIXTURE_FILES) {
+    const abs = join(fixture, rel);
+    mkdirSync(dirname(abs), { recursive: true });
+    // The two context docs must parse as clean: they are what no-arg `check()` reads.
+    writeFileSync(abs, rel.endsWith(".md") ? "See `src/adapters/twilio-channel.ts`.\n" : "");
+  }
+  cwdBefore = process.cwd();
+  process.chdir(fixture);
+  // Imported AFTER the chdir on purpose — see the header note.
+  ({ check, expandBraces, isClaim } = await import("./check-context.mjs"));
+});
+
+afterAll(() => {
+  if (cwdBefore) process.chdir(cwdBefore);
+  if (fixture) rmSync(fixture, { recursive: true, force: true });
+});
 
 describe("isClaim — what counts as a claim about this repo", () => {
   it("accepts a path rooted in a real top-level directory", () => {
@@ -27,13 +101,14 @@ describe("isClaim — what counts as a claim about this repo", () => {
     expect(isClaim("feature/reservations")).toBe(false);
   });
 
-  it("ignores seeds-repo paths, which correctly do not exist in this repo", () => {
+  it("ignores another repo's paths, which correctly do not exist in this one", () => {
     expect(isClaim("dev/claude/templates/VersionTag.tsx")).toBe(false);
   });
 
   it("ignores an explicit <placeholder>, since Next route params are real dirs", () => {
     // `components/<feature>/` describes a shape; `app/(crew)/crew/shift/[shiftId]` is a real
-    // directory, so brackets can't be the placeholder marker — angle brackets are.
+    // directory, so brackets can't be the placeholder marker — angle brackets are. `components`
+    // IS a root in the fixture, so this fails for the right reason if the rule is removed.
     expect(isClaim("components/<feature>/")).toBe(false);
     expect(isClaim("app/(crew)/crew/shift/[shiftId]")).toBe(true);
   });
@@ -59,7 +134,9 @@ describe("expandBraces", () => {
 });
 
 describe("check", () => {
-  it("passes on the real docs — every cited path and pattern resolves", () => {
+  it("passes on docs whose every cited path and pattern resolves", () => {
+    // No-arg `check()` reads the two context docs off disk — here, the fixture's. Asserting the
+    // HOST repo's real docs is the gate's job, not this suite's; see the header note.
     expect(check()).toEqual([]);
   });
 

@@ -36,7 +36,7 @@ What still flows automatically is *evidence*, not files: a session's observation
 ## V1, retired
 
 Sync-config end-to-end. Built, shipped, used, and removed:
-1. ~~De-hardcoded skill templates (no `npm run build` assumptions)~~ — kept; this outlived the sync
+1. ~~De-hardcoded skill templates (no hardcoded build-command assumptions)~~ — kept; this outlived the sync
 2. ~~Remote nightly Routine with fixed repo list~~ — off (DEC-S038), then unrevivable (DEC-S040)
 3. ~~Downstream `/pull-seeds` skill~~ — deleted (DEC-S040)
 4. ~~Documented migration path from `~/.claude/skills/` to `<project>/.claude/skills/`~~ — done; project-level install is the settled shape

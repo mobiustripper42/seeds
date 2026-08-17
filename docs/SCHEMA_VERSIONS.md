@@ -157,6 +157,22 @@ A v4 project has a monolithic `docs/DECISIONS.md` and no `docs/decisions/`. Do n
 
 **Why bump (not additive):** the record changes shape on disk and `docs/DECISIONS.md` becomes generated output. A v4 project that pulled these scripts without splitting would get a red build on every run, and a sync that forward-ported a *generated* `DECISIONS.md` into a project whose copy is hand-written would overwrite the record with an index of a directory that does not exist.
 
+### v5, in place: the version skills gate on the `version` field, not on `package.json`
+
+**Not a version bump — no project owes anything, and nothing changes for a project that ships software.** Recorded here because the change ships to every project's copy of three skills.
+
+`/bump-major`, `/retro` Step 8 and `/promote-production` used to decide "is this a versioned project?" by testing whether `package.json` exists. They now test whether it has a `version` field:
+
+```
+node -e "process.exit(require('./package.json').version ? 0 : 1)" 2>/dev/null || echo "not versioned"
+```
+
+File-existence was always a proxy for the real question, and it broke the day a repo wanted a test runner without a version. Seeds is that repo (issue #186): it now carries a `private` manifest with `devDependencies` and **no `version` key**, so it can run `vitest` while all three skills skip it exactly as they did when it had no manifest at all.
+
+A project that is versioned has both a manifest and a version, so its behaviour is unchanged. The only repo whose behaviour changes is one that has a manifest and no version — which previously got version bumps it had no basis for.
+
+**To adopt:** copy the three `SKILL.md` files. Nothing else. If you skip it, your project keeps working; you just keep the older, blunter test.
+
 ## How the version integer is used now
 
 **It gates nothing** (DEC-S040). No skill reads it, because the skills that did are deleted. Compare the two numbers by hand and read the result:
