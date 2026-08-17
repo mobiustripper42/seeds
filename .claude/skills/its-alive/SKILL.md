@@ -65,7 +65,7 @@ The session file lives on an orphan `sessions` branch checked out at `.sessions-
 
 **If missing — three sub-cases:**
 
-a. **`origin/sessions` exists on remote** (fresh clone / accidental delete): `git worktree add .sessions-worktree sessions origin/sessions`. Continue.
+a. **`origin/sessions` exists on remote** (fresh clone / accidental delete): `git fetch origin sessions` then `git worktree add .sessions-worktree sessions`. Continue. (`git worktree add <path> [<commit-ish>]` takes **one** ref — the two-ref form `… sessions origin/sessions` is a usage error, and git answers it with a fragment of its own `--help` output rather than anything that reads like a failure.)
 
 b. **`origin/sessions` does NOT exist** (first run on this project — migration path): bootstrap the orphan branch.
 ```

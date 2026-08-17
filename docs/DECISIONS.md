@@ -24,6 +24,7 @@ Decisions are numbered DEC-NNN. "DEC-TBD" means the decision is flagged but unre
 - DEC-S040 — Automated seeds ↔ project sync is retired entirely — the loop is observe, promote, copy by hand
 - DEC-S044 — `drift.mjs` gains a `presence` class — report the absence, never the contents
 - DEC-S046 — `drift.mjs` reports what the registry never classified — silence is not an answer
+- DEC-S047 — Seeds checks its own mirrors — a promotion that never reached `.claude/` is silent by construction
 
 ### Session lifecycle & skills
 - DEC-S012 — Session-end flow — `/its-dead` first, merge last; PR-flow default on protected `$WORKING_BRANCH`

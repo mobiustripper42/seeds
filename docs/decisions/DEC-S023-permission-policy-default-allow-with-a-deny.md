@@ -35,3 +35,38 @@ topic: "Tooling & safety"
 **Schema:** additive within v4 — no skill requires the settings file. No version bump.
 
 **Alternatives considered:** gated allow-list of specific tools (rejected — produces rubber-stamped prompts; the operator doesn't read the commands). `bypassPermissions` mode (rejected — disables the deny list, the one thing we rely on). Auto-merge settings into `@sync-config` (rejected — security guardrails shouldn't be bot-edited; and default-allow makes per-repo allow churn rare anyway). Blanket `Read(**/.env.*)` deny (rejected — blocks `.env.example`, deny can't be carved back).
+
+## Amendment, 2026-08-17 (workout) — the deny list may enforce a workflow rule, not only prevent damage
+
+**What this changes:** the deny list's remit. **What still stands:** everything else — default-allow,
+`deny` beats `allow`, the master in seeds, hand distribution, the precedence gotcha, and every existing
+entry. This adds one entry and the principle that admits it.
+
+Every entry before this one blocks something **damaging**: destructive git, `rm -rf`, secrets, network
+exfil, remote-package runners. `Bash(sed -n *)` blocks something merely **wrong** —
+`sed -n '120,160p' <file>` where `Read` with `offset`/`limit` does the same job. That is a new
+category, and it is added on evidence rather than tidiness.
+
+The rule against it has been written in `dev/claude/CLAUDE.md` § Workflow Notes for months, in a
+paragraph that names the exact banned shape and cites the two `/kill-this` and `/promote-production`
+stalls that motivated it. In one week of audited sessions it was violated **58 times across three
+sessions and two repos** — 34 in one muster session, 21 in another, 3 in soundings — with no operator
+correction in any of them, because there was nothing to correct: every call succeeded. The harm only
+lands on the intermittent allow-pattern miss, and when it lands it stops a skill dead mid-run. A rule
+whose violation is invisible 57 times out of 58 has a sample size of one no matter how often it
+happens, and more prose next to prose that has already lost is accretion.
+
+Evidence: `observations/archive/2026-08/2026-08-14-muster-686-resend-and-copy-link.md` (34),
+`2026-08-17-muster-main.md` (21), `2026-08-14-soundings-3.7-poop-deck-publish.md` (3).
+
+**What this costs, stated rather than discovered.** A legitimate `sed -n` — extracting from a pipe,
+say — is now denied with a message that does not explain itself, and the same week's audits show a
+denied command gets re-shaped and retried once or twice before the model pivots
+(`2026-08-14-bushel-mobile-main.md`: `curl` denied, retried near-verbatim, then solved with `ss`).
+So the entry buys 58 silent violations for a handful of noisy round trips. It also does not cover
+`awk 'NR==...'` or a bare `cat <file>`, which the prose bans and no entry blocks; those stay prose,
+and if they show up at this volume they earn their own line.
+
+**A `PreToolUse` hook would be strictly better** — it can explain itself in the refusal, which is the
+whole cause of the retry cost above. It is not built. This entry is the cheap version that binds
+today; the hook stays the right answer if the retries turn out to be worse than the violations.

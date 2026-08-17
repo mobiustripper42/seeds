@@ -61,6 +61,8 @@ dev/
       check-decisions.test.mjs # vitest suite for both of the above
       check-context.mjs        # Asserts paths cited in the always-loaded context docs resolve
       check-docs.mjs           # Doc-set ratchet — DEC refs, npm scripts, issue links, rosters, paths (DEC-S037)
+      check-mirrors.mjs        # SEEDS-ONLY, read-only. Asserts seeds' live .claude/ copies still match the
+                               # dev/claude/ templates they mirror. Enumerates; never copies, never picks a side
       drift.mjs                # SEEDS-SIDE, read-only. What differs between these templates and one
                                # project. Enumerates; never copies, never says which side wins
       tape-capture.sh          # SessionEnd hook (DEC-S045). Copies the ending session's transcript to
@@ -182,6 +184,7 @@ Seeds eats its own dogfood: its decisions live one per file in `docs/decisions/`
 node dev/claude/scripts/gen-decisions-index.mjs   # after editing any decision
 node dev/claude/scripts/check-decisions.mjs       # gate: index freshness, ids, edges, references
 node dev/claude/scripts/check-docs.mjs            # gate: DEC refs, rosters, issue links, paths
+node dev/claude/scripts/check-mirrors.mjs         # gate: seeds' .claude/ copies match the dev/claude/ templates
 ```
 
 Run them from the repo root — they resolve `docs/` relative to the working directory, so seeds validates the exact template files it ships rather than a copy that could drift. `check-context.mjs` is **not** run here: it asserts `.claude/CLAUDE-context.md` exists, and seeds doesn't use the DEC-S019 shell/context split — its `CLAUDE.md` describes this repo, not a project.
@@ -284,6 +287,7 @@ Seeds is markdown. There is no build, no test suite, and deliberately no `packag
    node dev/claude/scripts/gen-decisions-index.mjs   # after editing any decision
    node dev/claude/scripts/check-decisions.mjs
    node dev/claude/scripts/check-docs.mjs
+   node dev/claude/scripts/check-mirrors.mjs        # only meaningful after step 5's mirror copy
    ```
 
    From the repo root, so seeds validates the files it ships rather than a copy. `check-context.mjs` is **not** run here — it asserts `.claude/CLAUDE-context.md` exists, and seeds doesn't use the DEC-S019 split.
@@ -292,7 +296,7 @@ Seeds is markdown. There is no build, no test suite, and deliberately no `packag
 9. **`/kill-this` — I invoke it, you don't.** Hand-typing `git push` + `gh pr create` reaches the same end state without `@code-review` ever reading the diff, and its absence announces itself to nobody.
 10. **Next task or `/its-dead`.**
 
-**Mirrors:** several files exist twice — `dev/claude/<x>` is the template, `.claude/<x>` is seeds' live copy. Edit the template, copy to the mirror, and `diff` them before committing. A drifted mirror means seeds is running different rules than it ships.
+**Mirrors:** several files exist twice — `dev/claude/<x>` is the template, `.claude/<x>` is seeds' live copy. Edit the template, copy to the mirror, and run `node dev/claude/scripts/check-mirrors.mjs` before committing. A drifted mirror means seeds is running different rules than it ships — and that is silent, because a check that was never installed cannot report its own absence. It happened: a promotion added `/its-dead` Step 4.5 to the template on 2026-08-06, never mirrored it, and eleven days later seeds hit the exact condition Step 4.5 detects and closed the session with "All six PRs merged" and no warning. The script is read-only and names the file; it will not guess which side is right. `drift.mjs` cannot cover this — it refuses to run against seeds on purpose.
 
 ## Workflow Notes
 

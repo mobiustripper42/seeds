@@ -4,17 +4,23 @@ description: Session end. Stamps `ended:` on the open session file, tallies tota
 tools: Read, Edit, Write, Bash, Glob, Grep
 ---
 
-You are closing the session. Under DEC-S013, this is a one-action skill: stamp `ended:`, write `status: closed`, commit + push to the orphan `sessions` branch. All time math (wall_clock / dev_time / review_time / break inference) and version bumps moved to `/retro`. The session file becomes atomic — never modified after this runs.
+You are closing the session. Under DEC-S013, this is a one-action skill: stamp `ended:`, write `status: closed`, commit + push to the orphan `sessions` branch. All time math (wall_clock and active = wall_clock − breaks, via transcript break inference) and version bumps moved to `/retro`. The session file becomes atomic — never modified after this runs.
 
 ## Step 0 — Locate the open session (on the sessions worktree)
 
 ```
-SESSION_FILE=$(grep -l "^status: open" .sessions-worktree/sessions/*.md 2>/dev/null | head -1)
+grep -l "^status: open" .sessions-worktree/sessions/*.md 2>/dev/null
 ```
 
-If found: NEW MODE. Continue.
+**Exactly one match:** that's `SESSION_FILE`. NEW MODE. Continue.
 
-If not: try legacy `session-log.md` on the current branch. If found: LEGACY MODE — Step 4 still applies; everything else simplifies. If neither: STOP and ask the user how to proceed.
+**No match:** try legacy `session-log.md` on the current branch. If found: LEGACY MODE — Step 4 still applies; everything else simplifies. If neither: STOP and ask the user how to proceed.
+
+**More than one match — resolve it, never pick one.** Two open files means a previous session never reached its own `/its-dead`. Disambiguate on `transcript:`, which `/its-alive` Step 5 stamps and which is unique per window: the file whose `transcript:` matches this session's is the one to close. If that doesn't resolve it, **stop and list the candidates for the user to choose**.
+
+Do not sort, and do not take the first. `... | head -1` returns the lexically-earliest filename, and session filenames start with a date — so on the exact input this guard exists for, it silently selects the **stale** file. That stamps a fabricated `ended:` onto a session that really closed hours or days ago, and leaves the session actually closing marked `status: open` forever. Per the atomicity guarantee in Notes, nothing downstream reopens either one, so there is no undo path and nothing errors: `head -1` always returns something.
+
+Leave the other file alone. Its `ended:` is not knowable from here, and a guess poisons `/retro`'s input more quietly than a blank does. Say in the closing summary that it is still open.
 
 ## Step 1 — Stamp `ended:`
 
@@ -26,7 +32,7 @@ Edit `$SESSION_FILE` frontmatter:
 - `ended: <END_UTC>`
 - `status: closed`
 
-Do **not** write `wall_clock`, `dev_time`, `review_time`, `duration`, or any time-derived field. Those are `/retro`'s job (DEC-S013).
+Do **not** write `wall_clock`, `active`, `breaks`, `duration`, or any time-derived field. Time math is `/retro`'s job (DEC-S013).
 
 ## Step 2 — Tally total points
 
@@ -69,16 +75,35 @@ Total points: <SUM>
 
 **Do not write this to the file.** The user verifies; `/retro` computes the persisted numbers at phase end.
 
-If the wall_clock looks wildly wrong (e.g. user expected 2h, sees 9h because of an overnight gap), the user can record a note in the Context section. The actual `dev_time` will be inferred at retro from transcript break gaps; the displayed wall_clock is just the raw delta.
+If the wall_clock looks wildly wrong (e.g. user expected 2h, sees 9h because of an overnight gap), the user can record a note in the Context section. The actual active time will be inferred at retro (wall_clock minus transcript break gaps); the displayed wall_clock is just the raw delta.
+
+## Step 4.5 — PRs opened outside `/kill-this` (the review that didn't run)
+
+A PR opened by hand-typed `gh pr create` never passed `/kill-this` Step 3, so `@code-review` never ran on it. Nothing else in the workflow notices: the code is on a branch, the PR looks normal, and the only missing artifact is a review that was never going to announce its own absence.
+
+List the PRs this session actually produced and compare against the frontmatter:
+
+```
+gh pr list --author @me --state all --limit 30 --json number,createdAt,headRefName
+```
+
+Keep the ones created at or after the session's `started:` stamp. Any of those **not** in `pr_numbers:` was shipped by hand.
+
+For each, display:
+
+```
+⚠ PR #N (<branch>) was opened outside /kill-this — @code-review never ran on it.
+  Review before merging: @code-review against `gh pr diff N`.
+```
+
+Report only. Don't open the review yourself and don't backfill a `## Task` block for it — the user decides whether the PR is worth a retrospective pass. If every session PR is in `pr_numbers:`, say nothing.
 
 ## Step 5 — Commit + push the sessions branch (from the worktree)
 
 ```
-cd .sessions-worktree
-git add sessions/$(basename "$SESSION_FILE")
-git commit -m "Close Session <N>"
-git push origin sessions
-cd ..
+git -C .sessions-worktree add sessions/$(basename "$SESSION_FILE")
+git -C .sessions-worktree commit -m "Close Session <N>"
+git -C .sessions-worktree push origin sessions
 ```
 
 No version bump. No CHANGELOG. No tag. No branch cleanup (task branches and their PRs are managed by the user per-task at `/kill-this` time and via the GitHub merge button).
@@ -94,7 +119,7 @@ PRs: #N1, #N2, ...            <- still need merging if any are still OPEN
 Points (per-task sum): <S>
 
 The session file is now atomic — no further writes will modify it.
-Time math (dev_time / review_time / break inference) + version bump will run at /retro.
+Time math (active = wall_clock − breaks, via break inference) + version bump will run at /retro.
 ```
 
 If any `pr_numbers` PR is still OPEN, append:
