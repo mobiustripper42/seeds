@@ -66,6 +66,8 @@ grep -rli "<subject>" docs/decisions/
 
 - **A decision on that subject exists → you are amending it.** Open that file. This is the common case and gets more common as the record matures.
 - **Nothing comes back → new decision.** Next id after the highest in `docs/decisions/`. Then `npm run gen:decisions`.
+- **Several come back → amend the one your change is *about*.** Not every file that mentions the word. Ask which decision would be wrong if you shipped this; that is the one. The others get a **see also** if a reader of them would be misled without it, and nothing otherwise.
+- **Partial overlap → amend the part you change, and say so.** A change that alters one leg of a decision is still that decision, later. If it genuinely changes two subjects, that is two amendments in two files, not one new decision covering both.
 
 State the search result in the PR — *"`grep -rli deposit` returned DEC-107; this changes its posture, so it amends"*, or *"nothing on rate limiting; new id."* **That sentence is the whole control.** A session that has to write "DEC-107 covers deposits and this is not that" cannot do it when it's false, and no definition of "amendment" catches what that catches.
 
@@ -82,6 +84,16 @@ Say what still stands. An amendment that only states the new position leaves a r
 **There is no new decision that amends an old one.** If it changes what an existing decision decided, it is that decision, later — not a new subject. A new id is for something worth writing even if nothing before it existed. Two decisions that merely relate carry a plain **see also**, named in both files.
 
 **What this protects:** one place per subject, so *"what did we decide about X"* has one answer; and a session reading the one file it needs rather than a monolith — which four files on one subject defeats just as thoroughly as one file holding everything.
+
+**A decision that changes `SPEC.md` still declares it in frontmatter** — this part is unchanged and is not the same mechanism as the retired `amends:`:
+
+```yaml
+amends_spec:
+  - section: "2.4"             # a NUMBERED section of docs/SPEC.md
+    scope: "the availability rule; the surface below is unchanged"
+```
+
+The generator writes the pointer under that spec section's heading — never hand-write it — and the gate fails the build if the claimed spec edit never landed. That check exists because unlanded spec claims were the largest single finding class in the audit behind DEC-S036, and nothing else catches one. Declare it from an amendment section the same as from a new decision.
 
 **The index is a list of subjects, not a summary of what is current.** An in-file amendment leaves the index row showing the original title and date. The current answer is in the file.
 

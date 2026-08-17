@@ -53,10 +53,20 @@ for a subject the record has no decision about — one worth writing even if not
 it existed. An amendment states what changed **and what still stands**, so a reader knows
 which parts of the original survived it.
 
-**`amends:` and its relation vocabulary retire**, along with `amends_spec`, the reciprocal
-banner generation in `gen-decisions-index.mjs`, and the edge validation in
-`check-decisions.mjs`. Decisions that merely relate carry a plain **see also**, named in
-both files.
+**Stop declaring `amends:`.** The field and its relation vocabulary are retired *as an
+instruction* — nothing should write a new one. **The code is unchanged and stays that
+way for now:** `gen-decisions-index.mjs` still generates reciprocal banners and
+`check-decisions.mjs` still validates the edges already declared, so every existing edge
+keeps working and no record needs touching to adopt this. Retiring the mechanism and
+migrating the existing edges is separate work, not done here. Decisions that merely relate
+carry a plain **see also**, named in both files.
+
+**`amends_spec` survives, and is not part of this.** It points from a decision into a
+numbered `SPEC.md` section, and the generator fails the build when a decision claims a
+spec change that never landed — the audit's single largest finding class, 17 of 41 such
+claims unlanded. That is a decision-to-spec check, and it creates no second decision file,
+so none of the scattering argument above touches it. An earlier draft of this amendment
+retired it by association; that was wrong and is corrected here.
 
 **Why the field could not simply be discouraged.** It attached the word *amend* to the one
 mechanism that does not amend: `amends:` is frontmatter on a **new file**. A session that
