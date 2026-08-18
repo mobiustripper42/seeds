@@ -81,6 +81,16 @@ side it has re-acquired the judgment DEC-S040 removed.
 milliseconds. The real cost was paid up front: five stale files that now have to be reconciled
 deliberately, which is work that was always owed and had simply never been visible.
 
+## Amendment, 2026-08-18 (eric) — the differ's refusal narrows to three paths, and this script still earns its place
+
+**What this changes, and what still stands.** Everything about `check-mirrors.mjs` stands: the failure it exists for, the three presence states, the carve-outs, the read-only constraint. What changes is one supporting claim above — *"`drift.mjs` cannot cover this — it **refuses to run against seeds itself**, on purpose"*. It no longer refuses. That sentence should now be read as history.
+
+**The refusal was right about its reason and wrong about its scope.** Seeds' root `CLAUDE.md` and `dev/claude/CLAUDE.md` genuinely are different documents sharing a filename, and comparing them reports the whole shell as drift. But that is **one mapping**, and it was used to decline the entire repo. The cost was invisible and it was being paid: everything outside `agents/` and `skills/` had no comparer here at all, and `docs/VELOCITY_AND_POKER_GUIDE.md` — `logic` class, meaning byte-identical by design — had been five lines behind its template since session 34, with nothing reporting it to anyone. `check-mirrors.mjs` structurally could not see it, because `docs/` is not under `.claude/`.
+
+`drift.mjs` now runs against seeds with three template paths excluded when the target is seeds — `dev/claude/CLAUDE.md`, non-`logic` files under `dev/claude/docs/`, and everything under `dev/claude/scripts/` (seeds runs those in place rather than holding a copy at `scripts/`) — and it never claims seeds owes a migration, because seeds is the version. Measured: bypassing the old blanket refusal produced 13 findings, 12 of them noise and 1 real. With the three exclusions it produces the 1.
+
+**Why this script is not therefore redundant, which was the live question.** The two overlap on `skills/**` and stop overlapping immediately. `drift.mjs` skips `context`-class files, because for a *project* a differing copy is correct — and `agents/architect.md`, `code-review.md`, `pm.md` and `ui-reviewer.md` are all `context`. For seeds that reasoning does not hold: only the `description:` line is legitimately project-owned, and this script normalizes exactly that line and compares the rest. **Two of the five stale files the first run found were `context`-class agents the differ would never have looked at.** Run both; they cover different sets for different reasons.
+
 ## Amendment, 2026-08-17 (eric) — a missing mirror is a failure too, for a defined set
 
 **What this changes, and what still stands.** The comparison rule, the two carve-outs, the

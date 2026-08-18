@@ -69,15 +69,44 @@ function findSeeds() {
 }
 
 if (!existsSync(join(SEEDS, 'dev', 'claude', 'CLAUDE.md'))) die(`${SEEDS} is not a seeds checkout`)
-if (resolve(SEEDS) === resolve(PROJECT)) {
-  /**
-   * Refusing this is the point, not an edge case. Seeds' root CLAUDE.md and dev/claude/CLAUDE.md
-   * are DIFFERENT DOCUMENTS that share a filename — one describes this repo, one is the template
-   * shipped to projects. Comparing seeds to itself would report the whole shell as drift, and a
-   * future version of this script that "fixed" it would overwrite the repo's own instructions.
-   */
-  die('refusing to compare seeds against itself — its root CLAUDE.md is a different document from the shell template, not a drifted copy of it')
-}
+
+/**
+ * Seeds is a consumer of its own templates, so it is a legitimate target — but it is a differently
+ * shaped one, and four facts about it have to be stated or the run is 12 false findings and 1 real.
+ * Measured, before this existed: bypassing the old blanket refusal produced exactly that ratio.
+ *
+ * The refusal itself was right about its reason and wrong about its scope. Seeds' root `CLAUDE.md`
+ * and `dev/claude/CLAUDE.md` genuinely are different documents sharing a filename, and comparing
+ * them reports the whole shell as drift. But that is ONE mapping, and it was used to decline the
+ * whole repo — which left everything outside `agents/` and `skills/` unwatched here, including a
+ * `logic`-class file that had been five lines stale since session 34 and that nothing reported to
+ * anyone. `check-mirrors.mjs` (DEC-S047) covers `agents/` + `skills/` and does not look at `docs/`;
+ * this covers the rest.
+ *
+ * Stated as data rather than branches so the seeds-shaped exceptions are readable in one place and
+ * nothing else in the script has to know about them.
+ */
+const SEEDS_IS_TARGET = resolve(SEEDS) === resolve(PROJECT)
+
+/**
+ * Template paths whose project-side mapping does not apply when the project IS seeds.
+ * Each is a document seeds owns, not a copy it holds.
+ */
+const seedsOwnPath = (rel) =>
+  // `dev/claude/CLAUDE.md` → `CLAUDE.md` is the mapping the old refusal existed for. Seeds' root
+  // CLAUDE.md describes THIS repo; the template is the shell shipped to projects.
+  rel === 'dev/claude/CLAUDE.md' ||
+  // `dev/claude/docs/X` → `docs/X`: seeds' own SPEC, PROJECT_PLAN, AGENTS and CHEATSHEET are about
+  // seeds, and every one of them is `context` class. Named as `context` rather than "not logic",
+  // which is what this said first: "not logic" would also swallow a future `hybrid` or `presence`
+  // doc, and swallowing a class nobody has thought about yet is the failure mode this whole script
+  // keeps rediscovering. A `logic` doc IS meant to be byte-identical everywhere — that is how the
+  // stale velocity guide surfaced — so those are deliberately not excluded.
+  (rel.startsWith('dev/claude/docs/') && classOf(rel) === 'context') ||
+  // `dev/claude/scripts/X` → `scripts/X`: seeds has no root `scripts/`. It runs them in place, out
+  // of `dev/claude/scripts/`, which is the point — it validates the files it ships rather than a
+  // copy that could drift.
+  rel.startsWith('dev/claude/scripts/')
 
 const hash = (p) => createHash('sha256').update(readFileSync(p)).digest('hex')
 
@@ -148,6 +177,16 @@ const unclassified = []  // no registry entry at all (DEC-S046) — a seeds-side
 for (const rel of walk(join(SEEDS, 'dev', 'claude')).map((r) => `dev/claude/${r}`)) {
   if (gated.has(rel)) continue
   const cls = classOf(rel)
+  /**
+   * Ordered after `classOf` on purpose, and guarded on the class existing. The first version
+   * skipped `seedsOwnPath` files before this line and thereby swallowed an UNCLASSIFIED file
+   * under `docs/` or `scripts/` — silently, in the one mode this change introduces. That is
+   * DEC-S046's exact failure reintroduced by the fix for a different one: a file with no
+   * registry entry has to be reported before anything gets to decide it is uninteresting,
+   * because "no entry" is the absence of an answer rather than an answer. Caught in review,
+   * reproduced with a throwaway file under `dev/claude/docs/`.
+   */
+  if (SEEDS_IS_TARGET && cls !== undefined && seedsOwnPath(rel)) continue  // seeds owns it; not a copy
   if (cls === 'seeds-only') continue        // lives in seeds; a project never holds a copy
   if (cls === 'context') continue          // project-owned; differing is correct
   /**
@@ -197,8 +236,14 @@ const v = (p) => (existsSync(p) ? readFileSync(p, 'utf8').trim() : '?')
 const sv = v(join(SEEDS, 'seeds-version'))
 const pv = v(join(PROJECT, '.claude', 'seeds-version'))
 
-console.log(`\ndrift — ${basename(PROJECT)} vs seeds`)
-console.log(`seeds-version ${pv} vs ${sv}${pv !== sv ? '  ← owes a migration; see docs/SCHEMA_VERSIONS.md' : ''}\n`)
+console.log(`\ndrift — ${SEEDS_IS_TARGET ? 'seeds against its own templates' : `${basename(PROJECT)} vs seeds`}`)
+/**
+ * Seeds has no `.claude/seeds-version` and deliberately never will — PR #173 deleted it, because
+ * the file answers "which generation is this project installed at" and seeds IS the generation.
+ * Printing `? vs 5  ← owes a migration` at it is a false statement in the first line of output.
+ */
+if (SEEDS_IS_TARGET) console.log(`seeds-version ${sv} — the source; a migration is never owed here\n`)
+else console.log(`seeds-version ${pv} vs ${sv}${pv !== sv ? '  ← owes a migration; see docs/SCHEMA_VERSIONS.md' : ''}\n`)
 /**
  * Split, because the two groups need different amounts of attention. A file that DIFFERS is drift:
  * two versions of something meant to be identical, and one of them is stale. A file that is ABSENT

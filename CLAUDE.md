@@ -11,7 +11,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | `docs/DECISIONS.md` | Architectural decisions (DEC-NNN IDs) |
 | `docs/AGENTS.md` | Agent and skill specs |
 | `docs/RETROSPECTIVES.md` | Phase-end retros — written by `/retro` |
-| `docs/VELOCITY_AND_POKER_GUIDE.md` | Estimation methodology |
+| `docs/VELOCITY_AND_POKER_GUIDE.md` | Estimation methodology — the *why*. `logic` class, byte-identical in every project, so it deliberately carries no path to the file below |
+| `docs/THROUGHPUT_QUICKREF.md` | The quick version — how to *read* the throughput numbers, with worked examples. **Seeds-only**, which is why the guide above can't link to it: a project copying that guide verbatim would inherit a dead link and fail its own `check:docs` |
 | `docs/CHEATSHEET.md` | One-page printable skill reference |
 | `docs/SCHEMA_VERSIONS.md` | Schema versioning policy + version history (V1, V2, …) + migration notes. Turns a version gap into a task list — it gates nothing now (DEC-S040). |
 | `seeds-version` | Single line at repo root — the latest published schema version. Compared against `<project>/.claude/seeds-version` by hand, to answer "how far behind is this repo". |
@@ -209,7 +210,11 @@ Seeds' ids are `DEC-S###` with no numeric main line, so `docs/decisions/_config.
 node dev/claude/scripts/drift.mjs /path/to/project
 ```
 
-Read-only. It prints which `logic`-class files differ, which are absent, and whether the project owes a schema migration — so you are choosing what should cross rather than guessing at the state. It refuses to run against seeds itself, deliberately: this repo's root `CLAUDE.md` and `dev/claude/CLAUDE.md` are **different documents that share a filename**, and comparing them would report the whole shell as drift.
+Read-only. It prints which `logic`-class files differ, which are absent, and whether the project owes a schema migration — so you are choosing what should cross rather than guessing at the state.
+
+**It runs against seeds too** — `node dev/claude/scripts/drift.mjs .` from the repo root. Seeds is a consumer of its own templates like any other repo, just a differently shaped one, so three template paths are excluded when the target is seeds: `dev/claude/CLAUDE.md` (this repo's root `CLAUDE.md` is a **different document that shares a filename**, not a drifted copy), `dev/claude/docs/*` other than `logic`-class ones (seeds' SPEC and PROJECT_PLAN are about seeds), and `dev/claude/scripts/*` (seeds runs them in place rather than holding a copy at `scripts/`). It also never claims seeds owes a migration; seeds *is* the version.
+
+This replaced a blanket refusal that was right about its reason and wrong about its scope. One bad mapping was used to decline the whole repo, which left everything outside `agents/` and `skills/` unwatched here — and a `logic`-class doc had been five lines stale since session 34 with nothing reporting it to anyone.
 
 `/its-alive` runs it at session start in a project, which is why there is no fleet list — a dormant repo's drift only matters the day you open it, and that is when the briefing tells you.
 
@@ -300,7 +305,9 @@ Seeds is markdown plus the scripts it ships. There is no build, and its `package
 9. **`/kill-this` — I invoke it, you don't.** Hand-typing `git push` + `gh pr create` reaches the same end state without `@code-review` ever reading the diff, and its absence announces itself to nobody.
 10. **Next task or `/its-dead`.**
 
-**Mirrors:** several files exist twice — `dev/claude/<x>` is the template, `.claude/<x>` is seeds' live copy. Edit the template, copy to the mirror, and run `node dev/claude/scripts/check-mirrors.mjs` before committing. A drifted mirror means seeds is running different rules than it ships — and that is silent, because a check that was never installed cannot report its own absence. It happened: a promotion added `/its-dead` Step 4.5 to the template on 2026-08-06, never mirrored it, and eleven days later seeds hit the exact condition Step 4.5 detects and closed the session with "All six PRs merged" and no warning. The script is read-only and names the file; it will not guess which side is right. `drift.mjs` cannot cover this — it refuses to run against seeds on purpose.
+**Mirrors:** several files exist twice — `dev/claude/<x>` is the template, `.claude/<x>` is seeds' live copy. Edit the template, copy to the mirror, and run `node dev/claude/scripts/check-mirrors.mjs` before committing. A drifted mirror means seeds is running different rules than it ships — and that is silent, because a check that was never installed cannot report its own absence. It happened: a promotion added `/its-dead` Step 4.5 to the template on 2026-08-06, never mirrored it, and eleven days later seeds hit the exact condition Step 4.5 detects and closed the session with "All six PRs merged" and no warning. The script is read-only and names the file; it will not guess which side is right.
+
+**`drift.mjs` does not replace it, and the reason is the `context` class.** The two overlap on `skills/**` and stop overlapping immediately: `agents/architect.md`, `code-review.md`, `pm.md` and `ui-reviewer.md` are `context` class, which the differ skips because for a *project* a differing copy is correct. For seeds it is not — only the `description:` line is legitimately project-owned, and `check-mirrors` normalizes exactly that line and compares the rest. Two of the five stale files DEC-S047's first run found were `context`-class agents the differ would never have looked at. Run both.
 
 **A missing mirror is a failure too, and presence has three states** (DEC-S047, amended):
 
