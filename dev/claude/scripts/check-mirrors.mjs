@@ -12,10 +12,19 @@
  * have it. That is silent by construction: a check that isn't installed cannot
  * report that it isn't installed.
  *
- * `drift.mjs` cannot cover this — it refuses to run against seeds on purpose,
- * because seeds' root `CLAUDE.md` and `dev/claude/CLAUDE.md` are different
- * documents sharing a filename. This script compares only paths that exist on
- * both sides, so that pair never comes up.
+ * `drift.mjs` now DOES run against seeds, and still does not cover this. It skips
+ * `context`-class files, because for a project a differing copy is correct — and
+ * `agents/architect.md`, `code-review.md`, `pm.md` and `ui-reviewer.md` are all
+ * `context`. For seeds only the `description:` line is legitimately project-owned;
+ * the rest of the file should match, which is what this script compares. Two of the
+ * five stale files the first run found were `context`-class agents the differ would
+ * never have looked at.
+ *
+ * The differ used to refuse seeds outright, because seeds' root `CLAUDE.md` and
+ * `dev/claude/CLAUDE.md` are different documents sharing a filename. That refusal
+ * is now one excluded path rather than a whole-repo decline. This script never had
+ * the problem: it compares only paths that exist on both sides, so the pair never
+ * comes up.
  *
  * Read-only. Enumerates and stops there — it does not copy, and it has no
  * opinion about which side is right. Same constraint as drift.mjs, same reason
