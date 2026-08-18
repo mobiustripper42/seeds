@@ -35,7 +35,8 @@ Then `git pull --ff-only origin main`.
 git fetch origin observations
 ```
 
-- **Present** (`[ -d .observations-worktree/.git ]`): `git -C .observations-worktree reset --hard origin/observations`
+- **Present** (`[ -e .observations-worktree/.git ]` — `-e`, not `-d`: in a linked worktree `.git` is a
+  *file*, a `gitdir:` pointer): `git -C .observations-worktree reset --hard origin/observations`
 - **Missing, branch exists:** `git worktree add .observations-worktree observations`
 - **Missing, no branch:** STOP — nothing has ever been observed. Bootstrap per
   `docs/SPECS/2026-08-workflow-learning-loop.md` § Phase 2.
