@@ -34,19 +34,58 @@ const MIRROR_DIR = join(ROOT, '.claude');
 const QUIET = process.argv.includes('--quiet');
 
 /**
- * Files that legitimately differ. Each entry needs a reason, and the reason has
- * to be about the file being *project-owned*, not about the drift being old or
- * inconvenient — an exemption added to silence a real gap is how this check
- * becomes furniture.
+ * Which templates seeds is expected to dogfood — i.e. where a MISSING mirror is a
+ * defect rather than the normal case.
+ *
+ * This can't be "all of them". Seeds runs its scripts straight out of
+ * `dev/claude/scripts/`, the `docs/` templates belong in a project's `docs/` and
+ * not in `.claude/`, and `dev/claude/CLAUDE.md` is a different document from the
+ * root `CLAUDE.md` on purpose. Requiring a mirror for every template produces 31
+ * false positives against 1 real finding, and an exemption list of 31 is
+ * furniture the day it is written.
+ *
+ * So the rule is two prefixes, which is the same mapping `drift.mjs`'s
+ * `toProject()` already encodes: `dev/claude/agents/**` and
+ * `dev/claude/skills/**` land at `.claude/**`. A prefix rule maintains itself —
+ * add a new agent or skill and it is covered the same day, which is exactly when
+ * a hand-maintained roster would have been left un-updated.
  */
-const EXEMPT = new Map([
+const DOGFOODED = ['agents/', 'skills/'];
+
+/**
+ * Present, but never compared. Seeds MUST hold these — absence is a failure, the
+ * same as for a dogfooded template — and their contents are none of this script's
+ * business. This is DEC-S044's `presence` class, under a different roof.
+ *
+ * Keeping them out of the absence check was a real bug in the first version of
+ * this rule: `settings.json` is the file whose deny list protects itself
+ * (DEC-S023), and deleting seeds' copy produced a clean run. A blind spot for the
+ * two files an exemption list already names by name is the same failure this
+ * script exists for, one level up.
+ */
+const PRESENT_NOT_COMPARED = new Map([
   ['doc-check.json', 'project-owned config (DEC-S037) — the template ships placeholders, seeds fills them in'],
   ['settings.json', 'permission policy is distributed by hand, per machine (DEC-S023) — never auto-synced'],
+]);
+
+/**
+ * Neither required nor compared. Seeds may hold these or not; if it does, the
+ * copy is allowed to differ. Reserved for a file seeds has an argued reason not
+ * to run — not for drift that is merely old or inconvenient.
+ */
+const OPTIONAL = new Map([
   [
     'agents/ui-reviewer.md',
     "seeds has no UI and `type-manifest.yaml` marks this file webapp-only — mirroring it would install an agent that correctly refuses to run. The real fix is deleting seeds' copy, which is a decision, not a mirror",
   ],
 ]);
+
+/** Every path with a hand-written reason, whichever list it is on. */
+const EXEMPT = new Map([...PRESENT_NOT_COMPARED, ...OPTIONAL]);
+
+/** Seeds is expected to hold this: absence is a defect. */
+const mustExist = (rel) =>
+  !OPTIONAL.has(rel) && (DOGFOODED.some((p) => rel.startsWith(p)) || PRESENT_NOT_COMPARED.has(rel));
 
 /**
  * An agent's `description:` frontmatter line is project-owned by design — the
@@ -78,12 +117,26 @@ if (!existsSync(TEMPLATE_DIR) || !existsSync(MIRROR_DIR)) {
 }
 
 const drifted = [];
+const missing = [];
 const exempted = [];
 let compared = 0;
 
 for (const rel of walk(TEMPLATE_DIR)) {
   const mirror = join(MIRROR_DIR, rel);
-  if (!existsSync(mirror)) continue; // not a file seeds dogfoods — nothing to compare
+  if (!existsSync(mirror)) {
+    /**
+     * The blind spot this check shipped with, and the third instance of one
+     * mechanism: DEC-S044 found `settings.json` invisible because unclassified,
+     * DEC-S046 found nine more, and then THIS script — written to catch invisible
+     * drift — skipped every absent mirror in silence. `agents/ideas.md` had been
+     * missing since the day it was written, so `@ideas` did not resolve in a seeds
+     * session, and the run that shipped this file reported "all mirrored files
+     * match". Both statements were true at once, which is the whole problem: a
+     * missing file cannot differ from anything.
+     */
+    if (mustExist(rel)) missing.push(rel);
+    continue; // outside that set, absence is the normal case
+  }
   compared++;
   const same =
     normalize(readFileSync(join(TEMPLATE_DIR, rel), 'utf8'), rel) ===
@@ -108,22 +161,47 @@ if (!QUIET) {
   for (const rel of exempted) console.log(`  exempt  ${rel} — ${EXEMPT.get(rel)}`);
 }
 
-if (drifted.length === 0) {
-  if (!QUIET) console.log('  all mirrored files match.');
+if (drifted.length === 0 && missing.length === 0) {
+  // Deliberately "mirrored or exempt": `agents/ui-reviewer.md` is OPTIONAL, and its own
+  // exemption reason says deleting seeds' copy is the right end state. The day someone acts
+  // on that, "all templates are mirrored" would be a false sentence printed by a green run.
+  if (!QUIET) console.log('  every required mirror is present or exempt, and every present mirror matches.');
   process.exit(0);
 }
 
-console.error(`\ncheck-mirrors: ${drifted.length} mirrored file(s) differ from the template:\n`);
-for (const rel of drifted) {
-  console.error(`  DRIFT  dev/claude/${rel}`);
-  console.error(`         diff dev/claude/${rel} .claude/${rel}`);
+const HERE = relative(ROOT, resolve(new URL(import.meta.url).pathname));
+
+if (missing.length > 0) {
+  console.error(`\ncheck-mirrors: ${missing.length} dogfooded template(s) have no copy in .claude/:\n`);
+  for (const rel of missing) {
+    // `mkdir -p` is not decoration: a brand-new skill lives at `skills/<name>/SKILL.md`, and
+    // `.claude/skills/<name>/` does not exist yet, so a bare `cp` fails with ENOENT — on
+    // precisely the new-skill case the prefix rule is sold on covering the day it is written.
+    const dir = rel.includes('/') ? rel.slice(0, rel.lastIndexOf('/')) : '';
+    console.error(`  ABSENT  dev/claude/${rel}`);
+    console.error(
+      dir
+        ? `          mkdir -p .claude/${dir} && cp dev/claude/${rel} .claude/${rel}`
+        : `          cp dev/claude/${rel} .claude/${rel}`
+    );
+  }
+  console.error(
+    `\nSeeds ships this and does not run it. Copy it, or — if seeds genuinely should not\n` +
+      `hold it — add it to EXEMPT in ${HERE} with the reason, the same as a permanent difference.\n`
+  );
 }
-console.error(
-  `\nSeeds is running different rules than it ships. Reconcile each one deliberately —\n` +
-    `the template is usually right, but not always, and this script deliberately won't guess.\n` +
-    `If a difference is permanent and project-owned, add it to EXEMPT in ${relative(
-      ROOT,
-      resolve(new URL(import.meta.url).pathname)
-    )} with a reason.\n`
-);
+
+if (drifted.length > 0) {
+  console.error(`\ncheck-mirrors: ${drifted.length} mirrored file(s) differ from the template:\n`);
+  for (const rel of drifted) {
+    console.error(`  DRIFT  dev/claude/${rel}`);
+    console.error(`         diff dev/claude/${rel} .claude/${rel}`);
+  }
+  console.error(
+    `\nSeeds is running different rules than it ships. Reconcile each one deliberately —\n` +
+      `the template is usually right, but not always, and this script deliberately won't guess.\n` +
+      `If a difference is permanent and project-owned, add it to EXEMPT in ${HERE} with a reason.\n`
+  );
+}
+
 process.exit(1);
