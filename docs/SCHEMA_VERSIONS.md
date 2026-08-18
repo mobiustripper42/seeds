@@ -157,6 +157,26 @@ A v4 project has a monolithic `docs/DECISIONS.md` and no `docs/decisions/`. Do n
 
 **Why bump (not additive):** the record changes shape on disk and `docs/DECISIONS.md` becomes generated output. A v4 project that pulled these scripts without splitting would get a red build on every run, and a sync that forward-ported a *generated* `DECISIONS.md` into a project whose copy is hand-written would overwrite the record with an index of a directory that does not exist.
 
+### v5, in place: taking the DEC-S042 shell obliges you to add `## Workflow Mechanisms`
+
+**Not a version bump. It is a migration step that was never written down, and a project that skipped it is broken right now.**
+
+The `CLAUDE.md` shell is `hybrid` class and copies verbatim (DEC-S019). Since DEC-S042 it cites `.claude/CLAUDE-context.md § Workflow Mechanisms` in **four** places — Micro Workflow steps 4, 6 and 7, plus the paragraph explaining the slots. A project that took the new shell without adding that section to its context file sends every session to a heading that does not exist, several times per task.
+
+That is what happened to bushel, found during the 2026-08-14 sync: its context file still had the pre-DEC-S042 `## Workflow Overrides`. All three gates passed, because a `§ Heading` reference is not path-shaped and nothing checked it. Fixed in issue #181 — `check-context.mjs` now resolves `§` references, so a project running its own gates will be told. Older projects that have not taken that script yet will not be.
+
+**To adopt:** in `.claude/CLAUDE-context.md`, rename `## Workflow Overrides` to `## Workflow Mechanisms` and fill the three named slots:
+
+```markdown
+## Workflow Mechanisms
+
+**Proof:** <what counts as a check here>
+**Proof command:** <the command that runs it>
+**Surface check:** <how you confirm the change where a person meets it>
+```
+
+**An unfilled slot is a real answer and must be written as one** — `Surface check: none — no rendered surface` is a fact a reader can check; a blank line is not. The gate asserts the *heading* exists and stops there; whether the slots say anything useful is prose, and `check-context` deliberately does not judge prose.
+
 ### v5, in place: the version skills gate on the `version` field, not on `package.json`
 
 **Not a version bump — no project owes anything, and nothing changes for a project that ships software.** Recorded here because the change ships to every project's copy of three skills.

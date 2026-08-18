@@ -29,7 +29,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-let check, expandBraces, isClaim;
+let check, checkSections, expandBraces, headings, isClaim, sectionMatches, sectionRefs;
 let fixture;
 let cwdBefore;
 
@@ -46,6 +46,11 @@ const FIXTURE_FILES = [
   "app/lib/channel.ts",
   "app/(crew)/crew/shift/[shiftId]/page.tsx",
   "docs/decisions/DEC-143-x.md",
+  // Target of the § tests. Its heading set is the point: `Workflow Overrides` is the
+  // pre-DEC-S042 shape bushel actually had, and `Permission settings (DEC-042)` is cited
+  // without its parenthetical, so both real-corpus shapes are represented.
+  "target.md",
+  "notes.txt",
   "scripts/check-decisions.mjs",
   "scripts/gen-decisions-index.mjs",
   // A top-level `components/` so the `<placeholder>` case proves the angle-bracket rule rather
@@ -72,10 +77,33 @@ beforeAll(async () => {
     // The two context docs must parse as clean: they are what no-arg `check()` reads.
     writeFileSync(abs, rel.endsWith(".md") ? "See `src/adapters/twilio-channel.ts`.\n" : "");
   }
+  writeFileSync(
+    join(fixture, "target.md"),
+    [
+      "# Doc",
+      "",
+      "## Workflow Overrides",
+      "",
+      "text",
+      "",
+      "## Permission settings (DEC-042)",
+      "",
+      "text",
+      "",
+      // A single-word heading, mirroring the real corpus — `dev/claude/CLAUDE.md` has five
+      // (`## Tone`, `## Agents`, `## Communication`, `## Conventions`, `## Versioning`). It is
+      // here to pin the documented LIMIT of the matching rule, not a success.
+      "## Tone",
+      "",
+      "text",
+      "",
+    ].join("\n"),
+  );
   cwdBefore = process.cwd();
   process.chdir(fixture);
   // Imported AFTER the chdir on purpose — see the header note.
-  ({ check, expandBraces, isClaim } = await import("./check-context.mjs"));
+  ({ check, checkSections, expandBraces, headings, isClaim, sectionMatches, sectionRefs } =
+    await import("./check-context.mjs"));
 });
 
 afterAll(() => {
@@ -196,5 +224,98 @@ describe("check", () => {
   it("reports the line number, so a failure is one click from the claim", () => {
     const failures = check([{ path: "fixture.md", text: "line one\nline two\n`src/nope/gone.ts`" }]);
     expect(failures[0]).toContain("fixture.md:3");
+  });
+});
+
+describe("§ section references", () => {
+  const cite = (text) => checkSections([{ path: "f.md", text }]);
+
+  it("catches the bushel failure: a section the target does not have", () => {
+    // The motivating case (issue #181). The DEC-S042 shell cited
+    // `.claude/CLAUDE-context.md § Workflow Mechanisms` into a project whose context file had
+    // `## Workflow Overrides` — three dead pointers per task, past three green gates.
+    expect(cite("slots live in `target.md` § Workflow Mechanisms")).toHaveLength(1);
+    expect(cite("slots live in `target.md` § Workflow Mechanisms")[0]).toMatch(/has no such section/);
+  });
+
+  it("does not match on a shared first word, which is what makes the case above catchable", () => {
+    // `Workflow Mechanisms` and `Workflow Overrides` share their first word. A rule that accepted
+    // any prefix of the citation would pass the dead reference — the whole check would be inert
+    // on the one failure it was written for. Comparison is on whole words from the front.
+    expect(sectionMatches("Workflow Mechanisms", [["Workflow", "Overrides"]])).toBe(false);
+    expect(sectionMatches("Workflow Overrides", [["Workflow", "Overrides"]])).toBe(true);
+  });
+
+  it("accepts a live reference that runs on into prose", () => {
+    // A citation has no closing delimiter. `§ Communication for the session that prompted it` is
+    // live; only the first word is the heading. Failing this would be crying wolf on a good doc.
+    expect(cite("see `target.md` § Workflow Overrides for the details")).toEqual([]);
+  });
+
+  it("accepts a citation SHORTER than the heading", () => {
+    // `README.md § Permission settings` points at `## Permission settings (DEC-S023)`. The
+    // decision id is provenance, not part of the name, so the citation is a prefix of the heading
+    // rather than the other way round — both directions have to match.
+    expect(cite("policy: `target.md` § Permission settings")).toEqual([]);
+  });
+
+  it("reads the form with § inside the backticks, where the closing tick ends the heading", () => {
+    expect(sectionRefs("see `target.md §Workflow Overrides` today")).toEqual([
+      { file: "target.md", section: "Workflow Overrides" },
+    ]);
+    expect(cite("see `target.md §Workflow Overrides` today")).toEqual([]);
+    expect(cite("see `target.md §Nowhere` today")).toHaveLength(1);
+  });
+
+  it("ignores a bare § with no backticked file", () => {
+    // Deliberate scope limit. Run over the real corpus the bare form produced 12 findings and
+    // about one was real: historical task rows use `§` as ordinary prose about other repos'
+    // documents. A gate reporting eleven false findings to catch one gets muted.
+    expect(sectionRefs("see § Workflow Mechanisms below")).toEqual([]);
+    expect(cite("see § Nowhere At All below")).toEqual([]);
+  });
+
+  it("ignores a non-markdown target, which has no headings to resolve against", () => {
+    // `.claude/routine-config.yaml` § `file-classes` is a real citation in seeds' own CLAUDE.md.
+    expect(cite("classes: `notes.txt` § file-classes")).toEqual([]);
+  });
+
+  it("ignores a target that does not exist — path existence is checkPaths' job", () => {
+    // A doc describing what a PROJECT holds legitimately names files this repo does not have;
+    // `docs/WORKFLOW.md` cites `.claude/CLAUDE-context.md § Commands` and seeds has no such file.
+    expect(cite("see `no-such-doc.md` § Anything At All")).toEqual([]);
+  });
+
+  it("does not let one citation swallow the next one on the same line", () => {
+    // Two file-scoped citations on one line. Without a stop boundary the first one's text ran to
+    // end of line and picked up the second's syntax, so it no longer prefix-matched its own
+    // heading — a false failure. Live shape in this repo, in a decision file:
+    // "`dev/claude/CLAUDE.md` § Memory removed (section sat between § Workflow Notes and …)".
+    expect(sectionRefs("see `target.md` § Tone and also `target.md` § Workflow Overrides")).toEqual([
+      { file: "target.md", section: " Tone and also " },
+      { file: "target.md", section: " Workflow Overrides" },
+    ]);
+    expect(cite("see `target.md` § Tone and also `target.md` § Workflow Overrides")).toEqual([]);
+  });
+
+  it("PINS THE LIMIT: a citation beginning with a real short heading passes whatever follows", () => {
+    // Not a success — a documented limit, asserted so it is a decision rather than an accident.
+    // `target.md` has `## Tone`, so `§ Tone of every reply` resolves even though no such section
+    // exists. A citation has no closing delimiter and legitimately runs into its sentence, so
+    // nothing mechanical separates trailing prose from an over-long section name. The check
+    // answers "is there a heading here to land on?", and a reader following this one lands on
+    // `## Tone`. Tightening it would redden the live reference in the case above.
+    expect(cite("style: `target.md` § Tone of every reply")).toEqual([]);
+    // The failure that still matters — nothing to land on at all — is unaffected:
+    expect(cite("style: `target.md` § Telemetry of every reply")).toHaveLength(1);
+  });
+
+  it("strips per-word punctuation and a trailing parenthetical from headings", () => {
+    expect(headings("## Permission settings (DEC-042)\n### v4 → v5\n")).toEqual([
+      ["Permission", "settings"],
+      ["v4", "→", "v5"],
+    ]);
+    // `§ Seeds' Own Decision Record. There **is** …` — the fourth word must compare as `Record`.
+    expect(sectionMatches("Own Decision Record. There **is** more", [["Own", "Decision", "Record"]])).toBe(true);
   });
 });
