@@ -302,7 +302,15 @@ Seeds is markdown plus the scripts it ships. There is no build, and its `package
 
 **Mirrors:** several files exist twice — `dev/claude/<x>` is the template, `.claude/<x>` is seeds' live copy. Edit the template, copy to the mirror, and run `node dev/claude/scripts/check-mirrors.mjs` before committing. A drifted mirror means seeds is running different rules than it ships — and that is silent, because a check that was never installed cannot report its own absence. It happened: a promotion added `/its-dead` Step 4.5 to the template on 2026-08-06, never mirrored it, and eleven days later seeds hit the exact condition Step 4.5 detects and closed the session with "All six PRs merged" and no warning. The script is read-only and names the file; it will not guess which side is right. `drift.mjs` cannot cover this — it refuses to run against seeds on purpose.
 
-**Which templates seeds is expected to hold: `dev/claude/agents/**` and `dev/claude/skills/**`, and only those.** Under those two prefixes a *missing* mirror is a defect and `check-mirrors` fails on it; everywhere else absence is normal, because seeds runs its scripts straight out of `dev/claude/scripts/`, the `docs/` templates belong in a project's `docs/`, and `dev/claude/CLAUDE.md` is a different document from this one. The rule is two prefixes rather than a list of files so that a new agent or skill is covered the day it is written — which is precisely when a hand-maintained roster would still say nothing. This was added after `agents/ideas.md` sat unmirrored from the day it was written (issue #149): `@ideas` did not resolve in a seeds session, and the check whose whole job is invisible drift skipped it in silence, because a file that is absent cannot differ from anything.
+**A missing mirror is a failure too, and presence has three states** (DEC-S047, amended):
+
+| state | must exist? | compared? | which files |
+|---|---|---|---|
+| dogfooded | yes | yes | `dev/claude/agents/**`, `dev/claude/skills/**` |
+| presence | yes | no | `doc-check.json`, `settings.json` |
+| optional | no | no | `agents/ui-reviewer.md` |
+
+Everything else — the scripts, the `docs/` templates, the shell — is expected to have no mirror at all, because seeds runs its scripts straight out of `dev/claude/scripts/`, the `docs/` templates belong in a project's `docs/`, and `dev/claude/CLAUDE.md` is a different document from this one. The dogfooded set is **two prefixes rather than a roster**, so a new agent or skill is covered the day it is written — precisely when a hand-maintained list would still say nothing. Added after `agents/ideas.md` sat unmirrored from the day it was written (issue #149): `@ideas` did not resolve in a seeds session, and the check whose whole job is invisible drift skipped it in silence, because a file that is absent cannot differ from anything.
 
 ## Workflow Notes
 

@@ -80,3 +80,56 @@ side it has re-acquired the judgment DEC-S040 removed.
 **Cost.** One more command in a gate list that is already three commands long, and it fails in
 milliseconds. The real cost was paid up front: five stale files that now have to be reconciled
 deliberately, which is work that was always owed and had simply never been visible.
+
+## Amendment, 2026-08-17 (eric) — a missing mirror is a failure too, for a defined set
+
+**What this changes, and what still stands.** The comparison rule, the two carve-outs, the
+read-only constraint and the whole failure argument above are unchanged. What changes is the
+sentence *"compares every file under `dev/claude/` that has a same-named counterpart"*: the
+qualifier was doing more work than intended. A file with **no** counterpart was skipped in
+silence, so the script could not report the one thing it was built to make visible — a template
+seeds ships and does not run.
+
+**The failure, and it was live the day the script shipped.** `dev/claude/agents/ideas.md` had no
+copy under `.claude/`, so `@ideas` did not resolve in a seeds session and ideas raised while
+working on the workflow system itself had nowhere to go (issue #149). It had been missing since
+the agent was written. The first run of `check-mirrors.mjs` — the run reported in the section
+above as finding five stale files — printed `all mirrored files match` with `ideas.md` absent.
+Both statements were true at once: **a file that is absent cannot differ from anything.**
+
+That is the third instance of one mechanism, after DEC-S044 (`settings.json` invisible because
+unclassified) and DEC-S046 (nine more). A checker's skip path is where the defects live, and this
+time the checker was the one written to catch invisible drift.
+
+**Why not simply require a mirror for everything.** Because it is wrong 31 times out of 32. Seeds
+runs its scripts straight out of `dev/claude/scripts/`, the `docs/` templates belong in a project's
+`docs/` rather than in `.claude/`, and `dev/claude/CLAUDE.md` is a different document from the root
+`CLAUDE.md` — the same fact the § "not a special case of DEC-S046" argument rests on. An exemption
+list of 31 entries is furniture on the day it is written.
+
+**So presence is decided by three states, not by an exemption flag.** The vocabulary is DEC-S044's,
+reused deliberately rather than reinvented:
+
+| state | must exist? | compared? | membership |
+|---|---|---|---|
+| dogfooded | yes | yes | `agents/**` and `skills/**` |
+| `presence` | yes | no | `doc-check.json`, `settings.json` |
+| optional | no | no | `agents/ui-reviewer.md` |
+
+The dogfooded set is **two prefixes rather than a roster**, and that is the point: a new agent or
+skill is covered the day it is written, which is exactly the day a hand-maintained list would still
+say nothing. It is the same mapping `drift.mjs`'s `toProject()` already encodes. Against the tree at
+the time of writing: 18 templates under those prefixes, 17 mirrored, 1 reported, 0 false positives.
+
+**The `presence` row exists because the first version of this amendment got it wrong.** That draft
+had a single exemption list that suppressed absence as well as difference, which reopened the
+identical blind spot for the two files the list already named — including `settings.json`, whose
+deny rules protect themselves under DEC-S023. Deleting seeds' copy produced a clean run. Caught in
+review, before merge. Only `agents/ui-reviewer.md` genuinely belongs in the optional row, because
+its own exemption reason argues that deleting seeds' copy is the correct end state, and a check that
+flagged that deletion would be punishing the fix.
+
+**Consequently the clean-run message says "present or exempt", not "all mirrored".** The day
+someone acts on `ui-reviewer`'s stated end state, "every template is mirrored" would be a false
+sentence printed by a green run — which is the failure mode this whole decision is about, in
+miniature.

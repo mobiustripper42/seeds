@@ -51,26 +51,41 @@ const QUIET = process.argv.includes('--quiet');
  * a hand-maintained roster would have been left un-updated.
  */
 const DOGFOODED = ['agents/', 'skills/'];
-const isDogfooded = (rel) => DOGFOODED.some((p) => rel.startsWith(p));
 
 /**
- * Files that legitimately differ, or that seeds legitimately does not hold at
- * all. Each entry needs a reason, and the reason has to be about the file being
- * *project-owned*, not about the drift being old or inconvenient — an exemption
- * added to silence a real gap is how this check becomes furniture.
+ * Present, but never compared. Seeds MUST hold these — absence is a failure, the
+ * same as for a dogfooded template — and their contents are none of this script's
+ * business. This is DEC-S044's `presence` class, under a different roof.
  *
- * An entry suppresses BOTH a content difference and an absence. `agents/ui-reviewer.md`
- * is why: its reason already says the right end state is deleting seeds' copy, so
- * flagging that deletion as a missing mirror would punish the fix.
+ * Keeping them out of the absence check was a real bug in the first version of
+ * this rule: `settings.json` is the file whose deny list protects itself
+ * (DEC-S023), and deleting seeds' copy produced a clean run. A blind spot for the
+ * two files an exemption list already names by name is the same failure this
+ * script exists for, one level up.
  */
-const EXEMPT = new Map([
+const PRESENT_NOT_COMPARED = new Map([
   ['doc-check.json', 'project-owned config (DEC-S037) — the template ships placeholders, seeds fills them in'],
   ['settings.json', 'permission policy is distributed by hand, per machine (DEC-S023) — never auto-synced'],
+]);
+
+/**
+ * Neither required nor compared. Seeds may hold these or not; if it does, the
+ * copy is allowed to differ. Reserved for a file seeds has an argued reason not
+ * to run — not for drift that is merely old or inconvenient.
+ */
+const OPTIONAL = new Map([
   [
     'agents/ui-reviewer.md',
     "seeds has no UI and `type-manifest.yaml` marks this file webapp-only — mirroring it would install an agent that correctly refuses to run. The real fix is deleting seeds' copy, which is a decision, not a mirror",
   ],
 ]);
+
+/** Every path with a hand-written reason, whichever list it is on. */
+const EXEMPT = new Map([...PRESENT_NOT_COMPARED, ...OPTIONAL]);
+
+/** Seeds is expected to hold this: absence is a defect. */
+const mustExist = (rel) =>
+  !OPTIONAL.has(rel) && (DOGFOODED.some((p) => rel.startsWith(p)) || PRESENT_NOT_COMPARED.has(rel));
 
 /**
  * An agent's `description:` frontmatter line is project-owned by design — the
@@ -119,8 +134,8 @@ for (const rel of walk(TEMPLATE_DIR)) {
      * match". Both statements were true at once, which is the whole problem: a
      * missing file cannot differ from anything.
      */
-    if (isDogfooded(rel) && !EXEMPT.has(rel)) missing.push(rel);
-    continue; // outside the dogfooded prefixes, absence is the normal case
+    if (mustExist(rel)) missing.push(rel);
+    continue; // outside that set, absence is the normal case
   }
   compared++;
   const same =
@@ -147,7 +162,10 @@ if (!QUIET) {
 }
 
 if (drifted.length === 0 && missing.length === 0) {
-  if (!QUIET) console.log('  all dogfooded templates are mirrored, and every mirror matches.');
+  // Deliberately "mirrored or exempt": `agents/ui-reviewer.md` is OPTIONAL, and its own
+  // exemption reason says deleting seeds' copy is the right end state. The day someone acts
+  // on that, "all templates are mirrored" would be a false sentence printed by a green run.
+  if (!QUIET) console.log('  every required mirror is present or exempt, and every present mirror matches.');
   process.exit(0);
 }
 
@@ -156,8 +174,16 @@ const HERE = relative(ROOT, resolve(new URL(import.meta.url).pathname));
 if (missing.length > 0) {
   console.error(`\ncheck-mirrors: ${missing.length} dogfooded template(s) have no copy in .claude/:\n`);
   for (const rel of missing) {
+    // `mkdir -p` is not decoration: a brand-new skill lives at `skills/<name>/SKILL.md`, and
+    // `.claude/skills/<name>/` does not exist yet, so a bare `cp` fails with ENOENT — on
+    // precisely the new-skill case the prefix rule is sold on covering the day it is written.
+    const dir = rel.includes('/') ? rel.slice(0, rel.lastIndexOf('/')) : '';
     console.error(`  ABSENT  dev/claude/${rel}`);
-    console.error(`          cp dev/claude/${rel} .claude/${rel}`);
+    console.error(
+      dir
+        ? `          mkdir -p .claude/${dir} && cp dev/claude/${rel} .claude/${rel}`
+        : `          cp dev/claude/${rel} .claude/${rel}`
+    );
   }
   console.error(
     `\nSeeds ships this and does not run it. Copy it, or — if seeds genuinely should not\n` +
