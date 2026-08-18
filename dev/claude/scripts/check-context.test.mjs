@@ -79,9 +79,25 @@ beforeAll(async () => {
   }
   writeFileSync(
     join(fixture, "target.md"),
-    ["# Doc", "", "## Workflow Overrides", "", "text", "", "## Permission settings (DEC-042)", "", "text", ""].join(
-      "\n",
-    ),
+    [
+      "# Doc",
+      "",
+      "## Workflow Overrides",
+      "",
+      "text",
+      "",
+      "## Permission settings (DEC-042)",
+      "",
+      "text",
+      "",
+      // A single-word heading, mirroring the real corpus — `dev/claude/CLAUDE.md` has five
+      // (`## Tone`, `## Agents`, `## Communication`, `## Conventions`, `## Versioning`). It is
+      // here to pin the documented LIMIT of the matching rule, not a success.
+      "## Tone",
+      "",
+      "text",
+      "",
+    ].join("\n"),
   );
   cwdBefore = process.cwd();
   process.chdir(fixture);
@@ -268,6 +284,30 @@ describe("§ section references", () => {
     // A doc describing what a PROJECT holds legitimately names files this repo does not have;
     // `docs/WORKFLOW.md` cites `.claude/CLAUDE-context.md § Commands` and seeds has no such file.
     expect(cite("see `no-such-doc.md` § Anything At All")).toEqual([]);
+  });
+
+  it("does not let one citation swallow the next one on the same line", () => {
+    // Two file-scoped citations on one line. Without a stop boundary the first one's text ran to
+    // end of line and picked up the second's syntax, so it no longer prefix-matched its own
+    // heading — a false failure. Live shape in this repo, in a decision file:
+    // "`dev/claude/CLAUDE.md` § Memory removed (section sat between § Workflow Notes and …)".
+    expect(sectionRefs("see `target.md` § Tone and also `target.md` § Workflow Overrides")).toEqual([
+      { file: "target.md", section: " Tone and also " },
+      { file: "target.md", section: " Workflow Overrides" },
+    ]);
+    expect(cite("see `target.md` § Tone and also `target.md` § Workflow Overrides")).toEqual([]);
+  });
+
+  it("PINS THE LIMIT: a citation beginning with a real short heading passes whatever follows", () => {
+    // Not a success — a documented limit, asserted so it is a decision rather than an accident.
+    // `target.md` has `## Tone`, so `§ Tone of every reply` resolves even though no such section
+    // exists. A citation has no closing delimiter and legitimately runs into its sentence, so
+    // nothing mechanical separates trailing prose from an over-long section name. The check
+    // answers "is there a heading here to land on?", and a reader following this one lands on
+    // `## Tone`. Tightening it would redden the live reference in the case above.
+    expect(cite("style: `target.md` § Tone of every reply")).toEqual([]);
+    // The failure that still matters — nothing to land on at all — is unaffected:
+    expect(cite("style: `target.md` § Telemetry of every reply")).toHaveLength(1);
   });
 
   it("strips per-word punctuation and a trailing parenthetical from headings", () => {

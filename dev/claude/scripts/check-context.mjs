@@ -184,9 +184,14 @@ export function sectionRefs(line) {
     const open = before.match(/`([^`\s]+)\s+$/) // `file §…` — still inside the backticks
     const file = closed?.[1] ?? open?.[1]
     if (!file) continue // a bare `§ Heading` with no backticked file — see the note above
-    // Inside the backticks the closing one delimits the heading; otherwise it runs to end of line
-    // and may carry trailing prose ("§ Communication for the session that prompted it").
-    out.push({ file, section: open && !closed ? after.split('`')[0] : after })
+    // Inside the backticks the closing one delimits the heading. Otherwise it runs to end of line
+    // and may carry trailing prose ("§ Communication for the session that prompted it") — but it
+    // stops at the next backtick or `§`, because a line can hold two citations and without that
+    // bound the first one swallows the second's syntax. Observed shape, in this repo:
+    // "`dev/claude/CLAUDE.md` § Memory removed (section sat between § Workflow Notes and
+    // § Approval Before Action)" — the first citation's text ran to the end and no longer
+    // prefix-matched its own heading.
+    out.push({ file, section: (open && !closed ? after : after.split(/[`§]/)[0]).split('`')[0] })
   }
   return out
 }
@@ -229,6 +234,21 @@ export const headings = (text) =>
  * that accepted any prefix of the citation would pass `§ Workflow Mechanisms` against a file
  * containing only `## Workflow Overrides` — they share their first word — and that is precisely
  * the bushel failure this check exists for.
+ *
+ * **The limit, stated because it is real and was raised in review.** A citation that *begins* with
+ * a genuine short heading passes whatever follows it: `dev/claude/CLAUDE.md` has `## Tone`,
+ * `## Agents` and `## Communication`, so `§ Communication style requirements` resolves even though
+ * no such section exists. That is deliberate, not an oversight. A citation has no closing
+ * delimiter and legitimately runs into its sentence — seeds' own `CLAUDE.md` writes
+ * "`dev/claude/CLAUDE.md` § Communication for the session that prompted it" — so nothing
+ * mechanical separates trailing prose from an over-long section name.
+ *
+ * Given that, the check answers the question that matters: **is there a heading here to land on?**
+ * A reader following `§ Communication style requirements` arrives at `## Communication` and is
+ * roughly where they meant to be. A reader following `§ Workflow Mechanisms` into a file that has
+ * only `## Workflow Overrides` has nowhere to go, silently, on every session — and that is the
+ * failure issue #181 was opened for. Tightening the rule to catch the first case would fail the
+ * second-listed live reference above, and a gate that reddens on correct docs gets muted.
  */
 export function sectionMatches(section, docHeadings) {
   const cited = words(section)
