@@ -97,9 +97,12 @@ const seedsOwnPath = (rel) =>
   // CLAUDE.md describes THIS repo; the template is the shell shipped to projects.
   rel === 'dev/claude/CLAUDE.md' ||
   // `dev/claude/docs/X` → `docs/X`: seeds' own SPEC, PROJECT_PLAN, AGENTS and CHEATSHEET are about
-  // seeds. The exception is a `logic` doc, which IS meant to be byte-identical everywhere — that is
-  // how the stale velocity guide surfaces, so those are deliberately NOT excluded here.
-  (rel.startsWith('dev/claude/docs/') && classOf(rel) !== 'logic') ||
+  // seeds, and every one of them is `context` class. Named as `context` rather than "not logic",
+  // which is what this said first: "not logic" would also swallow a future `hybrid` or `presence`
+  // doc, and swallowing a class nobody has thought about yet is the failure mode this whole script
+  // keeps rediscovering. A `logic` doc IS meant to be byte-identical everywhere — that is how the
+  // stale velocity guide surfaced — so those are deliberately not excluded.
+  (rel.startsWith('dev/claude/docs/') && classOf(rel) === 'context') ||
   // `dev/claude/scripts/X` → `scripts/X`: seeds has no root `scripts/`. It runs them in place, out
   // of `dev/claude/scripts/`, which is the point — it validates the files it ships rather than a
   // copy that could drift.
@@ -173,8 +176,17 @@ const missing = []   // `presence` class — reported when absent, never diffed.
 const unclassified = []  // no registry entry at all (DEC-S046) — a seeds-side gap, not project drift.
 for (const rel of walk(join(SEEDS, 'dev', 'claude')).map((r) => `dev/claude/${r}`)) {
   if (gated.has(rel)) continue
-  if (SEEDS_IS_TARGET && seedsOwnPath(rel)) continue  // seeds owns this document; it is not a copy
   const cls = classOf(rel)
+  /**
+   * Ordered after `classOf` on purpose, and guarded on the class existing. The first version
+   * skipped `seedsOwnPath` files before this line and thereby swallowed an UNCLASSIFIED file
+   * under `docs/` or `scripts/` — silently, in the one mode this change introduces. That is
+   * DEC-S046's exact failure reintroduced by the fix for a different one: a file with no
+   * registry entry has to be reported before anything gets to decide it is uninteresting,
+   * because "no entry" is the absence of an answer rather than an answer. Caught in review,
+   * reproduced with a throwaway file under `dev/claude/docs/`.
+   */
+  if (SEEDS_IS_TARGET && cls !== undefined && seedsOwnPath(rel)) continue  // seeds owns it; not a copy
   if (cls === 'seeds-only') continue        // lives in seeds; a project never holds a copy
   if (cls === 'context') continue          // project-owned; differing is correct
   /**

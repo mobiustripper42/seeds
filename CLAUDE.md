@@ -11,7 +11,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | `docs/DECISIONS.md` | Architectural decisions (DEC-NNN IDs) |
 | `docs/AGENTS.md` | Agent and skill specs |
 | `docs/RETROSPECTIVES.md` | Phase-end retros — written by `/retro` |
-| `docs/VELOCITY_AND_POKER_GUIDE.md` | Estimation methodology |
+| `docs/VELOCITY_AND_POKER_GUIDE.md` | Estimation methodology — the *why*. `logic` class, byte-identical in every project, so it deliberately carries no path to the file below |
+| `docs/THROUGHPUT_QUICKREF.md` | The quick version — how to *read* the throughput numbers, with worked examples. **Seeds-only**, which is why the guide above can't link to it: a project copying that guide verbatim would inherit a dead link and fail its own `check:docs` |
 | `docs/CHEATSHEET.md` | One-page printable skill reference |
 | `docs/SCHEMA_VERSIONS.md` | Schema versioning policy + version history (V1, V2, …) + migration notes. Turns a version gap into a task list — it gates nothing now (DEC-S040). |
 | `seeds-version` | Single line at repo root — the latest published schema version. Compared against `<project>/.claude/seeds-version` by hand, to answer "how far behind is this repo". |
