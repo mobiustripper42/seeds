@@ -388,12 +388,30 @@ describe("§ section references", () => {
     // recommendation`) did not resolve. Same family as the backtick and `§` bounds already here:
     // a citation has no closing delimiter, so it stops at whatever structure encloses it.
     expect(cite("| D3 | radio choice. See `target.md` §4. | decided at the bench |")).toEqual([]);
-    // The bound must not rescue a genuinely wrong name:
+    // A dead reference in a table is still dead — the bound cuts the text, it does not invent a
+    // heading. This passes with or without the fix and is a plain sanity check, not a discriminator.
     expect(cite("| D4 | see `target.md` § Telemetry. | later |")).toHaveLength(1);
-    // A `|` inside the backticks is part of the citation, not a boundary:
-    expect(sectionRefs("see `target.md §Workflow Overrides` today")).toEqual([
-      { file: "target.md", section: "Workflow Overrides" },
+    // A `|` INSIDE the backticks is part of the citation, not a boundary — the closing backtick
+    // already delimits it, so that branch must not split. Asserted with an actual pipe, because
+    // the first version of this case contained none and therefore tested nothing.
+    expect(sectionRefs("see `target.md §Workflow | Overrides` today")).toEqual([
+      { file: "target.md", section: "Workflow | Overrides" },
     ]);
+  });
+
+  it("PINS THE LIMIT: the cell bound can shorten a citation onto a heading it merely starts", () => {
+    // Truncation only ever shortens, and a shorter citation is easier to match — so the bound
+    // widens what resolves. `§ Workflow | Mechanisms |` cut at the cell edge is `Workflow`, which
+    // word-prefixes `## Workflow Overrides` and now resolves, where the unbounded text did not.
+    //
+    // Kept as a limit rather than fixed, and the reason is what a `|` means: in a table it IS the
+    // cell edge, so `Mechanisms` is the NEXT CELL and was never part of the citation. Reading it
+    // as `§ Workflow` is correct, and landing on the one heading that starts with `Workflow` is
+    // the same documented limit the whole matcher already carries. Written down because it is the
+    // #181 shape, and a reader who finds it should see a decision, not an oversight.
+    expect(cite("| D5 | see `target.md` § Workflow | Mechanisms |")).toEqual([]);
+    // The prose form, with no cell edge to cut at, still fails — which is #181 itself, untouched:
+    expect(cite("slots live in `target.md` § Workflow Mechanisms")).toHaveLength(1);
   });
 
   it("a heading that BEGINS with a separator stays citable", () => {
