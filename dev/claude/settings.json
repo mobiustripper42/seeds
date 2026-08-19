@@ -87,10 +87,7 @@
       "Read(**/id_ed25519*)",
       "Edit(**/id_ed25519*)",
       "Read(**/id_rsa*)",
-      "Edit(**/id_rsa*)",
-      "Edit(.claude/settings.json)",
-      "Edit(.claude/settings.local.json)",
-      "Edit(~/.claude/settings.json)"
+      "Edit(**/id_rsa*)"
     ]
   }
 }

@@ -70,3 +70,19 @@ and if they show up at this volume they earn their own line.
 **A `PreToolUse` hook would be strictly better** — it can explain itself in the refusal, which is the
 whole cause of the retry cost above. It is not built. This entry is the cheap version that binds
 today; the hook stays the right answer if the retries turn out to be worse than the violations.
+
+## Amendment, 2026-08-19 (eric) — the deny list stops protecting itself
+
+**What this changes:** the three `Edit(.claude/settings.json)` / `Edit(.claude/settings.local.json)` / `Edit(~/.claude/settings.json)` entries are removed. **What still stands:** everything else — default-allow, `deny` beats `allow`, the master at `dev/claude/settings.json`, and hand distribution. The secret paths keep both their `Read` and `Edit` denies.
+
+**Why the self-protection went.** It was defended as closing the obvious hole in a policy the restricted party can rewrite. It never closed it. `DEC-S043` says so in its own words — *"a deny list matches tool invocations, not intent… The guard is against reflex, not against a determined agent"* — and a session that wanted to rewrite the file could always do it through `Bash`, which no rule here covers.
+
+So the entries bought a guard against reflex, and charged for it every time the policy legitimately needed to change. That bill came due in one session: the file was corrected in `dev/claude/settings.json` and then had to be hand-copied to a machine global, a second machine's checkout, and a project's committed copy, one `cp` at a time, with a wrong-file mistake in the middle because seeds ships two `settings.json` one directory apart. Four manual steps to distribute a change whose whole purpose was removing seven lines of noise.
+
+**What is actually lost, stated plainly so nobody re-derives it as a surprise:** a session can now edit permission files with `Edit`/`Write` without a prompt, including the machine-global one. The thing that made this acceptable is that it could already do it, less visibly, through a shell command — the deny made the honest path harder and the dishonest path no harder at all.
+
+**What remains the guard.** Review. The permission policy is a tracked file in a repo with a doc gate and a code review on every change, and a diff that loosens it is visible in exactly the place changes are looked at. That is a stronger control than a rule the same session can route around, and it is the one that was doing the work all along.
+
+**Not reconsidered here:** the secret-file denies, the destructive-`Bash` guardrails, or hand distribution. This is one narrow removal.
+
+**Schema:** additive. No version bump.
