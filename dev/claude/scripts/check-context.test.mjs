@@ -350,15 +350,42 @@ describe("§ section references", () => {
     expect(cite("see `target.md` § 4. Parked")).toEqual([]);
   });
 
-  it("truncating at the subtitle does not merge distinct sections or resurrect the #181 failure", () => {
-    // `target.md` has BOTH `# 4. Parked — …` and `# 5. Parked ideas — …`. Truncation must not
-    // make a wrong number land on the other one.
+  it("a citation with no separator of its own is still compared in FULL against a subtitled heading", () => {
+    // The finding that came out of review, and the reason the subtitle rule is a fallback rather
+    // than a normalization. Truncating unconditionally collapsed `## The Routine — OFF, and now
+    // unrevivable` to `The Routine`, which made it a landing point for anything starting with
+    // those two words — so a genuinely dead `§ The Routine is active again` resolved. That is
+    // issue #181's failure wearing a subtitle, and `## Step N — …` is the dominant heading shape
+    // in this repo's own skills, so it would have reddened nothing and hidden everything.
+    const routine = headings("## The Routine — OFF, and now unrevivable (DEC-S038)\n");
+    expect(sectionMatches("The Routine is active again", routine)).toBe(false);
+    // The same heading, cited correctly, still resolves — both by exact prefix …
+    expect(sectionMatches("The Routine", routine)).toBe(true);
+    // … and by the fallback, when the citation runs into prose after its own separator.
+    expect(sectionMatches("The Routine — still off today", routine)).toBe(true);
+  });
+
+  it("does not let a wrong name land on a sibling heading that shares its subtitle shape", () => {
+    // `target.md` has BOTH `# 4. Parked — …` and `# 5. Parked ideas — …`, so a wrong first word
+    // must not walk onto either. `4 Sailing` shares the number with heading 4 and the shape with
+    // both, and resolves to neither.
     expect(cite("see `target.md` § 4. Sailing — whatever follows")).toHaveLength(1);
+    // Cited correctly, each still lands on its own:
+    expect(cite("see `target.md` § 4. Parked — deliberately deferred")).toEqual([]);
+    expect(cite("see `target.md` § 5. Parked ideas — not the same")).toEqual([]);
     // The negative control this whole check exists for (issue #181) is unaffected: a subtitle rule
     // must not let `Workflow Mechanisms` land on `## Workflow Overrides`.
     expect(sectionMatches("Workflow Mechanisms", [["Workflow", "Overrides"]])).toBe(false);
     expect(cite("slots live in `target.md` § Workflow Mechanisms")).toHaveLength(1);
     // A dash inside the citation must not truncate away a genuine mismatch either.
     expect(cite("see `target.md` § Telemetry — of every reply")).toHaveLength(1);
+  });
+
+  it("a heading that BEGINS with a separator stays citable", () => {
+    // `sectionName` returns null rather than an empty name, so `## — Untitled` is compared in
+    // full instead of becoming silently unmatchable — the same failure direction as the bug this
+    // whole change fixes, just narrower.
+    const odd = headings("## — Untitled subtitle\n");
+    expect(sectionMatches("— Untitled subtitle", odd)).toBe(true);
   });
 });
