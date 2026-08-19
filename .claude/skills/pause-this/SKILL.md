@@ -9,11 +9,16 @@ You are executing a mid-session pause.
 ## Step 0 — Locate the open session
 
 ```
-SESSION_FILE=$(grep -l "^status: open" .sessions-worktree/sessions/*.md 2>/dev/null | head -1)
+grep -l "^status: open" .sessions-worktree/sessions/*.md 2>/dev/null
 ```
 
-If found: NEW MODE — pause note goes in the session file's Context section (on the sessions branch).
-Otherwise check `session-log.md` for `[open]`: LEGACY MODE — pause note goes there.
+**Exactly one match:** that's `SESSION_FILE`. NEW MODE — pause note goes in its Context section (on the sessions branch).
+
+**No match:** check `session-log.md` for `[open]` — LEGACY MODE, pause note goes there.
+
+**More than one match — resolve it, never pick one.** Disambiguate on `transcript:`, which `/its-alive` Step 5 stamps and which is unique per window. If that doesn't resolve it, **stop and list the candidates for the user to choose.** Do not use `... | head -1`: it returns the lexically-earliest filename and session filenames start with a date, so it silently writes this pause into the **stale** session's file. Same defect as `/its-dead` Step 0, fixed there 2026-08-17.
+
+**The wrong-tree check goes in Step 2, not here.** This skill commits WIP, and `git branch --show-current` resolves against the current directory rather than the session — `/its-alive` Step 3 offers a linked worktree for a concurrent session, so the two can legitimately differ. Do **not** prompt on a branch mismatch: a session opens on `main` and its work is cut onto branches, so that fires every run and becomes noise. If Step 2 finds **nothing to commit**, that is the ambiguous case — run `git worktree list` and compare against the session file's `branch:` before reporting a clean pause, because "already committed" and "the WIP is in another tree" look identical from here.
 
 ## Step 1 — Build check (conditional)
 
