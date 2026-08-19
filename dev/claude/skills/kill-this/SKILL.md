@@ -18,9 +18,11 @@ grep -l "^status: open" .sessions-worktree/sessions/*.md 2>/dev/null
 
 **No match:** STOP. The user must run `/its-alive` first. (If `.sessions-worktree/` doesn't exist, that's the same sign — `/its-alive` Step 0.6 creates the worktree.)
 
-**More than one match — resolve it, never pick one.** Disambiguate on `transcript:`, which `/its-alive` Step 5 stamps and which is unique per window: the file whose `transcript:` matches this session's is the one to append to. If that doesn't resolve it, **stop and list the candidates for the user to choose.**
+**More than one match — stop and ask, every time.** Two open files means a session somewhere never reached its own `/its-dead`, or two windows are genuinely running concurrently, which `/its-alive` Step 3 supports. **List the candidates with their `session:`, `branch:` and `started:` and let the user pick.**
 
-Do not sort, and do not take the first. `... | head -1` returns the lexically-earliest filename, and session filenames start with a date — so on the exact input this guard exists for, it silently appends this task's block to the **stale** session's file, and the PR number lands in a `pr_numbers:` list `/retro` will read for the wrong session. Nothing errors: `head -1` always returns something. (Same defect as `/its-dead` Step 0, fixed there 2026-08-17 and left here — see that skill for the longer note.)
+Do not try to identify the right one from inside the session. There is no reliable way: the obvious candidate, matching `transcript:`, requires the running session to know its own JSONL path, and it cannot — `/its-alive` Step 5 derives it by globbing the project directory and taking the newest file, which is a guess that is *wrong* in exactly the case that matters, two concurrent windows writing to the same directory. An instruction that cannot be followed is worse than a bad default, because it reads as solved.
+
+Do not sort, and do not take the first. `... | head -1` returns the lexically-earliest filename, and session filenames start with a date, so on the exact input this guard exists for it silently selects the **stale** file. Nothing errors: `head -1` always returns something.
 
 ### Step 0.1 — Capture the branch, and check it against the session
 
@@ -34,7 +36,7 @@ BRANCH=$(git branch --show-current)
 
 **Do not compare `BRANCH` against the session file's `branch:` here, and do not prompt on a mismatch.** A session opens on `main` and its tasks are cut onto branches — that is the normal flow, so a mismatch is the common case and a prompt on it fires every single run. A check that says "nothing is wrong" every time is one nobody reads by the third time; `/its-alive` Step 0.5 already retired one nag for exactly that.
 
-**The wrong-tree check belongs where the failure is silent, and that is Step 2.** If the wrong checkout is *dirty*, `git add -A` stages visibly unrelated files and you will see it in the diff before committing. If it is *clean*, nothing is staged, Step 2's "nothing to commit" branch fires, and a lost task reads exactly like a correct no-op. That is the only branch of this skill where being in the wrong tree produces no signal at all — so that is where the question goes. See Step 2.
+**The wrong-tree check belongs in Step 2, and both of its branches need one.** Do not assume a dirty wrong tree announces itself: Step 2 runs `git add -A && git commit` in one go with nobody shown the staged list first, and `@code-review` only sees the diff *after* the commit. If the wrong tree's changes look plausible for this task — two parallel tasks editing the same kind of file, which is common — nothing catches it before the push. See Step 2 for what each branch does.
 
 Read the file's frontmatter to get session number `N` and the current `pr_numbers:` list.
 
@@ -60,18 +62,18 @@ git commit -m "<phase/task summary>
 Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 ```
 
-**If there is nothing to commit, do not report a clean no-op — check the tree first.** This is the one branch where being in the wrong checkout produces no signal, so an empty stage is ambiguous between "already committed" and "the work is in another tree and this skill cannot see it."
+**Name the files being staged, before committing.** One line listing `git diff --cached --name-only`. Not ceremony: it is the only point at which a wrong-tree commit is visible to a person, and it costs a sentence. A file list that doesn't look like the task you just did is the signal.
 
-Resolve it before saying anything:
+**If there is nothing to commit, do not report a clean no-op — check the other trees first.** An empty stage is ambiguous between "already committed" and "the work is in another checkout this skill cannot see", and those read identically.
 
 ```
-git rev-parse --git-dir          # contains /worktrees/ → this is a linked worktree
-git worktree list                # every checkout of this repo, and the branch each is on
+git worktree list                                    # every checkout of this repo
+git -C <each other worktree path> status --porcelain # is the work sitting over there?
 ```
 
-Then compare against the session file's `branch:`. If another worktree is sitting on that branch, **say so and stop** — the task is there, not here. If the branches agree and the stage is genuinely empty, report the no-op normally.
+**Compare on dirtiness, not on the session's `branch:`.** That field records the branch the session *opened* on — normally `main`, which is also what the primary checkout is usually sitting on, so comparing against it is close to tautological and cannot locate the tree holding the work. Uncommitted changes in another worktree is the fact that actually answers the question.
 
-Two commands on the one path where the answer is not already obvious. Everywhere else this skill stays silent about trees.
+If another worktree is dirty, **say which one and stop** — the task is there, not here. If every other tree is clean too, the stage is genuinely empty; report the no-op normally.
 
 **Push the branch — do not open a PR yet:**
 

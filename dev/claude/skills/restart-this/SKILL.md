@@ -16,7 +16,11 @@ grep -l "^status: open" .sessions-worktree/sessions/*.md 2>/dev/null
 
 **No match:** check `session-log.md` for `[open]` — LEGACY MODE. If neither, stop and tell the user there's no open session to resume; they probably want `/its-alive`.
 
-**More than one match — resolve it, never pick one.** Disambiguate on `transcript:`, which `/its-alive` Step 5 stamps and which is unique per window. If that doesn't resolve it, **stop and list the candidates for the user to choose.** Do not use `... | head -1`: it returns the lexically-earliest filename and session filenames start with a date, so it silently reloads the **stale** session's context — and this skill's whole job is restoring context, so the wrong file means the rest of the sitting proceeds on another session's Next Steps. Same defect as `/its-dead` Step 0, fixed there 2026-08-17.
+**More than one match — stop and ask, every time.** Two open files means a session somewhere never reached its own `/its-dead`, or two windows are genuinely running concurrently, which `/its-alive` Step 3 supports. **List the candidates with their `session:`, `branch:` and `started:` and let the user pick.**
+
+Do not try to identify the right one from inside the session. There is no reliable way: the obvious candidate, matching `transcript:`, requires the running session to know its own JSONL path, and it cannot — `/its-alive` Step 5 derives it by globbing the project directory and taking the newest file, which is a guess that is *wrong* in exactly the case that matters, two concurrent windows writing to the same directory. An instruction that cannot be followed is worse than a bad default, because it reads as solved.
+
+Do not sort, and do not take the first. `... | head -1` returns the lexically-earliest filename, and session filenames start with a date, so on the exact input this guard exists for it silently selects the **stale** file. Nothing errors: `head -1` always returns something.
 
 ## Step 1 — Stamp the resume time
 
