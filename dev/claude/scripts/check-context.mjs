@@ -254,7 +254,53 @@ export function sectionMatches(section, docHeadings) {
   const cited = words(section)
   if (cited.length === 0) return false
   const prefix = (a, b) => b.length <= a.length && b.every((w, i) => w === a[i])
-  return docHeadings.some((h) => h.length > 0 && (prefix(cited, h) || prefix(h, cited)))
+  const hit = (a, b) => prefix(a, b) || prefix(b, a)
+  return docHeadings.some((h) => {
+    if (h.length === 0) return false
+    if (hit(cited, h)) return true
+    // Subtitle fallback. BOTH sides must carry a separator of their own — see sectionName.
+    const c = sectionName(cited)
+    const s = sectionName(h)
+    return c !== null && s !== null && hit(c, s)
+  })
+}
+
+/**
+ * A section's NAME — the words before a standalone dash or `+` — or `null` if it has no such
+ * separator, or begins with one.
+ *
+ * The word-prefix rule assumes one side is a prefix of the other, and there is a live shape where
+ * neither is: a numbered heading with an em-dash subtitle, cited from inside a sentence. muster's
+ * `docs/SPEC.md:1808` is `# 4. Parked — deliberately deferred, not reopened`, cited correctly as
+ * `§4 *Parked* + the 2027 line`. Both agree on `4 Parked`, then the heading runs into its subtitle
+ * and the citation into its sentence. The check called a correct citation dead — the expensive
+ * direction, because a gate that reddens on good docs gets muted rather than fixed.
+ *
+ * **`null` is why this is a fallback rather than a normalization, and it is load-bearing.** The
+ * first version truncated unconditionally, which meant a heading's short name became a landing
+ * point for anything starting with it: `## The Routine — OFF, and now unrevivable` collapsed to
+ * `The Routine`, so `§ The Routine is active again` — a genuinely dead reference — resolved. That
+ * is issue #181's failure with extra steps, and `## Step N — …` is the dominant heading shape in
+ * this repo's own skills, so the blast radius was every project's `verify`. Requiring a separator
+ * on **both** sides fixes it: a citation that never ran into prose has nothing to truncate, so it
+ * is still compared in full. Caught in review, before merge.
+ *
+ * Returning `null` for a leading separator matters for the same reason — `## — Untitled` would
+ * otherwise truncate to nothing and become permanently uncitable, silently.
+ *
+ * **Dashes and `+` only — not punctuation generally.** `→` is deliberately excluded so that
+ * `docs/SCHEMA_VERSIONS.md § v4 → v5` still compares all three words and cannot land on
+ * `§ v4 → v6`. Widening this set trades precision for reach; do it only when a real citation
+ * demands it, and add the case that demanded it.
+ *
+ * The limit that remains: two headings whose names agree before the dash are both valid landing
+ * points for a citation of either. That is the existing documented limit, not a new one — the
+ * check answers "is there a heading here to land on?", and both answers are the right
+ * neighbourhood.
+ */
+function sectionName(ws) {
+  const at = ws.findIndex((w) => /^[\p{Pd}+]+$/u.test(w))
+  return at <= 0 ? null : ws.slice(0, at)
 }
 
 /**
