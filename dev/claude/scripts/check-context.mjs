@@ -251,10 +251,40 @@ export const headings = (text) =>
  * second-listed live reference above, and a gate that reddens on correct docs gets muted.
  */
 export function sectionMatches(section, docHeadings) {
-  const cited = words(section)
+  const cited = sectionName(words(section))
   if (cited.length === 0) return false
   const prefix = (a, b) => b.length <= a.length && b.every((w, i) => w === a[i])
-  return docHeadings.some((h) => h.length > 0 && (prefix(cited, h) || prefix(h, cited)))
+  return docHeadings.some((h0) => {
+    const h = sectionName(h0)
+    return h.length > 0 && (prefix(cited, h) || prefix(h, cited))
+  })
+}
+
+/**
+ * A section's NAME, dropping any subtitle or continuation after a standalone dash or `+`.
+ *
+ * The word-prefix rule assumes one side is a prefix of the other, and there is a live shape where
+ * neither is: a numbered heading with an em-dash subtitle, cited from inside a sentence. muster's
+ * `docs/SPEC.md:1808` is `# 4. Parked — deliberately deferred, not reopened`, cited correctly as
+ * `§4 *Parked* + the 2027 line`. Both sides agree on `4 Parked` and then run into different prose,
+ * so the check called a correct citation dead — the expensive direction, because a gate that
+ * reddens on good docs gets muted rather than fixed.
+ *
+ * Truncating both sides at that separator is the same move the heading parser already makes when
+ * it drops a trailing parenthetical: the subtitle is elaboration, not the section's name.
+ *
+ * **Dashes and `+` only — not punctuation generally.** `→` is deliberately excluded so that
+ * `docs/SCHEMA_VERSIONS.md § v4 → v5` still compares all three words and cannot land on
+ * `§ v4 → v6`. Widening this set trades precision for reach; do it only when a real citation
+ * demands it, and add the case that demanded it.
+ *
+ * Two sections whose names agree before the dash both become valid landing points for a citation
+ * of either. That is the documented limit of this rule, not a new one — the check answers "is
+ * there a heading here to land on?", and both answers are the right neighbourhood.
+ */
+function sectionName(ws) {
+  const at = ws.findIndex((w) => /^[\p{Pd}+]+$/u.test(w))
+  return at === -1 ? ws : ws.slice(0, at)
 }
 
 /**

@@ -97,6 +97,23 @@ beforeAll(async () => {
       "",
       "text",
       "",
+      // A numbered heading with an em-dash subtitle — muster's `docs/SPEC.md:1808` shape,
+      // `# 4. Parked — deliberately deferred, not reopened`, cited from its context file as
+      // "§4 *Parked* + the 2027 line". Both sides agree on the name and then run into
+      // DIFFERENT prose, which the word-prefix rule alone cannot reconcile. Absent from the
+      // fixture until now, which is exactly why the suite could not catch it: PR #190 made
+      // these tests portable by moving to a synthetic tree, and a synthetic tree only ever
+      // contains the shapes someone thought to write.
+      "# 4. Parked — deliberately deferred, not reopened",
+      "",
+      "text",
+      "",
+      // Shares the truncated name with the heading above. Pins that truncating at the
+      // subtitle does not silently merge two distinct sections into one match.
+      "# 5. Parked ideas — not the same section",
+      "",
+      "text",
+      "",
     ].join("\n"),
   );
   cwdBefore = process.cwd();
@@ -317,5 +334,31 @@ describe("§ section references", () => {
     ]);
     // `§ Seeds' Own Decision Record. There **is** …` — the fourth word must compare as `Record`.
     expect(sectionMatches("Own Decision Record. There **is** more", [["Own", "Decision", "Record"]])).toBe(true);
+  });
+
+  it("resolves a numbered heading with an em-dash subtitle, cited into its own sentence", () => {
+    // muster's live shape, and the first false POSITIVE this checker produced. Its context file
+    // says `docs/SPEC.md` §4 *Parked* + the 2027 line; `docs/SPEC.md:1808` is
+    // `# 4. Parked — deliberately deferred, not reopened`. The citation is correct and the check
+    // called it dead: both sides agree on `4 Parked`, then the heading continues into its subtitle
+    // and the citation continues into its sentence, so neither is a word-prefix of the other.
+    //
+    // This is the expensive direction of failure. A gate that reddens on correct docs gets muted,
+    // which the rule's own note at check-context.mjs already says.
+    expect(cite("Check `target.md` §4 *Parked* + the 2027 line before adding anything")).toEqual([]);
+    // The dash side alone, with no trailing prose on the citation:
+    expect(cite("see `target.md` § 4. Parked")).toEqual([]);
+  });
+
+  it("truncating at the subtitle does not merge distinct sections or resurrect the #181 failure", () => {
+    // `target.md` has BOTH `# 4. Parked — …` and `# 5. Parked ideas — …`. Truncation must not
+    // make a wrong number land on the other one.
+    expect(cite("see `target.md` § 4. Sailing — whatever follows")).toHaveLength(1);
+    // The negative control this whole check exists for (issue #181) is unaffected: a subtitle rule
+    // must not let `Workflow Mechanisms` land on `## Workflow Overrides`.
+    expect(sectionMatches("Workflow Mechanisms", [["Workflow", "Overrides"]])).toBe(false);
+    expect(cite("slots live in `target.md` § Workflow Mechanisms")).toHaveLength(1);
+    // A dash inside the citation must not truncate away a genuine mismatch either.
+    expect(cite("see `target.md` § Telemetry — of every reply")).toHaveLength(1);
   });
 });
