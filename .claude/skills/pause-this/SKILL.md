@@ -22,7 +22,7 @@ Do not try to identify the right one from inside the session. There is no reliab
 
 Do not sort, and do not take the first. `... | head -1` returns the lexically-earliest filename, and session filenames start with a date, so on the exact input this guard exists for it silently selects the **stale** file. Nothing errors: `head -1` always returns something.
 
-**The wrong-tree check goes in Step 2, not here.** This skill commits WIP, and `git branch --show-current` resolves against the current directory rather than the session — `/its-alive` Step 3 offers a linked worktree for a concurrent session, so the two can legitimately differ. Do **not** prompt on a branch mismatch: a session opens on `main` and its work is cut onto branches, so that fires every run and becomes noise. If Step 2 finds **nothing to commit**, that is the ambiguous case — run `git worktree list` and compare against the session file's `branch:` before reporting a clean pause, because "already committed" and "the WIP is in another tree" look identical from here.
+**The wrong-tree check goes in Step 2, not here.** This skill commits WIP, and `git branch --show-current` resolves against the current directory rather than the session — `/its-alive` Step 3 offers a linked worktree for a concurrent session, so the two can legitimately differ. Do **not** prompt on a branch mismatch: a session opens on `main` and its work is cut onto branches, so that fires every run and becomes noise. If Step 2 finds **nothing to commit**, that is the ambiguous case — "already committed" and "the WIP is in another tree" look identical from here. See Step 2 for what to do about it.
 
 ## Step 1 — Build check (conditional)
 
@@ -58,13 +58,12 @@ Append a pause line to the session file's `**Context:**` section:
 **[PAUSED HH:MM UTC]** Working on: [task]. Left off at: [specific file/function/step]. Next: [exactly what to do when resuming].
 ```
 
-Commit + push from inside the worktree:
+Commit + push with `git -C` targeting the worktree — **no `cd`**. Shell state doesn't persist between Bash calls, and a stray `cd` that fails leaves the next command running in the wrong tree. `/kill-this` and `/its-dead` were both moved off this pattern after downstream projects hit it; those backports never reached here.
+
 ```
-cd .sessions-worktree
-git add sessions/$(basename "$SESSION_FILE")
-git commit -m "Pause note for Session <N>"
-git push origin sessions
-cd ..
+git -C .sessions-worktree add sessions/$(basename "$SESSION_FILE")
+git -C .sessions-worktree commit -m "Pause note for Session <N>"
+git -C .sessions-worktree push origin sessions
 ```
 
 Do not close the session. Do not fill `ended:` / `points:`. Status remains `open`.
