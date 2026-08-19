@@ -81,7 +81,9 @@ So the entries bought a guard against reflex, and charged for it every time the 
 
 **What is actually lost, stated plainly so nobody re-derives it as a surprise:** a session can now edit permission files with `Edit`/`Write` without a prompt, including the machine-global one. The thing that made this acceptable is that it could already do it, less visibly, through a shell command — the deny made the honest path harder and the dishonest path no harder at all.
 
-**What remains the guard.** Review. The permission policy is a tracked file in a repo with a doc gate and a code review on every change, and a diff that loosens it is visible in exactly the place changes are looked at. That is a stronger control than a rule the same session can route around, and it is the one that was doing the work all along.
+**What remains the guard, stated at its real strength and not above it.** Review — but as a **ritual, not an enforced control**, and the difference matters. `main` has no branch protection (`gh api …/branches/main/protection` → 404), no gate reads this file's *contents* (`check-mirrors` asserts presence only, because the file is `presence` class under DEC-S044), and `@code-review`'s brief never names permission-policy files as something to watch for. So nothing mechanically stops a direct push, a self-merge, or a one-line policy edit buried in a large unrelated diff.
+
+That is weaker than the sentence this replaces, which claimed a gate. It is still the control that was doing the work, because the removed rule stopped nothing a `Bash` call couldn't do — but it is a habit, and habits are what this repo keeps discovering were never running. **The bar did drop**: loosening the policy used to require reaching for `Bash`, and now any `Edit` will do. Nothing in this change compensates for that, and pretending otherwise is how the next amendment ends up correcting this one.
 
 **Not reconsidered here:** the secret-file denies, the destructive-`Bash` guardrails, or hand distribution. This is one narrow removal.
 
