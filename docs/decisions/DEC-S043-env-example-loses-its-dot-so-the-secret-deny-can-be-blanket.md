@@ -51,3 +51,25 @@ Neither miss is exotic. `.env.local.backup` is what a person makes by hand befor
 **Schema:** additive — no skill reads either file. No version bump.
 
 **Alternatives considered:** `Read(**/.env/*)` (rejected — matches children of a *directory* named `.env`, so it matches nothing at all). Keeping the enumeration and appending the two muster names (rejected — treats the symptom; the next hand-made backup file is unnamed today). Denying `Bash(cat *.env*)` and friends (rejected — unbounded, and a script defeats it in one line).
+
+## Amendment, 2026-08-19 (eric) — the `Write()` rules never did anything; `Edit()` was carrying it alone
+
+**What this changes:** the sentence above extending the Read/Write finding to `Edit`. **What still stands:** everything else — the rename, the blanket, the project-scoping caveat, and the original Read-vs-Write measurement, which was real.
+
+The seven `Write(...)` deny entries are removed from `dev/claude/settings.json`. They were never enforced.
+
+**Observed, on 2026-08-19, on bee-grace:**
+
+1. A session whose loaded config's only rule on that path was `Write(**/probe-only*)` was asked to create `probe-only.txt`. **It was created.**
+2. A session with `Edit(**/.env*)` in force was asked to create `.env.local` via the `Write` tool. **It was refused.**
+3. Claude Code itself prints, once per rule at startup: *"`Write(**/.env*)` is not matched by file permission checks — only `Edit(path)` rules are… Edit rules cover all file-editing tools."*
+
+**Inferred, and marked as such because that is the whole point of this amendment:** that (1)'s config was the loaded one, deduced from a bare filename resolving into that directory rather than from reading the session's config dump. If that deduction is wrong, (1) proves nothing and only (2) and (3) remain — which still point the same way, but by one measurement and the harness's word rather than two measurements.
+
+**Why the original sentence was wrong, and why it was cheap to be wrong.** The 2026-08-11 test measured a `Read` deny against a `Write` attempt. The conclusion drawn — *"the identical hole DEC-S023's own self-protection had (`Edit` denied, `Write` open)"* — was an **analogy from that result, not a second experiment**, and it reads in the record as though it were measured. The fix it motivated was to add `Write()` rules, which cost nothing and appeared to work, so nothing ever contradicted it. An inference whose remedy is free is an inference that never gets tested.
+
+**Two prior test designs failed before one worked**, and both failed the same way: they used a path that already carried rules from `~/.claude/settings.json`, which applies to every session on the machine regardless of directory. A scratch project directory does not isolate anything, because the user-global is merged in. The design that works uses a pattern **no other config mentions**, so the result is attributable to one line.
+
+**What this does not establish.** Nothing here is version-pinned. The 2026-08-11 and 2026-08-19 results may both be correct about different Claude Code builds, and nothing in any repo records which. A future build could move it back. `Bash` remains outside all of this, unchanged from the original note.
+
+**Schema:** additive. No version bump.
