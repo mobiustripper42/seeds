@@ -69,7 +69,7 @@ grep -rli "<subject>" docs/decisions/
 - **Several come back → amend the one your change is *about*.** Not every file that mentions the word. Ask which decision would be wrong if you shipped this; that is the one. The others get a **see also** if a reader of them would be misled without it, and nothing otherwise.
 - **Partial overlap → amend the part you change, and say so.** A change that alters one leg of a decision is still that decision, later. If it genuinely changes two subjects, that is two amendments in two files, not one new decision covering both.
 
-State the search result in the PR — *"`grep -rli deposit` returned DEC-107; this changes its posture, so it amends"*, or *"nothing on rate limiting; new id."* **That sentence is the whole control.** A session that has to write "DEC-107 covers deposits and this is not that" cannot do it when it's false, and no definition of "amendment" catches what that catches.
+State the search result in the PR — *"`grep -rli deposit` returned DEC-NNN; this changes its posture, so it amends"*, or *"nothing on rate limiting; new id."* **That sentence is the whole control.** A session that has to write "DEC-NNN covers deposits and this is not that" cannot do it when it's false, and no definition of "amendment" catches what that catches.
 
 **An amendment goes in the decision's own file**, appended at the bottom:
 

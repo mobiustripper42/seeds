@@ -186,12 +186,15 @@ export function sectionRefs(line) {
     if (!file) continue // a bare `§ Heading` with no backticked file — see the note above
     // Inside the backticks the closing one delimits the heading. Otherwise it runs to end of line
     // and may carry trailing prose ("§ Communication for the session that prompted it") — but it
-    // stops at the next backtick or `§`, because a line can hold two citations and without that
-    // bound the first one swallows the second's syntax. Observed shape, in this repo:
+    // stops at the next backtick, `§`, or `|`, because a line can hold two citations and without
+    // that bound the first one swallows the second's syntax. Observed shapes, both in this fleet:
     // "`dev/claude/CLAUDE.md` § Memory removed (section sat between § Workflow Notes and
     // § Approval Before Action)" — the first citation's text ran to the end and no longer
-    // prefix-matched its own heading.
-    out.push({ file, section: (open && !closed ? after : after.split(/[`§]/)[0]).split('`')[0] })
+    // prefix-matched its own heading; and soundings' `docs/SPEC.md:422`, a decision-ledger table
+    // whose cell ends "See `docs/HARDWARE_BUILD_PLAN.md` §3. |", where the text ran past the cell
+    // boundary and swallowed the rest of the row. A `|` *inside* the backticks is part of the
+    // citation, not a boundary, which is why only the unbacktick'd branch is split.
+    out.push({ file, section: (open && !closed ? after : after.split(/[`§|]/)[0]).split('`')[0] })
   }
   return out
 }
