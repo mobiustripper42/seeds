@@ -70,3 +70,21 @@ and if they show up at this volume they earn their own line.
 **A `PreToolUse` hook would be strictly better** — it can explain itself in the refusal, which is the
 whole cause of the retry cost above. It is not built. This entry is the cheap version that binds
 today; the hook stays the right answer if the retries turn out to be worse than the violations.
+
+## Amendment, 2026-08-19 (eric) — the deny list stops protecting itself
+
+**What this changes:** the three `Edit(.claude/settings.json)` / `Edit(.claude/settings.local.json)` / `Edit(~/.claude/settings.json)` entries are removed. **What still stands:** everything else — default-allow, `deny` beats `allow`, the master at `dev/claude/settings.json`, and hand distribution. The secret paths keep both their `Read` and `Edit` denies.
+
+**Why the self-protection went.** It was defended as closing the obvious hole in a policy the restricted party can rewrite. It never closed it. `DEC-S043` says so in its own words — *"a deny list matches tool invocations, not intent… The guard is against reflex, not against a determined agent"* — and a session that wanted to rewrite the file could always do it through `Bash`, which no rule here covers.
+
+So the entries bought a guard against reflex, and charged for it every time the policy legitimately needed to change. That bill came due in one session: the file was corrected in `dev/claude/settings.json` and then had to be hand-copied to a machine global, a second machine's checkout, and a project's committed copy, one `cp` at a time, with a wrong-file mistake in the middle because seeds ships two `settings.json` one directory apart. Four manual steps to distribute a change whose whole purpose was removing seven lines of noise.
+
+**What is actually lost, stated plainly so nobody re-derives it as a surprise:** a session can now edit permission files with `Edit`/`Write` without a prompt, including the machine-global one. The thing that made this acceptable is that it could already do it, less visibly, through a shell command — the deny made the honest path harder and the dishonest path no harder at all.
+
+**What remains the guard, stated at its real strength and not above it.** Review — but as a **ritual, not an enforced control**, and the difference matters. `main` has no branch protection (`gh api …/branches/main/protection` → 404), no gate reads this file's *contents* (`check-mirrors` asserts presence only, because the file is `presence` class under DEC-S044), and `@code-review`'s brief never names permission-policy files as something to watch for. So nothing mechanically stops a direct push, a self-merge, or a one-line policy edit buried in a large unrelated diff.
+
+That is weaker than the sentence this replaces, which claimed a gate. It is still the control that was doing the work, because the removed rule stopped nothing a `Bash` call couldn't do — but it is a habit, and habits are what this repo keeps discovering were never running. **The bar did drop**: loosening the policy used to require reaching for `Bash`, and now any `Edit` will do. Nothing in this change compensates for that, and pretending otherwise is how the next amendment ends up correcting this one.
+
+**Not reconsidered here:** the secret-file denies, the destructive-`Bash` guardrails, or hand distribution. This is one narrow removal.
+
+**Schema:** additive. No version bump.
