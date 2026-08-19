@@ -81,23 +81,16 @@
       "Bash(wget *)",
       "Bash(nc *)",
       "Read(**/.env*)",
-      "Write(**/.env*)",
       "Edit(**/.env*)",
       "Read(**/.ssh/**)",
-      "Write(**/.ssh/**)",
       "Edit(**/.ssh/**)",
       "Read(**/id_ed25519*)",
-      "Write(**/id_ed25519*)",
       "Edit(**/id_ed25519*)",
       "Read(**/id_rsa*)",
-      "Write(**/id_rsa*)",
       "Edit(**/id_rsa*)",
       "Edit(.claude/settings.json)",
       "Edit(.claude/settings.local.json)",
-      "Edit(~/.claude/settings.json)",
-      "Write(.claude/settings.json)",
-      "Write(.claude/settings.local.json)",
-      "Write(~/.claude/settings.json)"
+      "Edit(~/.claude/settings.json)"
     ]
   }
 }
