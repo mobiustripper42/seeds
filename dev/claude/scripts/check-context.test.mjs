@@ -381,6 +381,21 @@ describe("§ section references", () => {
     expect(cite("see `target.md` § Telemetry — of every reply")).toHaveLength(1);
   });
 
+  it("a citation inside a markdown table stops at the cell boundary", () => {
+    // soundings' `docs/SPEC.md:422` — a decision-ledger table whose cell ends
+    // "See `docs/HARDWARE_BUILD_PLAN.md` §3. |". The section text ran past the `|` and swallowed
+    // the rest of the row, so a citation of a real heading (`## 3. Gateway architecture —
+    // recommendation`) did not resolve. Same family as the backtick and `§` bounds already here:
+    // a citation has no closing delimiter, so it stops at whatever structure encloses it.
+    expect(cite("| D3 | radio choice. See `target.md` §4. | decided at the bench |")).toEqual([]);
+    // The bound must not rescue a genuinely wrong name:
+    expect(cite("| D4 | see `target.md` § Telemetry. | later |")).toHaveLength(1);
+    // A `|` inside the backticks is part of the citation, not a boundary:
+    expect(sectionRefs("see `target.md §Workflow Overrides` today")).toEqual([
+      { file: "target.md", section: "Workflow Overrides" },
+    ]);
+  });
+
   it("a heading that BEGINS with a separator stays citable", () => {
     // `sectionName` returns null rather than an empty name, so `## — Untitled` is compared in
     // full instead of becoming silently unmatchable — the same failure direction as the bug this
