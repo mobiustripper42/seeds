@@ -9,7 +9,8 @@
     "check:decisions": "node dev/claude/scripts/check-decisions.mjs",
     "check:docs": "node dev/claude/scripts/check-docs.mjs",
     "check:mirrors": "node dev/claude/scripts/check-mirrors.mjs",
-    "verify": "npm run check:decisions && npm run check:docs && npm run check:mirrors && npm run test"
+    "verify": "npm run check:decisions && npm run check:docs && npm run check:mirrors && npm run test",
+    "mirrors:fix": "node dev/claude/scripts/check-mirrors.mjs --write"
   },
   "devDependencies": {
     "vitest": "^4.0.0"

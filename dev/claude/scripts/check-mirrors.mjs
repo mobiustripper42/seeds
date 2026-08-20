@@ -30,17 +30,25 @@
  * opinion about which side is right. Same constraint as drift.mjs, same reason
  * (DEC-S040).
  *
- * Usage:  node dev/claude/scripts/check-mirrors.mjs [--quiet]
+ * Usage:  node dev/claude/scripts/check-mirrors.mjs [--quiet] [--write]
+ *
+ * `--write` repairs instead of reporting: it copies each drifted or missing template over its
+ * `.claude/` mirror, then re-runs the comparison so the exit code still means what it always did.
+ * Detection and repair share one list of pairs on purpose — a separate sync script would be a
+ * second opinion about which files mirror which, and the first thing to drift would be the two
+ * opinions. EXEMPT files are never written: those differ deliberately (project-owned config,
+ * hand-distributed policy), and copying over them is the one way this flag could destroy something.
  * Exit:   0 = every non-exempt mirrored file matches; 1 = at least one differs.
  */
 
-import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
-import { join, relative, resolve } from 'node:path';
+import { readFileSync, readdirSync, statSync, existsSync, copyFileSync, mkdirSync } from 'node:fs';
+import { join, relative, resolve, dirname } from 'node:path';
 
 const ROOT = process.cwd();
 const TEMPLATE_DIR = join(ROOT, 'dev', 'claude');
 const MIRROR_DIR = join(ROOT, '.claude');
 const QUIET = process.argv.includes('--quiet');
+const WRITE = process.argv.includes('--write');
 
 /**
  * Which templates seeds is expected to dogfood — i.e. where a MISSING mirror is a
@@ -155,12 +163,51 @@ for (const rel of walk(TEMPLATE_DIR)) {
   else drifted.push(rel);
 }
 
+// --write: repair before reporting. Only DOGFOODED/mustExist paths and never EXEMPT ones —
+// an exempt file differs on purpose, so writing over it is the one destructive thing here.
+if (WRITE && (drifted.length || missing.length)) {
+  const written = [];
+  for (const rel of [...drifted, ...missing]) {
+    if (EXEMPT.has(rel)) continue;
+    const dest = join(MIRROR_DIR, rel);
+    mkdirSync(dirname(dest), { recursive: true });
+    copyFileSync(join(TEMPLATE_DIR, rel), dest);
+    written.push(rel);
+  }
+  for (const rel of written) console.log(`  wrote   ${rel}`);
+  // Re-run the comparison rather than assuming the copies took: this script's whole subject is
+  // that "I copied it" and "the two files match" are different claims.
+  drifted.length = 0;
+  missing.length = 0;
+  for (const rel of walk(TEMPLATE_DIR)) {
+    const mirror = join(MIRROR_DIR, rel);
+    if (!existsSync(mirror)) {
+      if (mustExist(rel)) missing.push(rel);
+      continue;
+    }
+    const same =
+      normalize(readFileSync(join(TEMPLATE_DIR, rel), 'utf8'), rel) ===
+      normalize(readFileSync(mirror, 'utf8'), rel);
+    if (!same && !EXEMPT.has(rel)) drifted.push(rel);
+  }
+}
+
 // An exemption naming a file that no longer differs (or no longer exists) is a
 // stale claim; say so rather than letting the list rot quietly.
 for (const rel of EXEMPT.keys()) {
   if (!existsSync(join(TEMPLATE_DIR, rel))) {
     console.log(`note: exemption for ${rel} names a template that no longer exists`);
-  } else if (!exempted.includes(rel) && existsSync(join(MIRROR_DIR, rel))) {
+  } else if (
+    !exempted.includes(rel) &&
+    existsSync(join(MIRROR_DIR, rel)) &&
+    !PRESENT_NOT_COMPARED.has(rel)
+  ) {
+    // PRESENT_NOT_COMPARED entries are excluded from this note on purpose. Since `--write`, an
+    // exemption does two jobs: don't report the difference, and never copy over the file. The
+    // second does not expire when the two copies happen to match — `settings.json` matching today
+    // is not a reason to drop the guard that stops tomorrow's --write clobbering a hand-distributed
+    // policy (DEC-S023). Only OPTIONAL exemptions, which exist purely to suppress a report, can go
+    // stale this way.
     console.log(`note: exemption for ${rel} is no longer needed — the two copies match`);
   }
 }
