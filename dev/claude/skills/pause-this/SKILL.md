@@ -33,6 +33,8 @@ git commit -m "WIP [phase/task] — [brief description of where things stand]"
 
 Prefix with `WIP`. This commit goes to the **current task branch** — NOT to the sessions branch.
 
+**Name the files being staged**, one line from `git diff --cached --name-only`. `git add -A` sweeps whatever is in the tree, so a file list that doesn't look like the task you just did is the signal — an unrelated edit riding along is caught here or not at all.
+
 If nothing to commit, skip and say so.
 
 ## Step 3 — Note the pause in the session file (sessions branch)

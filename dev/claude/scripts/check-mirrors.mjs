@@ -163,12 +163,22 @@ for (const rel of walk(TEMPLATE_DIR)) {
   else drifted.push(rel);
 }
 
-// --write: repair before reporting. Only DOGFOODED/mustExist paths and never EXEMPT ones —
-// an exempt file differs on purpose, so writing over it is the one destructive thing here.
+// --write: repair before reporting. Two gates, and both are load-bearing.
+//
+// EXEMPT, because those files differ on purpose — project-owned config, hand-distributed
+// permission policy — and copying over one is the only way this flag destroys something.
+//
+// `mustExist`, because a template having a `.claude/` copy is not the same as it deserving one.
+// The DOGFOODED prefix rule exists precisely because requiring a mirror for every template would
+// be wrong 31 times out of 32; without this gate, a stray copy of a non-dogfooded file (a script,
+// a `docs/` template) reads as DRIFT and gets silently overwritten — repairing toward a mirror
+// that should not exist at all. Caught in review: the first version gated only on EXEMPT while
+// its own comment claimed otherwise, which is the shape of hazard where the comment is the only
+// thing anyone reads.
 if (WRITE && (drifted.length || missing.length)) {
   const written = [];
   for (const rel of [...drifted, ...missing]) {
-    if (EXEMPT.has(rel)) continue;
+    if (EXEMPT.has(rel) || !mustExist(rel)) continue;
     const dest = join(MIRROR_DIR, rel);
     mkdirSync(dirname(dest), { recursive: true });
     copyFileSync(join(TEMPLATE_DIR, rel), dest);

@@ -44,6 +44,8 @@ git commit -m "<phase/task summary>
 Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 ```
 
+**Name the files being staged**, one line from `git diff --cached --name-only`. `git add -A` sweeps whatever is in the tree, so a file list that doesn't look like the task you just did is the signal — an unrelated edit riding along is caught here or not at all.
+
 If there is nothing to commit, surface that and stop here — no PR for no code.
 
 **Push the branch — do not open a PR yet:**

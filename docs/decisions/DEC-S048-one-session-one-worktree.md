@@ -25,7 +25,7 @@ Nothing announced that. Anything using absolute paths or `git -C` kept working, 
 
 ## What it cost
 
-Roughly a day, spread across nine PRs, spent adding compensation to the skills instead of naming the cause. Each symptom looked like its own bug:
+Three PRs — #202, #203, #204 — spent adding compensation to the skills instead of naming the cause. (Six others landed the same day on unrelated subjects; the cost being counted here is the compensation, not the session.) Each symptom looked like its own bug:
 
 | symptom | what was added | PR |
 |---|---|---|
@@ -38,7 +38,7 @@ Three of those instructions **could not be followed at all** — matching a `tra
 ## What this removes
 
 - `/its-alive` Step 3's worktree-creation option. It reports a concurrent session and continues; if asked to make a code worktree, it prints the two lines above and stops.
-- `/kill-this` Step 0.1 entirely, Step 2's staged-file and cross-worktree checks, Step 3.5's wrong-tree detection, Step 3.6's `✗` example row.
+- `/kill-this` Step 0.1 entirely, Step 2's cross-worktree check, Step 3.5's wrong-tree detection, Step 3.6's `✗` example row. (The staged-file echo stays — see below.)
 - The multi-session disambiguation prose in `/kill-this`, `/pause-this`, `/restart-this`, `/its-dead`, down to: report the candidates, ask, never `head -1`.
 - `/pause-this`'s cross-worktree check on an empty stage.
 
@@ -49,6 +49,8 @@ Three of those instructions **could not be followed at all** — matching a `tra
 **Session files remain shared.** `.sessions-worktree/` is a checkout of the orphan `sessions` branch, and git refuses to check out one branch in two worktrees — so a second session cannot have its own. Two concurrent sessions still produce two open files in one directory, and "which is mine" is still a question.
 
 It is now a *question to the operator* rather than a guess. Every skill reports the candidates and asks. `head -1` is banned by name in all four, with its reason: it takes the lexically-earliest filename, session filenames start with a date, and so it silently selects the **stale** file exactly when a session was left open from an earlier day. It appears to work whenever the stale file happens to sort later, which is why it survived unnoticed for months.
+
+**One thing removed had a second job.** `/kill-this` and `/pause-this` echoed the staged file list before committing, justified as the only moment a wrong-tree commit becomes visible to a person. That justification dies with the split — but the line also caught an unrelated file riding along in `git add -A` *within the correct checkout*, which has nothing to do with worktrees. Kept for that reason, restated without the wrong-tree framing.
 
 **The `branch:` frontmatter field is near-useless and is left alone for now.** It records what the session opened on, goes stale at the first `git checkout -b`, and every `## Task` block already carries its own `**Branch:**`. Removing it is a schema change; not worth bundling here.
 
