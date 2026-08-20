@@ -20,9 +20,15 @@ grep -l "^status: open" .sessions-worktree/sessions/*.md 2>/dev/null
 
 **More than one match — resolve it from what this window knows, and only ask when it knows nothing.**
 
-**If this window ran `/its-alive`, the file it opened is yours.** You wrote it; its name, `session:` and `branch:` are in this conversation, and it already carries any earlier `## Task` blocks from this window. Say which one and why in a line, then continue. That is a fact about this session, not a guess about the filesystem, and it is available in the common case — the same window opening the session and later shipping a task.
+**Name your candidate and get one word back. Do not proceed unconfirmed, and do not make the user do the work of choosing.**
 
-**Otherwise — a resumed window, a fresh one, anything with no memory of opening a session — stop.** List the candidates with their `session:`, `branch:` and `started:` and let the user pick. Do not infer from timestamps, order, or which branch looks busier.
+If this window ran `/its-alive`, you have a strong candidate: you wrote that file, and its name and `session:` are in this conversation. Say which one, in one line, with the reason — *"session 90, the file this window opened; it already carries Task 1"* — and wait for a yes.
+
+**Why it is a candidate and not an answer.** The belief is narrative, not mechanical, and there is a specific way it goes wrong: `/restart-this` Step 4 prints `Session file:` and `Branch:` into a window that **never ran `/its-alive`**, producing the identical evidence shape. Add compaction — a long window that opened a session hours and several tasks ago — and the provenance of those strings is gone while the strings remain. Nothing on disk distinguishes "I opened this" from "I was told this." The corroborating `## Task` blocks don't close it either: on a window's *first* `/kill-this` every candidate has zero of them.
+
+So this is a confirmation, not a prompt to choose. The user reads one line and says yes; they don't read a table and reconstruct which window is which. **If you have no candidate** — a resumed window, a fresh one, no memory of opening anything — list the candidates with their `session:`, `branch:` and `started:` and let the user pick. Do not infer from timestamps, order, or which branch looks busier.
+
+**Record the pick where it survives.** Name the session file in the `## Task` block you write in Step 5. A wrong pick otherwise leaves no artifact anywhere, and `/retro` reads these files later without any way to know.
 
 **Do not use `transcript:`.** It requires the running session to know its own JSONL path, and it cannot: `/its-alive` Step 5 derives it by globbing the project directory and taking the newest file, which is a guess and is *wrong* in exactly the case that matters — two concurrent windows writing to the same directory. An instruction that cannot be followed is worse than a bad default, because it reads as solved.
 
@@ -114,7 +120,7 @@ Get the project's trigger table from `.claude/CLAUDE-context.md` under `## Blast
 
    **`/security-review` resolves the branch from the shell's working directory, not from this task.** It is the same wrong-tree class as Step 0.1, and it fails worse here: in a linked-worktree session it hands back a careful review **of some other branch's diff**, which reads exactly like a clean pass on yours. A security pass that reviewed the wrong code and reported nothing is worse than one that never ran, because Step 3.6 will print a `✓` for it.
 
-   **So check its output before believing it.** The files and branch it names must be the ones in `git diff $(git merge-base HEAD main)...HEAD --name-only`. If they aren't, re-run it from the checkout holding `$BRANCH`. If you cannot get it pointed at the right tree, **mark it `✗` in Step 3.6 — did not run against this branch — and say so in the PR body.** Never fold findings from a diff you did not ship.
+   **So check its output before believing it, and you can:** the pass echoes a `GIT STATUS` block with `On branch <name>` and a `FILES MODIFIED` list before its findings. Both must match `$BRANCH` and `git diff $(git merge-base HEAD main)...HEAD --name-only`. (Verified from a real invocation — this is not an instruction that only looks followable.) If they don't match, re-run from the checkout holding `$BRANCH`. If you cannot get it pointed there, **mark it `✗` in Step 3.6 — did not run against this branch — and say so in the PR body.** Never fold findings from a diff you did not ship.
 
    Observed: a muster session ran it while the shell sat in a different checkout that had moved on to `task/724-cancel-reason`, and got that branch's diff back on a PR touching the money path four ways. The pass had not happened and nothing said so.
 2. **Then print exactly this and continue** — never block, never run the billed tool:
@@ -138,6 +144,7 @@ Review passes:
   ✓ @code-review       — <N> findings: <one-line verdict>
   ✓ /security-review   — <N> findings: <one-line verdict>      ← only when a trigger hit
   ⊘ /security-review   — not run (no blast-radius trigger)     ← otherwise
+  ✗ /security-review   — ran against task/724, not this branch ← wrong tree, or errored
   ⊘ /code-review ultra — never automatic; yours to invoke
 ```
 
