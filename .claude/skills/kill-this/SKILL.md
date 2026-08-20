@@ -124,14 +124,22 @@ Get the project's trigger table from `.claude/CLAUDE-context.md` under `## Blast
 
    **Detect:** the pass echoes a `GIT STATUS` block with `On branch <name>` and a `FILES MODIFIED` list ahead of its findings. Both must match `$BRANCH` and `git diff $(git merge-base HEAD main)...HEAD --name-only`. Verified against real invocations — this comparison genuinely works, and it is what caught the case below.
 
-   **Do not try to re-run it "from the right checkout."** The working directory is a property of the **session**, pinned by the harness at launch; no `cd`, no `git -C`, no wrapper reaches it. An instruction to re-run elsewhere cannot be carried out and only looks like a remedy.
+   **Do not try to re-run `/security-review` "from the right checkout."** Its working directory is a property of the **session**, pinned by the harness at launch; no `cd`, no `git -C`, no wrapper moves it. That instruction cannot be carried out and only looks like a remedy.
 
-   **So on a mismatch, stop and hand it back.** Mark it `✗` in Step 3.6 — *ran against `<other-branch>`, not this one* — say so in the PR body, and give the user the two things that actually work:
+   **Run the pass yourself instead, against a diff you name explicitly.** `git` reads any directory and any revision — the cwd was never the constraint, only `/security-review`'s use of it was. Spawn `@code-review` with a security brief and have it read the diff by revision:
 
-   - **start a session in the checkout that holds `$BRANCH`** and run `/security-review` there, or
-   - **`/code-review ultra` on the PR**, which takes the PR rather than the cwd.
+   ```
+   cd <repo holding $BRANCH>
+   git fetch -q origin
+   git diff $(git merge-base origin/$BASE origin/$BRANCH)...origin/$BRANCH
+   git show origin/$BRANCH:<path>          # full file, when a hunk isn't enough
+   ```
 
-   Never fold findings from a diff you did not ship, and never let the mismatch pass silently: a careful review of someone else's branch reads exactly like a clean pass on yours.
+   Give the agent the blast-radius triggers this diff hit and tell it to hunt those specifically — authenticity and replay on a webhook, sign-flips and double-counting on money math, `update`/`delete`/`alter type` in a migration, role gates on a newly-exposed surface, handlers that fail open. **Require it to state the branch and file count it actually reviewed at the top**, so the mismatch you just caught cannot recur silently one level down.
+
+   That is a real pass, not a substitute for one: verified by running it from a seeds session against muster's PR #788 — 27 files, correct branch, one genuine finding on out-of-order Stripe dispute redelivery.
+
+   Mark it `✓` with the branch named. Only if you cannot produce the diff at all — no access to the repo — mark it `✗ did not run against this branch`, say so in the PR body, and point the user at `/code-review ultra` on the PR. Never fold findings from a diff you did not ship: a careful review of someone else's branch reads exactly like a clean pass on yours.
 
    Observed twice in muster. First: the shell sat in a checkout that had moved on to `task/724-cancel-reason` and the pass came back about that branch, on a PR touching the money path four ways — nothing said so. Then, after this step told the session to re-run from the right tree, it produced **the same output again**, plus that tree's unrelated dirty `e2e/calendar.spec.ts` — which is what proved the redirect is impossible rather than merely awkward.
 2. **Then print exactly this and continue** — never block, never run the billed tool:
