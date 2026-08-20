@@ -18,11 +18,15 @@ grep -l "^status: open" .sessions-worktree/sessions/*.md 2>/dev/null
 
 **No match:** STOP. The user must run `/its-alive` first. (If `.sessions-worktree/` doesn't exist, that's the same sign — `/its-alive` Step 0.6 creates the worktree.)
 
-**More than one match — stop and ask, every time.** Two open files means a session somewhere never reached its own `/its-dead`, or two windows are genuinely running concurrently, which `/its-alive` Step 3 supports. **List the candidates with their `session:`, `branch:` and `started:` and let the user pick.**
+**More than one match — resolve it from what this window knows, and only ask when it knows nothing.**
 
-Do not try to identify the right one from inside the session. There is no reliable way: the obvious candidate, matching `transcript:`, requires the running session to know its own JSONL path, and it cannot — `/its-alive` Step 5 derives it by globbing the project directory and taking the newest file, which is a guess that is *wrong* in exactly the case that matters, two concurrent windows writing to the same directory. An instruction that cannot be followed is worse than a bad default, because it reads as solved.
+**If this window ran `/its-alive`, the file it opened is yours.** You wrote it; its name, `session:` and `branch:` are in this conversation, and it already carries any earlier `## Task` blocks from this window. Say which one and why in a line, then continue. That is a fact about this session, not a guess about the filesystem, and it is available in the common case — the same window opening the session and later shipping a task.
 
-Do not sort, and do not take the first. `... | head -1` returns the lexically-earliest filename, and session filenames start with a date, so on the exact input this guard exists for it silently selects the **stale** file. Nothing errors: `head -1` always returns something.
+**Otherwise — a resumed window, a fresh one, anything with no memory of opening a session — stop.** List the candidates with their `session:`, `branch:` and `started:` and let the user pick. Do not infer from timestamps, order, or which branch looks busier.
+
+**Do not use `transcript:`.** It requires the running session to know its own JSONL path, and it cannot: `/its-alive` Step 5 derives it by globbing the project directory and taking the newest file, which is a guess and is *wrong* in exactly the case that matters — two concurrent windows writing to the same directory. An instruction that cannot be followed is worse than a bad default, because it reads as solved.
+
+**Do not sort, and do not take the first.** `... | head -1` returns the lexically-earliest filename, and session filenames start with a date, so when the stale session opened *earlier* — the ordinary shape of a session left open from a previous day — it silently selects that one. Nothing errors: `head -1` always returns something. **It will appear to work whenever the stale file happens to sort later, which is why it survived: the outcome depends on two timestamps, not on the rule being right.**
 
 ### Step 0.1 — Capture the branch, and check it against the session
 
@@ -107,6 +111,12 @@ Get the project's trigger table from `.claude/CLAUDE-context.md` under `## Blast
 **If one or more hit, run the free local pass first, then surface the paid one.** A trigger that only ever produces a suggestion to spend money produces nothing on the days you decide not to spend it — and those are exactly the PRs it fired on.
 
 1. **Run `/security-review`** against the branch. It is local, unbilled, and aimed at this class: authorization boundaries, injection, secret handling, unsafe defaults, failure modes that fail open. This is not a duplicate of Step 3 — `@code-review` hunts the project's conventions and invariants; this hunts the ways a hostile or malformed input gets through. Fold its findings into the PR body under their own heading, so the reviewer can see which pass produced what.
+
+   **`/security-review` resolves the branch from the shell's working directory, not from this task.** It is the same wrong-tree class as Step 0.1, and it fails worse here: in a linked-worktree session it hands back a careful review **of some other branch's diff**, which reads exactly like a clean pass on yours. A security pass that reviewed the wrong code and reported nothing is worse than one that never ran, because Step 3.6 will print a `✓` for it.
+
+   **So check its output before believing it.** The files and branch it names must be the ones in `git diff $(git merge-base HEAD main)...HEAD --name-only`. If they aren't, re-run it from the checkout holding `$BRANCH`. If you cannot get it pointed at the right tree, **mark it `✗` in Step 3.6 — did not run against this branch — and say so in the PR body.** Never fold findings from a diff you did not ship.
+
+   Observed: a muster session ran it while the shell sat in a different checkout that had moved on to `task/724-cancel-reason`, and got that branch's diff back on a PR touching the money path four ways. The pass had not happened and nothing said so.
 2. **Then print exactly this and continue** — never block, never run the billed tool:
 
 ```
