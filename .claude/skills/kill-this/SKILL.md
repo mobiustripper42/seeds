@@ -120,9 +120,20 @@ Get the project's trigger table from `.claude/CLAUDE-context.md` under `## Blast
 
    **`/security-review` resolves the branch from the shell's working directory, not from this task.** It is the same wrong-tree class as Step 0.1, and it fails worse here: in a linked-worktree session it hands back a careful review **of some other branch's diff**, which reads exactly like a clean pass on yours. A security pass that reviewed the wrong code and reported nothing is worse than one that never ran, because Step 3.6 will print a `✓` for it.
 
-   **So check its output before believing it, and you can:** the pass echoes a `GIT STATUS` block with `On branch <name>` and a `FILES MODIFIED` list before its findings. Both must match `$BRANCH` and `git diff $(git merge-base HEAD main)...HEAD --name-only`. (Verified from a real invocation — this is not an instruction that only looks followable.) If they don't match, re-run from the checkout holding `$BRANCH`. If you cannot get it pointed there, **mark it `✗` in Step 3.6 — did not run against this branch — and say so in the PR body.** Never fold findings from a diff you did not ship.
+   **You can detect this, and you cannot fix it from inside the session.** Both halves matter and the second one is where an earlier version of this step was wrong.
 
-   Observed: a muster session ran it while the shell sat in a different checkout that had moved on to `task/724-cancel-reason`, and got that branch's diff back on a PR touching the money path four ways. The pass had not happened and nothing said so.
+   **Detect:** the pass echoes a `GIT STATUS` block with `On branch <name>` and a `FILES MODIFIED` list ahead of its findings. Both must match `$BRANCH` and `git diff $(git merge-base HEAD main)...HEAD --name-only`. Verified against real invocations — this comparison genuinely works, and it is what caught the case below.
+
+   **Do not try to re-run it "from the right checkout."** The working directory is a property of the **session**, pinned by the harness at launch; no `cd`, no `git -C`, no wrapper reaches it. An instruction to re-run elsewhere cannot be carried out and only looks like a remedy.
+
+   **So on a mismatch, stop and hand it back.** Mark it `✗` in Step 3.6 — *ran against `<other-branch>`, not this one* — say so in the PR body, and give the user the two things that actually work:
+
+   - **start a session in the checkout that holds `$BRANCH`** and run `/security-review` there, or
+   - **`/code-review ultra` on the PR**, which takes the PR rather than the cwd.
+
+   Never fold findings from a diff you did not ship, and never let the mismatch pass silently: a careful review of someone else's branch reads exactly like a clean pass on yours.
+
+   Observed twice in muster. First: the shell sat in a checkout that had moved on to `task/724-cancel-reason` and the pass came back about that branch, on a PR touching the money path four ways — nothing said so. Then, after this step told the session to re-run from the right tree, it produced **the same output again**, plus that tree's unrelated dirty `e2e/calendar.spec.ts` — which is what proved the redirect is impossible rather than merely awkward.
 2. **Then print exactly this and continue** — never block, never run the billed tool:
 
 ```
