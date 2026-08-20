@@ -30,6 +30,7 @@ Decisions are numbered DEC-NNN. "DEC-TBD" means the decision is flagged but unre
 - DEC-S012 — Session-end flow — `/its-dead` first, merge last; PR-flow default on protected `$WORKING_BRANCH`
 - DEC-S013 — Per-task `/kill-this`, single `/its-dead`, all time math at `/retro`
 - DEC-S014 — Session files on orphan `sessions` branch via dedicated worktree
+- DEC-S048 — One session, one worktree — the checkout is chosen before the session, never during
 
 ### Velocity, retro math & throughput
 - DEC-S015 — Per-PR dev/review windows in retro time math
