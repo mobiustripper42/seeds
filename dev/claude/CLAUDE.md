@@ -10,7 +10,6 @@
 | `docs/SPEC.md` | What we're building — scope, V1 vs V2 vs V3 |
 | `docs/decisions/` | Why we made each architectural choice — **one decision, one file**, `DEC-<id>-<slug>.md` (DEC-S036) |
 | `docs/DECISIONS.md` | **Generated** topic index over `docs/decisions/`. Never edit it by hand |
-| `docs/USER_STORIES.md` | What each role does |
 | `docs/PROJECT_PLAN.md` | Phases, scope, velocity. **Phase-boundary doc** — read at planning, written at retro. Current-phase tasks live in GitHub Issues. |
 | `docs/RETROSPECTIVES.md` | Phase-end retrospectives — written by `/retro` |
 | `docs/AGENTS.md` | Agent and skill specs (canonical). |
@@ -20,7 +19,7 @@
 | `.claude/seeds-version` | Schema version this project was last installed at. Nothing reads it automatically (DEC-S040) — compare it against seeds' `seeds-version` by hand to see which migrations this project owes. |
 | `.claude/project-type` | Project type — `webapp` or `tool`. Says which template files this project has no use for (DEC-S011). Optional. |
 
-Project-specific docs are listed in `.claude/CLAUDE-context.md` under `## Additional Docs` — including BRAND.md, which is webapp-shaped and legitimately absent from a CLI or firmware project. The shell lists only docs every project has; a shell that names a doc a whole project type doesn't need is a dead reference in every one of them.
+Project-specific docs are listed in `.claude/CLAUDE-context.md` under `## Additional Docs` — including BRAND.md, USER_STORIES.md and DEV_REFERENCE.md, which are webapp-shaped and legitimately absent from a CLI, docs or firmware project. The shell lists only docs every project has; a shell that names a doc a whole project type doesn't need is a dead reference in every one of them. Seeds proved that on itself: adopting this shell (DEC-S049) turned `USER_STORIES.md` and `DEV_REFERENCE.md` into two dead references on the first `check-context` run, ten lines below the rule forbidding them.
 
 ## Micro Workflow (every task, no exceptions)
 
@@ -195,7 +194,7 @@ The gate is the field rather than the file because "has a `package.json`" was on
 
 ### Deploy + review reference
 
-The `<VersionTag />` wiring (login + footer, and the `NEXT_PUBLIC_` gotcha that silently renders `v0.0.0`), the CHANGELOG format, and the phone PR-review notes are reference material, not standing rules — they live in `docs/DEV_REFERENCE.md`, out of the always-loaded shell. Component source: `dev/claude/templates/VersionTag.tsx`.
+The `<VersionTag />` wiring (login + footer, and the `NEXT_PUBLIC_` gotcha that silently renders `v0.0.0`), the CHANGELOG format, and the phone PR-review notes are reference material, not standing rules — they belong out of the always-loaded shell, in the deploy reference this project lists under `## Additional Docs` in `.claude/CLAUDE-context.md`. Deployable projects install one from the seeds template; a project that doesn't deploy has none, which is why the path is named there and not here.
 
 ## Workflow Notes
 - **Diagnostic commands** (build, lint, type check, test): run directly — see errors, fix them, don't bother the user.
@@ -236,6 +235,10 @@ For every task — bug, feature, or question — explain the plan and wait for m
 Check `docs/SPEC.md` "Not V1" before adding anything. Apply a change only to the surface I named — don't propagate it to sibling pages, and never invent or misattribute a rationale I didn't state (especially in DECs and durable notes).
 
 If a task feels bigger than its estimate: stop, re-estimate, update PROJECT_PLAN.md (next phase boundary, or via Issue mid-phase); if it's scope creep, flag it and move on.
+
+**A workflow rule needs an observed failure behind it.** If you can't cite the session, transcript, or PR that produced it, it's a proposal — say so. A rule that sounds right and was never triggered by anything gets skimmed past forever after.
+
+**Prefer removing.** A retired rule with a decision explaining why it went is worth more than a new one.
 
 **Splitting is a reviewability call, not a capability one.** Points size estimation; they don't cap how much ships in one run.
 - **Don't split a coherent 8** (one feature, one migration, one subsystem) just to honor a ceiling — run it as one unit with the full spec up front.

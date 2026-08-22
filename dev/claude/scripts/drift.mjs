@@ -93,9 +93,12 @@ const SEEDS_IS_TARGET = resolve(SEEDS) === resolve(PROJECT)
  * Each is a document seeds owns, not a copy it holds.
  */
 const seedsOwnPath = (rel) =>
-  // `dev/claude/CLAUDE.md` → `CLAUDE.md` is the mapping the old refusal existed for. Seeds' root
-  // CLAUDE.md describes THIS repo; the template is the shell shipped to projects.
-  rel === 'dev/claude/CLAUDE.md' ||
+  // `dev/claude/CLAUDE.md` → `CLAUDE.md` was excluded here until DEC-S049, because seeds' root
+  // CLAUDE.md described THIS repo while the template was the shell shipped to projects. Seeds now
+  // adopts the shell verbatim and keeps its own content in `.claude/CLAUDE-context.md`, so the pair
+  // is a real comparison and the exclusion is gone. `check-mirrors.mjs` compares it too; both should,
+  // for the same reason they both cover `skills/**`.
+  //
   // `dev/claude/docs/X` → `docs/X`: seeds' own SPEC, PROJECT_PLAN, AGENTS and CHEATSHEET are about
   // seeds, and every one of them is `context` class. Named as `context` rather than "not logic",
   // which is what this said first: "not logic" would also swallow a future `hybrid` or `presence`
