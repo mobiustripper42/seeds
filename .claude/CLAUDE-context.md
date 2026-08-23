@@ -149,6 +149,13 @@ The conventions that matter here are about documents:
   end state without `@code-review` ever reading the diff, and its absence announces itself to nobody.
 - **STOP after the change is written.** Report and wait. Don't commit, don't push, don't open a PR,
   don't start the next thing. This is where I look at it.
+- **Approval matters more here than in a project.** The shell's Approval Before Action applies as
+  written; the seeds-specific weight is that a template change lands in every project that copies it,
+  so "just this one file" is never just one file.
+- **The shell is not the place for a seeds anecdote.** `dev/claude/CLAUDE.md` lands verbatim in every
+  project's always-loaded context, so an example drawn from seeds' own history is dead weight in all
+  of them. Put the story here and leave the rule there. Caught in review on the DEC-S049 diff, one
+  sentence after the shell's own rule against exactly that.
 
 ## Repo Layout
 
@@ -187,7 +194,7 @@ dev/
       check-context.mjs        # Asserts paths cited in the always-loaded context docs resolve
       check-docs.mjs           # Doc-set ratchet — DEC refs, npm scripts, issue links, rosters, paths (DEC-S037)
       check-mirrors.mjs        # SEEDS-ONLY, read-only. Asserts seeds' live .claude/ copies still match the
-                               # dev/claude/ templates they mirror. Enumerates; never picks a side
+                               # dev/claude/ templates they mirror. Enumerates; never copies, never picks a side
       drift.mjs                # SEEDS-SIDE, read-only. What differs between these templates and one
                                # project. Enumerates; never copies, never says which side wins
       tape-capture.sh          # SessionEnd hook (DEC-S045). Copies the ending session's transcript to
@@ -476,6 +483,10 @@ watch for a row whose count stops moving while observations for it keep arriving
 question is what the next occurrence costs and whether it would announce itself — irreversible or silent
 earns a rule on one sighting; recoverable and self-announcing waits for repetition. Frequency is evidence
 *about* severity, never severity. Full table in DEC-S039.
+
+**`@workout` runs Opus** — the shell's Model Selection says new agents default to Sonnet and pin Opus
+only when the standing job needs it. Promotion is the one judgment in this loop that is expensive to
+get wrong, so it qualifies. Every reviewer here stays Sonnet.
 
 **`@workout` is seeds-only and deliberately not a template.** It edits `dev/claude/**` and reads a branch
 that exists only here, so a project could never run it; shipping it in `dev/claude/agents/` would install

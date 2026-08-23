@@ -70,6 +70,13 @@ wholesale destroys every local improvement that was never promoted. Seeds hit th
 rather than rules for anyone: that a template change here lands in every project that copies it, and
 that `@workout` runs Opus because promotion is the expensive judgment in the loop.
 
+**Both were dropped on the first pass and restored in review** — the claim above was written before
+it was true. That is the hazard of this shape of change arriving from the other direction: the two
+lines were consciously identified as *not* belonging in the shell, and identifying them as such is
+what made them easy to leave nowhere at all. No gate can catch it; `check-context` verifies that
+cited paths resolve, not that content survived a move. The reviewer found them by diffing
+`git show HEAD~1:CLAUDE.md` against both new files, which is the only method that works.
+
 **What seeds gains by taking the shell whole**, all of it previously absent from its own copy: the
 `AskUserQuestion` prohibition, the `narration:` switch, the full Model Selection table, Micro
 Workflow, PR Workflow, Session Skills and Agents rosters, Versioning, and Approval Before Action's
@@ -86,6 +93,13 @@ against the template. That is not a concession — it is the whole point of the 
 ships placeholders; seeds' copy describes seeds; a project's describes that project. Comparing them
 would report drift on every repo simultaneously, which is DEC-S044's argument arriving at the same
 answer by the same route.
+
+**The override had a second half that a green run cannot reach.** `mirrorPath()` was threaded through
+the comparison and the `--write` repair, and the run was green — but the `ABSENT` and `DRIFT`
+remediation lines still hardcoded `.claude/${rel}`, so a missing root `CLAUDE.md` would have printed
+`cp dev/claude/CLAUDE.md .claude/CLAUDE.md`: the wrong destination, in the one branch that only
+executes when something is already broken. Found in review, not by running it, because running it
+clean is precisely what does not execute that code.
 
 **Honest limits:**
 

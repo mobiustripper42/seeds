@@ -266,12 +266,17 @@ if (missing.length > 0) {
     // `mkdir -p` is not decoration: a brand-new skill lives at `skills/<name>/SKILL.md`, and
     // `.claude/skills/<name>/` does not exist yet, so a bare `cp` fails with ENOENT — on
     // precisely the new-skill case the prefix rule is sold on covering the day it is written.
-    const dir = rel.includes('/') ? rel.slice(0, rel.lastIndexOf('/')) : '';
+    // The suggested command has to name the REAL mirror, which is not always `.claude/<rel>` —
+    // the shell's is the repo root. Hardcoding the prefix here printed `cp … .claude/CLAUDE.md`
+    // for a file that belongs at `CLAUDE.md`, and a green run never shows it: this branch only
+    // executes when something is already wrong.
+    const mirrorRel = relative(ROOT, mirrorPath(rel));
+    const dir = mirrorRel.includes('/') ? mirrorRel.slice(0, mirrorRel.lastIndexOf('/')) : '';
     console.error(`  ABSENT  dev/claude/${rel}`);
     console.error(
       dir
-        ? `          mkdir -p .claude/${dir} && cp dev/claude/${rel} .claude/${rel}`
-        : `          cp dev/claude/${rel} .claude/${rel}`
+        ? `          mkdir -p ${dir} && cp dev/claude/${rel} ${mirrorRel}`
+        : `          cp dev/claude/${rel} ${mirrorRel}`
     );
   }
   console.error(
@@ -284,7 +289,7 @@ if (drifted.length > 0) {
   console.error(`\ncheck-mirrors: ${drifted.length} mirrored file(s) differ from the template:\n`);
   for (const rel of drifted) {
     console.error(`  DRIFT  dev/claude/${rel}`);
-    console.error(`         diff dev/claude/${rel} .claude/${rel}`);
+    console.error(`         diff dev/claude/${rel} ${relative(ROOT, mirrorPath(rel))}`);
   }
   console.error(
     `\nSeeds is running different rules than it ships. Reconcile each one deliberately —\n` +

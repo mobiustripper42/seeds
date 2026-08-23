@@ -19,7 +19,7 @@
 | `.claude/seeds-version` | Schema version this project was last installed at. Nothing reads it automatically (DEC-S040) — compare it against seeds' `seeds-version` by hand to see which migrations this project owes. |
 | `.claude/project-type` | Project type — `webapp` or `tool`. Says which template files this project has no use for (DEC-S011). Optional. |
 
-Project-specific docs are listed in `.claude/CLAUDE-context.md` under `## Additional Docs` — including BRAND.md, USER_STORIES.md and DEV_REFERENCE.md, which are webapp-shaped and legitimately absent from a CLI, docs or firmware project. The shell lists only docs every project has; a shell that names a doc a whole project type doesn't need is a dead reference in every one of them. Seeds proved that on itself: adopting this shell (DEC-S049) turned `USER_STORIES.md` and `DEV_REFERENCE.md` into two dead references on the first `check-context` run, ten lines below the rule forbidding them.
+Project-specific docs are listed in `.claude/CLAUDE-context.md` under `## Additional Docs` — including BRAND.md, USER_STORIES.md and DEV_REFERENCE.md, which are webapp-shaped and legitimately absent from a CLI, docs or firmware project. The shell lists only docs every project has; a shell that names a doc a whole project type doesn't need is a dead reference in every one of them.
 
 ## Micro Workflow (every task, no exceptions)
 
