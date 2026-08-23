@@ -64,6 +64,7 @@ Decisions are numbered DEC-NNN. "DEC-TBD" means the decision is flagged but unre
 - DEC-S036 — One decision, one file, behind a generated index — with amendments declared once and generated both ways
 - DEC-S037 — Doc consistency is a ratchet in the verify chain, not an audit
 - DEC-S042 — The shell states invariants and the context file fills named slots — overrides are a patch where the structure was wrong
+- DEC-S049 — Seeds adopts the shell/context split it has been shipping since DEC-S019
 
 ### Tooling & safety
 - DEC-S009 — Supabase prod-write guard — discipline + wrapper script

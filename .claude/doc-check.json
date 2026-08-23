@@ -1,7 +1,7 @@
 {
   "repo": "mobiustripper42/seeds",
   "rosters": {
-    "CLAUDE.md": {
+    ".claude/CLAUDE-context.md": {
       "skills": true,
       "agents": true
     },

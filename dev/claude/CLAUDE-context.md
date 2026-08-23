@@ -56,6 +56,14 @@ npx supabase gen types typescript --local > src/lib/supabase/types.ts
 ## Additional Docs
 Project-specific docs beyond the baseline table in the `CLAUDE.md` shell's `## Key Docs`. Add rows here as the project grows its own docs. (None yet — delete this note when you add the first.)
 
+Seeds ships three that are webapp-shaped and belong here rather than in the shell — list the ones this project actually installed, and delete the rest of the row:
+
+| File | Purpose |
+|------|---------|
+| `docs/BRAND.md` | Brand and visual direction |
+| `docs/USER_STORIES.md` | What each role does |
+| `docs/DEV_REFERENCE.md` | Deploy + review reference — `<VersionTag />` wiring, CHANGELOG format, phone PR-review notes |
+
 ## Workflow Mechanisms
 The shell's `## Micro Workflow` says what three steps must achieve and names a slot for how (DEC-S042). Fill each one here. **These are slots, not overrides** — the shell states no default to correct, and nothing here should cite a step *number*: numbers move, and a stale cross-reference in an always-loaded file fails silently.
 

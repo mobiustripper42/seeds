@@ -4,7 +4,7 @@
  * `dev/claude/` against seeds' own live copies under `.claude/`.
  *
  * Why this exists: seeds dogfoods several of the files it ships, so each of them
- * exists twice. `CLAUDE.md` § How Work Happens Here step 5 says to edit the
+ * exists twice. `.claude/CLAUDE-context.md` § Mirrors says to edit the
  * template and then mirror it — and nothing checked that anyone did. On
  * 2026-08-06 a promotion added `/its-dead` Step 4.5 to the template and never
  * mirrored it; eleven days later seeds ran `/its-dead`, hit the exact condition
@@ -21,10 +21,10 @@
  * never have looked at.
  *
  * The differ used to refuse seeds outright, because seeds' root `CLAUDE.md` and
- * `dev/claude/CLAUDE.md` are different documents sharing a filename. That refusal
- * is now one excluded path rather than a whole-repo decline. This script never had
- * the problem: it compares only paths that exist on both sides, so the pair never
- * comes up.
+ * `dev/claude/CLAUDE.md` were different documents sharing a filename. That refusal
+ * became one excluded path, and then DEC-S049 removed the reason for it: seeds
+ * adopted the shell verbatim and moved its own content to `.claude/CLAUDE-context.md`.
+ * The pair is now a real mirror, compared here like any other.
  *
  * Read-only. Enumerates and stops there — it does not copy, and it has no
  * opinion about which side is right. Same constraint as drift.mjs, same reason
@@ -55,9 +55,8 @@ const WRITE = process.argv.includes('--write');
  * defect rather than the normal case.
  *
  * This can't be "all of them". Seeds runs its scripts straight out of
- * `dev/claude/scripts/`, the `docs/` templates belong in a project's `docs/` and
- * not in `.claude/`, and `dev/claude/CLAUDE.md` is a different document from the
- * root `CLAUDE.md` on purpose. Requiring a mirror for every template produces 31
+ * `dev/claude/scripts/`, and the `docs/` templates belong in a project's `docs/`
+ * and not in `.claude/`. Requiring a mirror for every template produces 31
  * false positives against 1 real finding, and an exemption list of 31 is
  * furniture the day it is written.
  *
@@ -68,6 +67,23 @@ const WRITE = process.argv.includes('--write');
  * a hand-maintained roster would have been left un-updated.
  */
 const DOGFOODED = ['agents/', 'skills/'];
+
+/**
+ * Templates whose mirror is NOT at `.claude/<rel>`. One member: the shell lands at seeds'
+ * repo ROOT, not under `.claude/`.
+ *
+ * Until DEC-S049 seeds' root `CLAUDE.md` was a different document that merely shared a
+ * filename with `dev/claude/CLAUDE.md`, so this script never compared them and `drift.mjs`
+ * excluded the path outright. Seeds now adopts the shell verbatim and keeps its own content
+ * in `.claude/CLAUDE-context.md` like every other project — so the two ARE one document in
+ * two places, which is precisely what this script is for. The divergence that motivated the
+ * change: `## Communication` had reached 976 words in the template and 538 in seeds' copy,
+ * and nothing reported it because nothing was looking.
+ */
+const MIRROR_OVERRIDE = new Map([['CLAUDE.md', join(ROOT, 'CLAUDE.md')]]);
+
+/** Where seeds' live copy of a template lives. `.claude/<rel>` unless overridden above. */
+const mirrorPath = (rel) => MIRROR_OVERRIDE.get(rel) ?? join(MIRROR_DIR, rel);
 
 /**
  * Present, but never compared. Seeds MUST hold these — absence is a failure, the
@@ -82,6 +98,10 @@ const DOGFOODED = ['agents/', 'skills/'];
  */
 const PRESENT_NOT_COMPARED = new Map([
   ['doc-check.json', 'project-owned config (DEC-S037) — the template ships placeholders, seeds fills them in'],
+  [
+    'CLAUDE-context.md',
+    "project-owned context (DEC-S019) — the template ships placeholders and never syncs; seeds' copy describes seeds. It must exist: the shell's first line tells the session to read it and stop if it is absent",
+  ],
   ['settings.json', 'permission policy is distributed by hand, per machine (DEC-S023) — never auto-synced'],
 ]);
 
@@ -102,7 +122,10 @@ const EXEMPT = new Map([...PRESENT_NOT_COMPARED, ...OPTIONAL]);
 
 /** Seeds is expected to hold this: absence is a defect. */
 const mustExist = (rel) =>
-  !OPTIONAL.has(rel) && (DOGFOODED.some((p) => rel.startsWith(p)) || PRESENT_NOT_COMPARED.has(rel));
+  !OPTIONAL.has(rel) &&
+  (DOGFOODED.some((p) => rel.startsWith(p)) ||
+    PRESENT_NOT_COMPARED.has(rel) ||
+    MIRROR_OVERRIDE.has(rel));
 
 /**
  * An agent's `description:` frontmatter line is project-owned by design — the
@@ -139,7 +162,7 @@ const exempted = [];
 let compared = 0;
 
 for (const rel of walk(TEMPLATE_DIR)) {
-  const mirror = join(MIRROR_DIR, rel);
+  const mirror = mirrorPath(rel);
   if (!existsSync(mirror)) {
     /**
      * The blind spot this check shipped with, and the third instance of one
@@ -179,7 +202,7 @@ if (WRITE && (drifted.length || missing.length)) {
   const written = [];
   for (const rel of [...drifted, ...missing]) {
     if (EXEMPT.has(rel) || !mustExist(rel)) continue;
-    const dest = join(MIRROR_DIR, rel);
+    const dest = mirrorPath(rel);
     mkdirSync(dirname(dest), { recursive: true });
     copyFileSync(join(TEMPLATE_DIR, rel), dest);
     written.push(rel);
@@ -190,7 +213,7 @@ if (WRITE && (drifted.length || missing.length)) {
   drifted.length = 0;
   missing.length = 0;
   for (const rel of walk(TEMPLATE_DIR)) {
-    const mirror = join(MIRROR_DIR, rel);
+    const mirror = mirrorPath(rel);
     if (!existsSync(mirror)) {
       if (mustExist(rel)) missing.push(rel);
       continue;
@@ -209,7 +232,7 @@ for (const rel of EXEMPT.keys()) {
     console.log(`note: exemption for ${rel} names a template that no longer exists`);
   } else if (
     !exempted.includes(rel) &&
-    existsSync(join(MIRROR_DIR, rel)) &&
+    existsSync(mirrorPath(rel)) &&
     !PRESENT_NOT_COMPARED.has(rel)
   ) {
     // PRESENT_NOT_COMPARED entries are excluded from this note on purpose. Since `--write`, an
@@ -243,12 +266,17 @@ if (missing.length > 0) {
     // `mkdir -p` is not decoration: a brand-new skill lives at `skills/<name>/SKILL.md`, and
     // `.claude/skills/<name>/` does not exist yet, so a bare `cp` fails with ENOENT — on
     // precisely the new-skill case the prefix rule is sold on covering the day it is written.
-    const dir = rel.includes('/') ? rel.slice(0, rel.lastIndexOf('/')) : '';
+    // The suggested command has to name the REAL mirror, which is not always `.claude/<rel>` —
+    // the shell's is the repo root. Hardcoding the prefix here printed `cp … .claude/CLAUDE.md`
+    // for a file that belongs at `CLAUDE.md`, and a green run never shows it: this branch only
+    // executes when something is already wrong.
+    const mirrorRel = relative(ROOT, mirrorPath(rel));
+    const dir = mirrorRel.includes('/') ? mirrorRel.slice(0, mirrorRel.lastIndexOf('/')) : '';
     console.error(`  ABSENT  dev/claude/${rel}`);
     console.error(
       dir
-        ? `          mkdir -p .claude/${dir} && cp dev/claude/${rel} .claude/${rel}`
-        : `          cp dev/claude/${rel} .claude/${rel}`
+        ? `          mkdir -p ${dir} && cp dev/claude/${rel} ${mirrorRel}`
+        : `          cp dev/claude/${rel} ${mirrorRel}`
     );
   }
   console.error(
@@ -261,7 +289,7 @@ if (drifted.length > 0) {
   console.error(`\ncheck-mirrors: ${drifted.length} mirrored file(s) differ from the template:\n`);
   for (const rel of drifted) {
     console.error(`  DRIFT  dev/claude/${rel}`);
-    console.error(`         diff dev/claude/${rel} .claude/${rel}`);
+    console.error(`         diff dev/claude/${rel} ${relative(ROOT, mirrorPath(rel))}`);
   }
   console.error(
     `\nSeeds is running different rules than it ships. Reconcile each one deliberately —\n` +
