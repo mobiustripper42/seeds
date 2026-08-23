@@ -28,6 +28,14 @@ topic: "Tooling & safety"
 - **Real machines (windows laptop, mill-dev, bee-grace — distinct boxes):** copy the master into each machine's **user-global** `~/.claude/settings.json` (Windows: `%USERPROFILE%\.claude\settings.json`). One global file = every repo + every ad-hoc dir on that box. Globals don't travel via git; set once per machine.
 - **Phone (CC on web — ephemeral container):** no editable global. Covered only by the **committed per-repo `.claude/settings.json`** (cloned with the repo). Reminder lives in the README: before a code-heavy phone session, confirm that repo's committed file matches the master.
 
+> **Amendment, 2026-08-23 (DEC-S051) — the vocabulary and the phone rationale.** Two corrections to this section, neither changing what the policy *is*.
+>
+> **"User-global" is not a Claude Code term** and inventing it made this problem harder to talk about. The documented levels, highest precedence first, are **managed → command line → project local (`<repo>/.claude/settings.local.json`) → shared project (`<repo>/.claude/settings.json`) → user (`~/.claude/settings.json`)**. What this paragraph calls the "global" is **user settings**. There is **no user-level local file**, which is why the strict comparison in `settings-policy.mjs` is affordable: a per-box permission tweak has nowhere to live except the file the policy occupies, and the operator confirms there are none.
+>
+> **The phone bullet's rationale is retired, its conclusion kept.** Repo-backed work now goes through Remote Control, which drives a session on one of the three real machines and inherits that machine's user settings — so the committed file is no longer the last line for a browser session, and the README reminder it points to (confirm the committed file before a code-heavy phone session) asked for a ritual before a session type that does not occur. That reminder is deleted. **The committed file stays**, for a reason that is still true: it is the only policy that travels with the repo, covering a machine whose user settings are not installed yet — the state seven repos were measurably in.
+>
+> The maintenance argument against keeping seventeen copies is also gone: `settings-policy.mjs --write` repairs one in a command, and `/its-alive` Step 8.6 reports staleness every session on every machine.
+
 **Updating the allowlist:** not self-service. The recurring trigger is never a simple missing command (default-allow covers those) — it's something gnarly that got denied. Procedure: bring it to a Claude session in seeds, which edits the master + emits the redistribute steps. No `/permissions` muscle-memory to maintain.
 
 **`.claude/settings.local.json`** (per-machine, gitignored) is never templated, synced, or edited by skills — the user's per-box override surface. Under default-allow most accumulated local "always-allow" entries become redundant; a cleanup prompt lives in the README (preserves any personal `deny`, strips redundant/stale allows).
