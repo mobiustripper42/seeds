@@ -16,11 +16,10 @@ topic: "Docs, decisions & context discipline"
   over a session"* and that the durable bite is a per-surface guard. This is the first time a surface
   other than prose was available for a whole class of rule
 
-**Decision:** The shell's `## Communication` drops from **976 words to 376** — about a third of it the
+**Decision:** The shell's `## Communication` drops from **976 words to 363** — about a third of it the
 three surviving rules, the rest a note explaining where register now lives and why nobody should put
-it back here. Everything about
-register — reply length, shape, preamble, when to expand, the four reply kinds and the tag that
-announced them — is deleted and handed to Claude Code's built-in **`Concise`** output style, set via
+it back here. Everything about register — reply length, shape, preamble, when to expand, the four
+reply kinds and the tag that announced them — is deleted and handed to Claude Code's built-in **`Concise`** output style, set via
 `"outputStyle": "Concise"` in `.claude/settings.local.json`. What stays in `CLAUDE.md` is the three
 rules `Concise` says nothing about: **never lead with a false premise**, **ask in prose, never
 `AskUserQuestion`**, and **cite facts; label proposals**.
@@ -77,22 +76,27 @@ makes distribution part of this decision rather than a follow-up: a project rece
 shell **without** the style set loses the register rules and gains nothing. **Ship the shell edit and
 set `outputStyle` in the same visit, per repo.**
 
-**Where `Explanatory` fits, and why the shell stops recommending it.** Design and planning want the
-opposite of `Concise` — a style that volunteers insight rather than waiting to be asked — and
-switching is a per-session act, since the style is read once at session start and never applies
-mid-turn. The first draft of this change told every project to use `Explanatory` for design work.
-**Review killed that**, with evidence from this machine: Anthropic's official plugin marketplace ships
-`plugins/explanatory-output-style` and `plugins/learning-output-style`, each manifest authored by
-Anthropic and describing its target as *"the deprecated Explanatory output style"* / Learning. There
-is **no `concise-output-style` plugin**. Verified directly in
-`~/.claude/plugins/marketplaces/claude-plugins-official/`; all three styles are still `built-in` in
-v2.1.238, so nothing here is false yet — but two of the four built-ins are on a stated removal path
-and `Concise` is not one of them.
+**Where `Explanatory` fits.** Design and planning want the opposite of `Concise` — a style that
+volunteers insight rather than waiting to be asked — and switching is a per-session act, since the
+style is read once at session start and never applies mid-turn. That happens to match how phases
+already run: planning sessions and build sessions are already different sessions.
 
-Recommending a deprecated built-in in a file copied verbatim into every project is the dead-reference
-class this repo fixed a day earlier (DEC-S049). The shell now states the mechanism — ask for detail
-in-session, switch styles between sessions — and names the deprecation instead of building a habit on
-it.
+**One unresolved signal, recorded so it is not rediscovered as news.** Three different things share
+the word "deprecated" here and only one of them is settled:
+
+| Thing | Status |
+|---|---|
+| the `/output-style` **slash command** | deprecated v2.1.73, **removed** v2.1.91 — documented, settled. Use `/config` or the setting |
+| the **`Explanatory` built-in style** | listed as current in the docs, with no deprecation note |
+| the `explanatory-output-style` **marketplace plugin** | its own `plugin.json`, author Anthropic, describes its target as *"the deprecated Explanatory output style"* |
+
+So one Anthropic source calls the style deprecated and another lists it as current. A draft of this
+decision resolved that in favour of the plugin manifest and told every project not to build a habit on
+`Explanatory` — **wrong weighting**, caught by the operator: a line of plugin metadata is not evidence
+against the documentation, and it had been written into a file copied verbatim into every project. The
+documentation wins until something contradicts it in the documentation. Recorded here rather than in
+the shell, because an unresolved signal is a note for whoever next touches this, not a rule for twelve
+repos.
 
 **What this does not fix, stated so a quiet failure is not read as success:**
 
