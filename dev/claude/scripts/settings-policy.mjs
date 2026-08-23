@@ -54,15 +54,35 @@ let mode = 'user'
 let writeTarget = null
 const positional = []
 
+/**
+ * Mode flags are mutually exclusive and `--write` REQUIRES an adjacent target. Both rules exist
+ * because the first version had neither, and a review demonstrated the consequence on a real
+ * machine rather than in the abstract:
+ *
+ *   `--write --seeds /path`, `--all --write`, `<path> --write`  → wrote ~/.claude/settings.json
+ *   `--write --repo /path`                                      → silently ran a CHECK instead
+ *
+ * The first shape is the bad one: the single file this script exists to protect is the one a
+ * misordered flag reaches. A default target is a convenience worth exactly nothing here — the
+ * check's own output prints the full `Fix:` command with the path already in it.
+ */
+let modeFlag = null
+const setMode = (m, flag) => {
+  if (modeFlag && modeFlag !== flag) die(`${modeFlag} and ${flag} cannot be combined — pick one`)
+  modeFlag = flag
+  mode = m
+}
+
 for (let i = 0; i < argv.length; i++) {
   const a = argv[i]
   if (a === '--seeds') seedsArg = argv[++i] ?? die('--seeds needs a path')
-  else if (a === '--repo') mode = 'repo'
-  else if (a === '--all') mode = 'all'
+  else if (a === '--repo') setMode('repo', '--repo')
+  else if (a === '--all') setMode('all', '--all')
   else if (a === '--write') {
-    mode = 'write'
-    // Optional target: the next arg, unless it is another flag.
-    if (argv[i + 1] && !argv[i + 1].startsWith('--')) writeTarget = argv[++i]
+    setMode('write', '--write')
+    const next = argv[i + 1]
+    if (!next || next.startsWith('--')) die('--write needs a target path immediately after it, e.g. --write ~/.claude/settings.json')
+    writeTarget = argv[++i]
   } else if (a.startsWith('--')) die(`unknown flag ${a}`)
   else positional.push(a)
 }
@@ -99,10 +119,15 @@ const master = readJson(MASTER)
 if (!master.ok) die(`cannot read the master policy at ${MASTER} — ${master.error}`)
 const masterPerms = master.value.permissions ?? die(`${MASTER} has no "permissions" key`)
 
-/** Stable, order-insensitive comparison. A reordered deny list is not a policy change. */
+/**
+ * Stable, order-insensitive comparison. A reordered deny list is not a policy change — and
+ * neither is a duplicated entry, so arrays are deduped too. Without the dedupe, a file with a
+ * repeated rule reported STALE while `describe()` (Set-based) had nothing to name, printing a
+ * failure with a blank explanation.
+ */
 const canon = (v) =>
   Array.isArray(v)
-    ? [...v].sort()
+    ? [...new Set(v)].sort()
     : v && typeof v === 'object'
       ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, canon(v[k])]))
       : v
@@ -123,6 +148,8 @@ function describe(theirs) {
     const extra = [...t].filter((x) => !m.has(x))
     if (missing.length) lines.push(`      missing ${missing.length} ${key}: ${missing.slice(0, 4).join(', ')}${missing.length > 4 ? ` … +${missing.length - 4}` : ''}`)
     if (extra.length) lines.push(`      extra ${extra.length} ${key}: ${extra.slice(0, 4).join(', ')}${extra.length > 4 ? ` … +${extra.length - 4}` : ''}`)
+    const dupes = (theirs[key] ?? []).filter((x, i, a) => a.indexOf(x) !== i)
+    if (dupes.length) lines.push(`      note: ${dupes.length} duplicate ${key} entr${dupes.length === 1 ? 'y' : 'ies'} — harmless, not why this is stale`)
   }
   const keys = new Set([...Object.keys(masterPerms), ...Object.keys(theirs)])
   for (const k of keys) {
@@ -176,13 +203,22 @@ const rel = (u) => {
  * hooks, and being wrong here is the failure the whole script is named after.
  */
 function write(path) {
+  // The header says "never edits the master" — say it in code, not just in a comment. Without
+  // this, `--seeds <other-checkout>` plus a target that happens to be a master rewrites the
+  // actual source of truth, silently and in the direction nobody wants.
+  if (resolve(path) === resolve(MASTER)) die(`refusing to write: ${path} is the master policy itself`)
+
   const existed = existsSync(path)
   let doc = {}
+  let backup = null
   if (existed) {
     const got = readJson(path)
     if (!got.ok) die(`refusing to write: ${path} is not valid JSON (${got.error}). Fix or move it first.`)
     doc = got.value
-    copyFileSync(path, `${path}.bak`)
+    // Timestamped, because a fixed `.bak` name loses the original on the second run — and the
+    // incident this script is named after was recovered from exactly such a stray backup.
+    backup = `${path}.${new Date().toISOString().replace(/[:.]/g, '-')}.bak`
+    copyFileSync(path, backup)
   } else {
     const dir = resolve(path, '..')
     if (!existsSync(dir)) die(`refusing to write: ${dir} does not exist. Create it first.`)
@@ -191,7 +227,7 @@ function write(path) {
   doc.permissions = JSON.parse(JSON.stringify(masterPerms))
   writeFileSync(path, `${JSON.stringify(doc, null, 2)}\n`)
   console.log(`settings-policy: wrote the master permissions into ${path}`)
-  console.log(`  ${existed ? `backed up to ${path}.bak` : 'created (no previous file)'}`)
+  console.log(`  ${backup ? `backed up to ${backup}` : 'created (no previous file)'}`)
   console.log(
     preserved.length
       ? `  preserved ${preserved.length} other key(s) untouched: ${preserved.join(', ')}`

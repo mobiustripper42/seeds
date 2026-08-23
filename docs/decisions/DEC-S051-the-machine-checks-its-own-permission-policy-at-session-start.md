@@ -83,6 +83,22 @@ after the task in hand is the user's call — the same line `drift.mjs` holds.
 - **Whether the policy is any good.** It compares against the master. If the master is wrong, this
   distributes wrongness faithfully.
 
+**The review found the destructive flag unsafe, and demonstrated it on a live machine.** Five
+findings, all real, all fixed before merge. The one that matters: `--write` took an *optional*
+target and fell back to `~/.claude/settings.json`, so three natural orderings — `--write --seeds
+/path`, `--all --write`, `<path> --write` — silently wrote to the single file this script exists to
+protect. The reviewer, asked explicitly not to touch real settings, hit that path twice while
+probing and disclosed it. No damage: this machine already matched the master, so both writes were
+content no-ops. **That is the demonstration, not a mitigating circumstance** — the argument shape
+that produced it is the one a person types.
+
+`--write` now requires an adjacent target and refuses otherwise; mode flags are mutually exclusive
+rather than last-wins (`--write --repo` had been silently running a *check*); writing the master
+itself is refused in code rather than only in a comment; backups are timestamped, because a fixed
+`.bak` loses the original on the second run — and the mill-dev incident was recovered from exactly
+such a stray backup; and duplicate list entries no longer report `STALE` with an empty explanation,
+since a repeated deny rule is not a policy difference.
+
 **Proof:** the three cases probed against real checkouts rather than fixtures — `current` (this
 machine's user settings and seeds' own committed file), `STALE` (bushel: missing `Bash(sed -n *)`,
 carrying 10 dead `Write()` rules; chiplog: 54 denies missing), `ABSENT` (tinkle). `--write` probed on
