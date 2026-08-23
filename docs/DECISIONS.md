@@ -72,6 +72,7 @@ Decisions are numbered DEC-NNN. "DEC-TBD" means the decision is flagged but unre
 - DEC-S020 — settings.json merge strategy — deferred at DEC-S018, resolved by DEC-S023
 - DEC-S023 — Permission policy — default-allow with a deny guardrail; master in seeds, distributed by hand (resolves DEC-S020)
 - DEC-S043 — `.env.example` loses its leading dot, so the secret deny can be a blanket
+- DEC-S051 — The machine checks its own permission policy at session start
 
 ### Open questions
 - DEC-S021 — Retro prefer-apply heuristic for structural Both-modified diffs — deferred, still open

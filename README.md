@@ -56,22 +56,42 @@ After setup, run `/its-alive` in the new project to start your first session.
 
 **Posture: default-allow.** `dev/claude/settings.json` is the **master** — `allow` carries `Bash(*)`, and the **deny list is the only seatbelt** (`deny` beats `allow`, so dangerous/secret commands are blocked and everything else runs without prompting). Use `defaultMode: default`, never `bypassPermissions` (that turns the deny list off too).
 
-The master is **not auto-synced.** Distribute it by hand:
+### The four levels, by their documented names
 
-| Where | How | Covers |
-|-------|-----|--------|
-| **mill-dev** | copy master → `~/.claude/settings.json` | all repos + ad-hoc dirs on the box |
-| **bee-grace** | copy master → `~/.claude/settings.json` | all repos + ad-hoc dirs on the box |
-| **windows laptop** | copy master → `%USERPROFILE%\.claude\settings.json` | all repos + ad-hoc dirs on the box |
-| **phone (CC on web)** | commit a per-repo `.claude/settings.json` matching the master | only that repo |
+"Global" is not a Claude Code term and this README used to invent it. The levels, highest precedence first:
 
-mill-dev and bee-grace are **separate machines** — two separate globals. Globals don't travel via git; set once per box (re-copy when the master changes).
+| Level | Path | Scope | In git? |
+|---|---|---|---|
+| Managed | `managed-settings.json` (MDM) | your org | n/a |
+| Command line | `claude --settings` | one session | no |
+| **Project local** | `<repo>/.claude/settings.local.json` | you, this repo | no — gitignored |
+| **Shared project** | `<repo>/.claude/settings.json` | everyone in the repo | **yes** |
+| **User** | `~/.claude/settings.json` (Windows: `%USERPROFILE%\.claude\settings.json`) | you, every project on this box | no |
 
-> ⚠ **Phone reminder:** the cloud container has no editable global. Before a code-heavy phone/web session, confirm that repo's **committed** `.claude/settings.json` matches the master — that file is the only thing that reaches the container.
+**There is no user-level local file.** The policy belongs in **user** and **shared project**; per-project exceptions go in **project local**, which is why the master comparison can be strict.
+
+### Distribution (DEC-S051)
+
+Still by hand, but it now tells you when it is needed and repairs itself safely:
+
+```
+node dev/claude/scripts/settings-policy.mjs --all .      # check both levels for this repo + box
+node dev/claude/scripts/settings-policy.mjs --write <path>
+```
+
+`/its-alive` Step 8.6 runs the check at session start, so **every machine checks itself, every session** — there is no fleet ledger to maintain and nothing to remember. A machine you are not sitting at cannot be read (DEC-S044) and is also the one you cannot fix.
+
+> ⚠ **Never `cp` the master over a user settings file.** The master has one top-level key; a real settings file has several. That copy destroyed mill-dev's `SessionEnd` capture hook, its theme and its effort level, and went unnoticed for four days. `--write` replaces the `permissions` key, preserves every other key, and backs the file up first.
+
+**Why the committed file earns its place** (DEC-S023, rationale updated DEC-S051): it is the only policy that **travels with the repo**. A fresh machine — or bee-grace before its user settings were installed — has no user-level file at all, and the committed one stands in until someone sets it up. Seven repos were in exactly that state.
+
+It used to be justified as the only policy a browser/web session gets, since a session running on Anthropic's hardware has no user settings file. That scenario no longer arises here: repo-backed work goes through Remote Control, which drives a session on one of the three machines above and inherits that machine's user settings.
+
+Permissions are read once at launch, so a repair applies at the **next** session, not the running one.
 
 ### Learning loop — the capture hook (DEC-S045)
 
-The `SessionEnd` hook that feeds `/read-the-tape --queue` is **user-global only**, and rides the same hand-distribution as the policy above. It must **not** go in a repo's committed `.claude/settings.json`: that file reaches the cloud container, which has no durable filesystem and no seeds checkout, so the hook there would fire on every session to no effect.
+The `SessionEnd` hook that feeds `/read-the-tape --queue` goes in **user settings only**, and rides the same hand-distribution as the policy above. It must **not** go in a repo's committed `.claude/settings.json`: that file reaches the cloud container, which has no durable filesystem and no seeds checkout, so the hook there would fire on every session to no effect.
 
 Install:
 
