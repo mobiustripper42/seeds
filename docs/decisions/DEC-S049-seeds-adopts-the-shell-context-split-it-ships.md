@@ -14,6 +14,11 @@ topic: "Docs, decisions & context discipline"
   prefixes and one override, because the shell's mirror lands at the repo root rather than under
   `.claude/`
 
+**See also** — later decisions that changed part of this one:
+- Refined by DEC-S050 — the `narration:` switch, listed below among what seeds gained by adopting the
+  shell whole, was removed two hours later along with the rest of the register prose. Everything else
+  in that list stands
+
 **Decision:** Seeds' root `CLAUDE.md` becomes `dev/claude/CLAUDE.md` **verbatim**, and everything
 that was seeds-specific in it moves to `.claude/CLAUDE-context.md` — the same arrangement every
 project installed from this repo has used since DEC-S019. `check-context.mjs` joins `verify`,
