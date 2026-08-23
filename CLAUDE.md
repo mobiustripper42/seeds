@@ -250,37 +250,19 @@ Occasional dry humor and sarcasm welcome. One good line beats three forced ones.
 
 ## Communication
 
-**Pick the kind of reply before writing it, and say which.** Open every reply with the bare word — `Lookup.`, `Action.`, `Judgment.`, `Session summary.` — then the reply. "Be concise" is a disposition and it erodes over a session; this is a discrete choice, and stating it makes the choice a commitment rather than a private intention.
+**Register — length, shape, preamble, when to expand — is set by the `Concise` output style, not by this file** (DEC-S050). Set `"outputStyle": "Concise"` in `.claude/settings.local.json`; it needs Claude Code v2.1.237+ and takes effect at the next session start, never mid-session. The rules below are the ones `Concise` says nothing about.
 
-> **The tag is on trial (added 2026-08-09) and is meant to be judged, not accreted.** It was left out of the first version as clutter, and put in after a session answered a Lookup — *"is there a way to add a project board?"* — with commands, a caveat, and an unsolicited paragraph on boards being a third place task state lives. Asked afterwards, that session diagnosed its own violation exactly: right rule, right bullet, applied only in hindsight. The classification was available and simply not consulted while writing. A tag forces consulting it, because you cannot emit the word without deciding.
->
-> **The test, and it is a real one:** count the replies where the tag and the shape disagree — `Lookup.` above four paragraphs, `Action.` above a recap. Near zero, keep it. Routine, the tag is theatre and it goes, along with this note. Say which after a session rather than letting it become furniture.
+**Do not re-add register prose here.** This section was 976 words of it — a tag on every reply, four named reply kinds, a length permit for the hard ones — and it worked sometimes. It lives in a user message that decays over a session; the style lives in the system prompt and fires adherence reminders during the conversation. If `Concise` turns out to be missing something, the answer is a custom output style, which **replaces** the built-in rather than supplementing it — not another paragraph in this file.
 
-- **Lookup** — *where is that file, did the migration run, what's the current value.* The answer is a fact. Give it in a line or two and stop. **Hard cap: do not add the extra sentence even when it is true and relevant** — that sentence is always true and relevant, which is why nothing ever cuts it. If the fact took work, cite where you got it on the same line.
-- **Action** — *you did the thing; report what happened.* Result first, then only what **changes what I do next**: a blocker, a surprise, something I'm about to trip over, a thing you did differently than asked. Nothing else — no recap of work I just watched, no restatement of the task, no summary of your reasoning. Specifically: **one artifact** (a commit list, a diagram and a consequence paragraph in one reply makes me work out which is the answer), and **don't bolt on the adjacent concern** you noticed while answering — raise it after, in one line, or not at all.
-- **Judgment** — *why did this fail, which approach, what's the tradeoff.* The reasoning **is** the answer; a one-liner is useless. Explain at whatever length it takes. Do not compress a real explanation to look terse — that costs three follow-ups to reassemble. The complaint is never that you explained something; it is explaining the answer to a question I could have grepped.
-- **Session summary** — end of turn: one or two sentences, what changed and what's next. First thing I read next session. If a turn ends with a bullet list plus three paragraphs, the prose is wrong.
-
-Unsure which? If one tool call and no thinking would have answered it, it's Lookup.
-
-**One message can hold more than one kind. Answer each in its own, and tag each.** A message asking *"is there a way to add a board? and spec 3.3"* is a Lookup and a Judgment — the Lookup gets its word and its cap, the Judgment gets its length, under separate tags. **Do not let the longer one set the register for both.** That is what happened the first time this failed: the spec review genuinely warranted Judgment length, and the one-word question sitting next to it was answered in the same voice, so it took a second ask to get "yes". A Lookup does not stop being a Lookup because something harder arrived in the same message.
-
-**In all four, the first line is the answer** — not the route you took to it. Reasoning goes after the conclusion, never in front.
-
-**When I push back, say less — never explain.** "Trim", "again", "too many words", "this is confusing": re-answer shorter, immediately. Explaining why the confusing thing was confusing is the same failure recursing, and it reads as arguing. Asked "do you have any idea how confusing this is?", a session replied with four more paragraphs and an unprompted offer to redesign the project.
+**Within a session, just ask** — `Concise` answers in full when you ask for detail. Changing style is a per-session act: set it, then start a new session; it is read once at session start and never applies mid-turn. `Explanatory` suits design and planning, where you want insight volunteered rather than requested.
 
 **Never lead with a false premise.** If you don't know the cause, ask — "is the server up? which DB?" is one line and fair. What's banned is stating a made-up cause as fact and explaining at length on top of it.
 
-**Ask in prose. Never use the `AskUserQuestion` tool.** A branching decision with three named options and a recommendation is a fine *question* and a bad *picker* — write it out and let me answer in words. This is a standing preference across every repo, and it is written here because that is the only place a session in this repo can see it: it previously lived in one project's agent memory, where six uses across three other projects went on being invisible to it.
+**Ask in prose. Never use the `AskUserQuestion` tool.** A branching decision with three named options and a recommendation is a fine *question* and a bad *picker* — write it out and let me answer in words. A standing preference across every repo, written here because this is the only place a session can see it.
 
 **Cite facts; label proposals.** Any claim about the code, config or project rules cites a file:line or a tool result. If you can't cite it, ask instead of asserting. This never restricts *ideas* — propose freely, just mark them "proposed / not in the codebase". Inventing a fact is fabrication; a labelled proposal is not.
 
-**Narration** — switchable; name the level and I'll hold it (`narration: terse|normal|narrate`):
-- **Terse** (default): silence between tool calls; one sentence when you find something, change direction, or hit a blocker. No "Now I'll…", no recapping what I just watched.
-- **Normal**: brief progress notes at meaningful steps.
-- **Narrate**: reasoning as you go — for teaching or a tricky change.
-
-Keep adaptive thinking on — reasoning stays in the thinking block and the reply stays clean; lower `effort` (`low`/`medium`) trims preamble further.
+Keep adaptive thinking on — reasoning stays in the thinking block and the reply stays clean.
 
 ## Cost and Waste
 
