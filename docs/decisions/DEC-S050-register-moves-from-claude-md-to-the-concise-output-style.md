@@ -16,7 +16,7 @@ topic: "Docs, decisions & context discipline"
   over a session"* and that the durable bite is a per-surface guard. This is the first time a surface
   other than prose was available for a whole class of rule
 
-**Decision:** The shell's `## Communication` drops from **976 words to 352** — about a third of it the
+**Decision:** The shell's `## Communication` drops from **976 words to 376** — about a third of it the
 three surviving rules, the rest a note explaining where register now lives and why nobody should put
 it back here. Everything about
 register — reply length, shape, preamble, when to expand, the four reply kinds and the tag that
@@ -77,11 +77,22 @@ makes distribution part of this decision rather than a follow-up: a project rece
 shell **without** the style set loses the register rules and gains nothing. **Ship the shell edit and
 set `outputStyle` in the same visit, per repo.**
 
-**Where `Explanatory` fits.** Design, planning and brainstorming want the opposite of `Concise` — it
-volunteers insight rather than waiting to be asked. Switching is a per-session act: the style is read
-once at session start and takes effect after `/clear` or a new session, never mid-turn. That is a real
-constraint, and it happens to match how phases already run — planning sessions and build sessions are
-already different sessions.
+**Where `Explanatory` fits, and why the shell stops recommending it.** Design and planning want the
+opposite of `Concise` — a style that volunteers insight rather than waiting to be asked — and
+switching is a per-session act, since the style is read once at session start and never applies
+mid-turn. The first draft of this change told every project to use `Explanatory` for design work.
+**Review killed that**, with evidence from this machine: Anthropic's official plugin marketplace ships
+`plugins/explanatory-output-style` and `plugins/learning-output-style`, each manifest authored by
+Anthropic and describing its target as *"the deprecated Explanatory output style"* / Learning. There
+is **no `concise-output-style` plugin**. Verified directly in
+`~/.claude/plugins/marketplaces/claude-plugins-official/`; all three styles are still `built-in` in
+v2.1.238, so nothing here is false yet — but two of the four built-ins are on a stated removal path
+and `Concise` is not one of them.
+
+Recommending a deprecated built-in in a file copied verbatim into every project is the dead-reference
+class this repo fixed a day earlier (DEC-S049). The shell now states the mechanism — ask for detail
+in-session, switch styles between sessions — and names the deprecation instead of building a habit on
+it.
 
 **What this does not fix, stated so a quiet failure is not read as success:**
 
