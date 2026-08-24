@@ -321,12 +321,13 @@ function write(path) {
   // Re-read rather than assume the write took. Same reason check-mirrors re-runs after --write:
   // "I wrote it" and "the file matches" are different claims.
   const after = readJson(path)
-  if (!after.ok || !same(after.value.permissions, masterPerms)) {
+  const styleOk = !styleWritten || after.ok === true && after.value.outputStyle === master.value.outputStyle
+  if (!after.ok || !same(after.value.permissions, masterPerms) || !styleOk) {
     console.error(`settings-policy: the file does not match the master after writing. Check ${path}.`)
     process.exit(1)
   }
-  console.log(`  verified: permissions now match the master`)
-  console.log(`  Takes effect at the NEXT session start — permissions are read once, at launch.`)
+  console.log(`  verified: ${written.join(' + ')} now match the master`)
+  console.log(`  Takes effect at the NEXT session start — settings are read once, at launch.`)
   process.exit(0)
 }
 
