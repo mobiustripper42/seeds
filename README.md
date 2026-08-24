@@ -59,10 +59,11 @@ Per box, once. Everything below lives outside any repo, so none of it arrives by
 ```
 git clone git@github.com:mobiustripper42/seeds.git          # 1. nothing reports until seeds is here
 cd seeds
-node dev/claude/scripts/settings-policy.mjs                 # 2. names everything that's missing
+mkdir -p ~/.claude                                          # 2. --write refuses a missing parent dir
+node dev/claude/scripts/settings-policy.mjs                 # 3. names everything that's missing
 ```
 
-Step 2 is the checklist — it reports each item below as absent and prints the fix. Work through what it says:
+Step 3 is the checklist — it reports each item below as absent and prints the fix. Work through what it says:
 
 | # | What | How |
 |---|---|---|
@@ -70,7 +71,7 @@ Step 2 is the checklist — it reports each item below as absent and prints the 
 | 2 | **Dev handle** | `echo <yourhandle> > ~/.claude/devname` — one line, used in session filenames so two machines never collide |
 | 3 | **Capture hook** | Copy `dev/claude/scripts/tape-capture.sh` to `~/.claude/`, `chmod +x`, then wire a `SessionEnd` hook in `~/.claude/settings.json` pointing at it. Full steps in § Learning loop below. Not repaired by `--write` |
 
-Re-run step 2 until it prints `Current.` **Permissions and `outputStyle` are read once at launch**, so start a new session before trusting the result.
+Re-run step 3 until it prints `Current.` **Permissions and `outputStyle` are read once at launch**, so start a new session before trusting the result.
 
 After that, `/its-alive` Step 8.6 runs the same check every session in any repo carrying the current skill — the machine reports on itself from then on.
 
@@ -105,7 +106,7 @@ node dev/claude/scripts/settings-policy.mjs --write <path>
 
 `/its-alive` Step 8.6 runs the check at session start, so **every machine checks itself, every session** — there is no fleet ledger to maintain and nothing to remember. A machine you are not sitting at cannot be read (DEC-S044) and is also the one you cannot fix.
 
-> ⚠ **Never `cp` the master over a user settings file.** The master has one top-level key; a real settings file has several. That copy destroyed mill-dev's `SessionEnd` capture hook, its theme and its effort level, and went unnoticed for four days. `--write` replaces the `permissions` key, preserves every other key, and backs the file up first.
+> ⚠ **Never `cp` the master over a user settings file.** The master has one top-level key; a real settings file has several. That copy destroyed mill-dev's `SessionEnd` capture hook, its theme and its effort level, and went unnoticed for four days. `--write` replaces the `permissions` key — plus `outputStyle` when the target is the user settings file — preserves every other key, and backs the file up first.
 
 **Why the committed file earns its place** (DEC-S023, rationale updated DEC-S051): it is the only policy that **travels with the repo**. A fresh machine — or bee-grace before its user settings were installed — has no user-level file at all, and the committed one stands in until someone sets it up. Seven repos were in exactly that state.
 

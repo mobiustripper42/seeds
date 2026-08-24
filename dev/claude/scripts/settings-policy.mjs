@@ -38,7 +38,7 @@
  * Exit: 0 = current; 1 = stale, absent or unreadable; 2 = usage error.
  */
 
-import { readFileSync, writeFileSync, existsSync, copyFileSync } from 'node:fs'
+import { readFileSync, writeFileSync, existsSync, copyFileSync, statSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { homedir } from 'node:os'
 import { fileURLToPath } from 'node:url'
@@ -204,13 +204,26 @@ function hookProblems(doc) {
   const devname = join(homedir(), '.claude', 'devname')
   if (!existsSync(devname)) out.push(`      ${devname}: missing — session filenames need a dev handle`)
 
-  const commands = (doc.hooks?.SessionEnd ?? []).flatMap((e) => (e.hooks ?? []).map((h) => h.command))
-  if (!commands.length) out.push(`      SessionEnd hook: not wired — transcripts are never captured (DEC-S045)`)
+  const commands = (doc.hooks?.SessionEnd ?? [])
+    .flatMap((e) => e.hooks ?? [])
+    .filter((h) => h.type === 'command')
+    .map((h) => h.command)
+  if (!commands.length) out.push(`      SessionEnd hook: no command hook wired — transcripts are never captured (DEC-S045)`)
   else if (!commands.includes(want)) out.push(`      SessionEnd hook: wired to ${commands.join(', ')} — expected ${want}`)
 
   if (!existsSync(want)) out.push(`      ${want}: missing`)
-  else if (existsSync(template) && readFileSync(want, 'utf8') !== readFileSync(template, 'utf8'))
-    out.push(`      ${want}: differs from the template — diff it against ${rel(new URL(`file://${template}`))}`)
+  else {
+    try {
+      if (existsSync(template) && readFileSync(want, 'utf8') !== readFileSync(template, 'utf8'))
+        out.push(`      ${want}: differs from the template — diff it against ${rel(new URL(`file://${template}`))}`)
+      // A hook script that is not executable is the silent version of this failure: the content
+      // is right, the wiring is right, and the hook never fires. Reporting it "current" would be
+      // exactly the capture loss DEC-S045 exists to prevent.
+      if (!(statSync(want).mode & 0o111)) out.push(`      ${want}: not executable — the hook will never run. chmod +x it`)
+    } catch (e) {
+      out.push(`      ${want}: unreadable — ${e.message}`)
+    }
+  }
 
   if (out.length) out.push(`      Install by hand, on this machine — see README.md § Learning loop. Not repaired by --write.`)
   return out
@@ -287,15 +300,18 @@ function write(path) {
     const dir = resolve(path, '..')
     if (!existsSync(dir)) die(`refusing to write: ${dir} does not exist. Create it first.`)
   }
-  const preserved = Object.keys(doc).filter((k) => k !== 'permissions')
   doc.permissions = JSON.parse(JSON.stringify(masterPerms))
   // `outputStyle` rides along ONLY when repairing the user settings file — it is a machine
   // preference (DEC-S050 as amended), and writing it into a repo's committed file would put a
   // per-repo override where none is wanted.
   const styleWritten = resolve(path) === resolve(USER_SETTINGS) && master.value.outputStyle
   if (styleWritten) doc.outputStyle = master.value.outputStyle
+  // Computed AFTER the writes, so a key this run overwrote is never listed as "untouched" —
+  // it read as reassurance about the exact key that had just changed.
+  const written = ['permissions', ...(styleWritten ? ['outputStyle'] : [])]
+  const preserved = Object.keys(doc).filter((k) => !written.includes(k))
   writeFileSync(path, `${JSON.stringify(doc, null, 2)}\n`)
-  console.log(`settings-policy: wrote the master permissions into ${path}`)
+  console.log(`settings-policy: wrote ${written.join(' + ')} into ${path}`)
   console.log(`  ${backup ? `backed up to ${backup}` : 'created (no previous file)'}`)
   console.log(
     preserved.length
