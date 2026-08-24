@@ -14,12 +14,46 @@ topic: "Tooling & safety"
   are sitting at, which is the only one you can fix
 - Extends DEC-S040 — same shape as `drift.mjs` at session start: read-only, reports, never acts
 
-**Decision:** A new seeds script, `dev/claude/scripts/settings-policy.mjs`, compares the
-**`permissions` key only** against the master at `dev/claude/settings.json`, in the two files that
-govern a session: `~/.claude/settings.json` (**user settings**) and `<repo>/.claude/settings.json`
-(**shared project**). `/its-alive` runs it at Step 8.6 beside the drift check and reports only when
-something is not current. `--write` repairs one target by **merging** the policy in, preserving every
-other key.
+**Decision:** A new seeds script, `dev/claude/scripts/settings-policy.mjs`, reports what a machine is
+missing, checked against the master at `dev/claude/settings.json`. `/its-alive` runs it at Step 8.6
+beside the drift check and reports only when something is not current. `--write` repairs one target
+by **merging**, preserving every other key.
+
+| checked | where | repairable by `--write` |
+|---|---|---|
+| `permissions` | user settings + shared project | yes |
+| `outputStyle`, `theme`, `effortLevel`, `tui`, `agentPushNotifEnabled`, `enabledPlugins` | user settings only | yes |
+| `SessionEnd` capture hook + its script (DEC-S045) | user settings only | **no** |
+| `~/.claude/devname` | the machine | **no** |
+
+**The machine keys are read at the user level only**, which means a deliberate per-repo override in
+`.claude/settings.local.json` — `Explanatory` while designing, say — is correctly invisible to the
+check rather than reported as drift.
+
+**"They could differ" is not "they do differ", and the first version got that wrong.** This decision
+originally managed `outputStyle` alone and dismissed `theme`, `effortLevel`, `tui`,
+`agentPushNotifEnabled` and `enabledPlugins` as taste, on the argument that two machines could
+legitimately want different values. The operator's answer settled it: they could, and they don't —
+there was no case, ever, where a difference had been chosen.
+
+**And the cost of allowing an unchosen difference turned out to be measured, the same afternoon.**
+mill-dev had `tui: "fullscreen"`; bee-grace's user settings file contained **only** `permissions` and
+`hooks` — none of the five keys existed there at all. Different TUI mode means the terminal hands off
+mouse events differently, which is why text selection behaved differently on one machine, and why
+most of an afternoon went into chasing it through tmux configuration where the cause was not. **A
+difference nobody chose is not a preference; it is drift wearing a preference's clothes.**
+
+`enabledPlugins` was the one I held back longest, on the theory that it names plugins which must be
+installed on the box. Its actual content is three official-marketplace names, all `false` — no local
+paths, nothing machine-specific. The theory had no instance behind it either.
+
+**The hook is the one that cannot be a copied value.** Its `command` is an absolute path and the home
+directory differs per machine (`/home/eric/…` on mill-dev, `/home/estoffer/…` on bee-grace), so the
+expected value is *derived* — `<home>/.claude/tape-capture.sh` — and the script it points at is
+compared byte-for-byte against the template. It is reported and never repaired: installing it copies
+a script, marks it executable, and only then wires the entry, which is a session on that machine.
+`--write` is deliberately not offered under a hook-only failure, because a repair command printed
+beneath a problem it does not repair gets run, reports success, and leaves the problem there.
 
 **The state this was built against, measured 2026-08-22.** Seventeen checkouts, four live generations
 of the policy: three repos current at 78 deny, one at 87 carrying rules the harness ignores, three at

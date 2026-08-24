@@ -38,7 +38,7 @@
  * Exit: 0 = current; 1 = stale, absent or unreadable; 2 = usage error.
  */
 
-import { readFileSync, writeFileSync, existsSync, copyFileSync } from 'node:fs'
+import { readFileSync, writeFileSync, existsSync, copyFileSync, statSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { homedir } from 'node:os'
 import { fileURLToPath } from 'node:url'
@@ -159,8 +159,87 @@ function describe(theirs) {
   return lines
 }
 
+/**
+ * Keys the master owns at the USER level, and nowhere else.
+ *
+ * These are machine preferences, not repo ones: one edit covers every checkout on the box and a
+ * new clone inherits it. They are checked at the user level only, which also means a deliberate
+ * per-repo override in `.claude/settings.local.json` is correctly invisible rather than reported
+ * as drift.
+ *
+ * **Why all of them and not just `outputStyle`.** The first version managed `outputStyle` alone and
+ * called the rest taste, on the argument that two machines *could* legitimately differ. The
+ * operator's answer: they could, and they don't — and the cost of letting them is not theoretical.
+ * `tui: "fullscreen"` was set here and unset on bee-grace, which changes how the terminal hands off
+ * mouse events, which is why text selection behaved differently on one machine and cost most of an
+ * afternoon to chase. A difference nobody chose is not a preference, it is drift wearing a
+ * preference's clothes.
+ *
+ * `hooks` is the one key that stays out, and not by taste: the capture hook's `command` is an
+ * absolute path and the home directory differs per machine (`/home/eric/…` here,
+ * `/home/estoffer/…` on bee-grace — both confirmed on disk). It cannot be one shared value, so it
+ * is derived instead. See `hookProblems`.
+ */
+const MACHINE_KEYS = ['outputStyle', 'theme', 'effortLevel', 'tui', 'agentPushNotifEnabled', 'enabledPlugins']
+function machineKeyProblems(doc) {
+  return MACHINE_KEYS.filter((k) => master.value[k] !== undefined)
+    .filter((k) => !same(doc[k], master.value[k]))
+    .map((k) =>
+      doc[k] === undefined
+        ? `      ${k}: not set — master expects ${JSON.stringify(master.value[k])}`
+        : `      ${k}: ${JSON.stringify(doc[k])} — master expects ${JSON.stringify(master.value[k])}`
+    )
+}
+
+/**
+ * The `SessionEnd` capture hook (DEC-S045), checked at the USER level only — it must never go in a
+ * repo's committed settings, which would install it everywhere to no effect.
+ *
+ * Unlike `outputStyle` this has no fixed master value: the `command` is an absolute path and the
+ * home directory differs per machine (`/home/eric/…` here, `/home/estoffer/…` on bee-grace). So the
+ * expected value is *derived* — `<home>/.claude/tape-capture.sh` — and the script it points at is
+ * compared byte-for-byte against the template seeds ships.
+ *
+ * Reported, never repaired. Installing a hook is more than a JSON merge: it copies a script,
+ * marks it executable, and only then wires the entry. That is a session on the machine, by hand.
+ */
+function hookProblems(doc) {
+  const want = join(homedir(), '.claude', 'tape-capture.sh')
+  const template = join(SEEDS, 'dev', 'claude', 'scripts', 'tape-capture.sh')
+  const out = []
+
+  // A new machine also needs this, and nothing else reports it: the session skills read the dev
+  // handle from here and it is the one file with no template and no default.
+  const devname = join(homedir(), '.claude', 'devname')
+  if (!existsSync(devname)) out.push(`      ${devname}: missing — session filenames need a dev handle`)
+
+  const commands = (doc.hooks?.SessionEnd ?? [])
+    .flatMap((e) => e.hooks ?? [])
+    .filter((h) => h.type === 'command')
+    .map((h) => h.command)
+  if (!commands.length) out.push(`      SessionEnd hook: no command hook wired — transcripts are never captured (DEC-S045)`)
+  else if (!commands.includes(want)) out.push(`      SessionEnd hook: wired to ${commands.join(', ')} — expected ${want}`)
+
+  if (!existsSync(want)) out.push(`      ${want}: missing`)
+  else {
+    try {
+      if (existsSync(template) && readFileSync(want, 'utf8') !== readFileSync(template, 'utf8'))
+        out.push(`      ${want}: differs from the template — diff it against ${rel(new URL(`file://${template}`))}`)
+      // A hook script that is not executable is the silent version of this failure: the content
+      // is right, the wiring is right, and the hook never fires. Reporting it "current" would be
+      // exactly the capture loss DEC-S045 exists to prevent.
+      if (!(statSync(want).mode & 0o111)) out.push(`      ${want}: not executable — the hook will never run. chmod +x it`)
+    } catch (e) {
+      out.push(`      ${want}: unreadable — ${e.message}`)
+    }
+  }
+
+  if (out.length) out.push(`      Install by hand, on this machine — see README.md § Learning loop. Not repaired by --write.`)
+  return out
+}
+
 /** @returns {'current'|'stale'|'absent'|'unreadable'} */
-function check(label, path) {
+function check(label, path, { style = false } = {}) {
   if (!existsSync(path)) {
     console.log(`  ABSENT   ${label}`)
     console.log(`           ${path}`)
@@ -181,14 +260,21 @@ function check(label, path) {
     console.log(`           Fix: node ${rel(import.meta.url)} --write ${path}`)
     return 'stale'
   }
-  if (same(perms, masterPerms)) {
+  const keyIssues = style ? machineKeyProblems(got.value) : []
+  const hookIssues = style ? hookProblems(got.value) : []
+  if (same(perms, masterPerms) && !keyIssues.length && !hookIssues.length) {
     console.log(`  current  ${label}`)
     return 'current'
   }
   console.log(`  STALE    ${label}`)
   console.log(`           ${path}`)
   for (const l of describe(perms)) console.log(l)
-  console.log(`           Fix: node ${rel(import.meta.url)} --write ${path}`)
+  for (const l of keyIssues) console.log(l)
+  for (const l of hookIssues) console.log(l)
+  // Only offer --write when --write can actually fix what was reported. The hook is not one of
+  // those things, and a repair command printed under a problem it does not repair is worse than
+  // no command: it gets run, it reports success, and the problem is still there.
+  if (!same(perms, masterPerms) || keyIssues.length) console.log(`           Fix: node ${rel(import.meta.url)} --write ${path}`)
   return 'stale'
 }
 
@@ -223,10 +309,19 @@ function write(path) {
     const dir = resolve(path, '..')
     if (!existsSync(dir)) die(`refusing to write: ${dir} does not exist. Create it first.`)
   }
-  const preserved = Object.keys(doc).filter((k) => k !== 'permissions')
   doc.permissions = JSON.parse(JSON.stringify(masterPerms))
+  // The machine keys ride along ONLY when repairing the user settings file — they are machine
+  // preferences, and writing them into a repo's committed file would put per-repo overrides
+  // where none are wanted.
+  const isUser = resolve(path) === resolve(USER_SETTINGS)
+  const keysWritten = isUser ? MACHINE_KEYS.filter((k) => master.value[k] !== undefined) : []
+  for (const k of keysWritten) doc[k] = JSON.parse(JSON.stringify(master.value[k]))
+  // Computed AFTER the writes, so a key this run overwrote is never listed as "untouched" —
+  // it read as reassurance about the exact key that had just changed.
+  const written = ['permissions', ...keysWritten]
+  const preserved = Object.keys(doc).filter((k) => !written.includes(k))
   writeFileSync(path, `${JSON.stringify(doc, null, 2)}\n`)
-  console.log(`settings-policy: wrote the master permissions into ${path}`)
+  console.log(`settings-policy: wrote ${written.join(' + ')} into ${path}`)
   console.log(`  ${backup ? `backed up to ${backup}` : 'created (no previous file)'}`)
   console.log(
     preserved.length
@@ -236,12 +331,13 @@ function write(path) {
   // Re-read rather than assume the write took. Same reason check-mirrors re-runs after --write:
   // "I wrote it" and "the file matches" are different claims.
   const after = readJson(path)
-  if (!after.ok || !same(after.value.permissions, masterPerms)) {
+  const keysOk = after.ok === true && keysWritten.every((k) => same(after.value[k], master.value[k]))
+  if (!after.ok || !same(after.value.permissions, masterPerms) || !keysOk) {
     console.error(`settings-policy: the file does not match the master after writing. Check ${path}.`)
     process.exit(1)
   }
-  console.log(`  verified: permissions now match the master`)
-  console.log(`  Takes effect at the NEXT session start — permissions are read once, at launch.`)
+  console.log(`  verified: ${written.join(' + ')} now match the master`)
+  console.log(`  Takes effect at the NEXT session start — settings are read once, at launch.`)
   process.exit(0)
 }
 
@@ -251,7 +347,7 @@ console.log(`  master: ${masterPerms.allow?.length ?? 0} allow, ${masterPerms.de
 if (mode === 'write') write(resolve(writeTarget ?? USER_SETTINGS)) // exits
 
 const results = []
-if (mode === 'user' || mode === 'all') results.push(check('user settings   (this machine, every project)', USER_SETTINGS))
+if (mode === 'user' || mode === 'all') results.push(check('user settings   (this machine, every project)', USER_SETTINGS, { style: true }))
 if (mode === 'repo' || mode === 'all') results.push(check('shared project  (committed; travels with the repo)', REPO_SETTINGS))
 
 const bad = results.filter((r) => r !== 'current').length
