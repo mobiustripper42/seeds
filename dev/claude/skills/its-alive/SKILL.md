@@ -253,7 +253,16 @@ Same resolved seeds checkout, one more read-only command:
 node <seeds>/dev/claude/scripts/settings-policy.mjs --all .
 ```
 
-It compares the **`permissions` key only** against `dev/claude/settings.json` — the master (DEC-S023) — in the two places that govern this session: `~/.claude/settings.json` (**user settings**, this machine, every project) and `<repo>/.claude/settings.json` (**shared project**, committed, and the only policy that travels with the repo).
+It compares against `dev/claude/settings.json` — the master (DEC-S023) — in the two places that govern this session: `~/.claude/settings.json` (**user settings**, this machine, every project) and `<repo>/.claude/settings.json` (**shared project**, committed, and the only policy that travels with the repo).
+
+| checked | where | repairable by `--write` |
+|---|---|---|
+| `permissions` | both levels | yes |
+| `outputStyle` | user settings only — it's a machine preference (DEC-S050) | yes |
+| `SessionEnd` capture hook + its script | user settings only (DEC-S045) | **no** — install by hand |
+| `~/.claude/devname` | the machine | **no** |
+
+A deliberate per-repo `outputStyle` override in `.claude/settings.local.json` is **not** reported: the check reads that key at the user level only.
 
 **Report only when something is not current.** Silence on `Current.`, same reason as Step 8.5.
 

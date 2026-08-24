@@ -159,8 +159,65 @@ function describe(theirs) {
   return lines
 }
 
+/**
+ * `outputStyle` is checked at the USER level only, and nowhere else.
+ *
+ * It is the one non-permission key with a single fleet-wide right answer: it sets register
+ * (DEC-S050) and that is a workflow decision, not a per-machine taste. `theme`, `effortLevel`,
+ * `tui` and `enabledPlugins` are taste and have no fleet value. `hooks` would be one — except the
+ * capture hook's command is an absolute path that differs per machine (`/home/eric/…` here,
+ * `/home/estoffer/…` on bee-grace), so it cannot be a single shared value and is not attempted.
+ *
+ * User level only because a machine preference belongs on the machine: one edit covers every repo
+ * on the box and a new checkout inherits it. Putting it per-repo was the mistake this check exists
+ * to stop repeating.
+ */
+function outputStyleProblem(doc) {
+  const want = master.value.outputStyle
+  if (!want) return null
+  const got = doc.outputStyle
+  if (got === want) return null
+  return got === undefined
+    ? `      outputStyle: not set — master expects ${JSON.stringify(want)}`
+    : `      outputStyle: ${JSON.stringify(got)} — master expects ${JSON.stringify(want)}`
+}
+
+/**
+ * The `SessionEnd` capture hook (DEC-S045), checked at the USER level only — it must never go in a
+ * repo's committed settings, which would install it everywhere to no effect.
+ *
+ * Unlike `outputStyle` this has no fixed master value: the `command` is an absolute path and the
+ * home directory differs per machine (`/home/eric/…` here, `/home/estoffer/…` on bee-grace). So the
+ * expected value is *derived* — `<home>/.claude/tape-capture.sh` — and the script it points at is
+ * compared byte-for-byte against the template seeds ships.
+ *
+ * Reported, never repaired. Installing a hook is more than a JSON merge: it copies a script,
+ * marks it executable, and only then wires the entry. That is a session on the machine, by hand.
+ */
+function hookProblems(doc) {
+  const want = join(homedir(), '.claude', 'tape-capture.sh')
+  const template = join(SEEDS, 'dev', 'claude', 'scripts', 'tape-capture.sh')
+  const out = []
+
+  // A new machine also needs this, and nothing else reports it: the session skills read the dev
+  // handle from here and it is the one file with no template and no default.
+  const devname = join(homedir(), '.claude', 'devname')
+  if (!existsSync(devname)) out.push(`      ${devname}: missing — session filenames need a dev handle`)
+
+  const commands = (doc.hooks?.SessionEnd ?? []).flatMap((e) => (e.hooks ?? []).map((h) => h.command))
+  if (!commands.length) out.push(`      SessionEnd hook: not wired — transcripts are never captured (DEC-S045)`)
+  else if (!commands.includes(want)) out.push(`      SessionEnd hook: wired to ${commands.join(', ')} — expected ${want}`)
+
+  if (!existsSync(want)) out.push(`      ${want}: missing`)
+  else if (existsSync(template) && readFileSync(want, 'utf8') !== readFileSync(template, 'utf8'))
+    out.push(`      ${want}: differs from the template — diff it against ${rel(new URL(`file://${template}`))}`)
+
+  if (out.length) out.push(`      Install by hand, on this machine — see README.md § Learning loop. Not repaired by --write.`)
+  return out
+}
+
 /** @returns {'current'|'stale'|'absent'|'unreadable'} */
-function check(label, path) {
+function check(label, path, { style = false } = {}) {
   if (!existsSync(path)) {
     console.log(`  ABSENT   ${label}`)
     console.log(`           ${path}`)
@@ -181,14 +238,21 @@ function check(label, path) {
     console.log(`           Fix: node ${rel(import.meta.url)} --write ${path}`)
     return 'stale'
   }
-  if (same(perms, masterPerms)) {
+  const styleIssue = style ? outputStyleProblem(got.value) : null
+  const hookIssues = style ? hookProblems(got.value) : []
+  if (same(perms, masterPerms) && !styleIssue && !hookIssues.length) {
     console.log(`  current  ${label}`)
     return 'current'
   }
   console.log(`  STALE    ${label}`)
   console.log(`           ${path}`)
   for (const l of describe(perms)) console.log(l)
-  console.log(`           Fix: node ${rel(import.meta.url)} --write ${path}`)
+  if (styleIssue) console.log(styleIssue)
+  for (const l of hookIssues) console.log(l)
+  // Only offer --write when --write can actually fix what was reported. The hook is not one of
+  // those things, and a repair command printed under a problem it does not repair is worse than
+  // no command: it gets run, it reports success, and the problem is still there.
+  if (!same(perms, masterPerms) || styleIssue) console.log(`           Fix: node ${rel(import.meta.url)} --write ${path}`)
   return 'stale'
 }
 
@@ -225,6 +289,11 @@ function write(path) {
   }
   const preserved = Object.keys(doc).filter((k) => k !== 'permissions')
   doc.permissions = JSON.parse(JSON.stringify(masterPerms))
+  // `outputStyle` rides along ONLY when repairing the user settings file — it is a machine
+  // preference (DEC-S050 as amended), and writing it into a repo's committed file would put a
+  // per-repo override where none is wanted.
+  const styleWritten = resolve(path) === resolve(USER_SETTINGS) && master.value.outputStyle
+  if (styleWritten) doc.outputStyle = master.value.outputStyle
   writeFileSync(path, `${JSON.stringify(doc, null, 2)}\n`)
   console.log(`settings-policy: wrote the master permissions into ${path}`)
   console.log(`  ${backup ? `backed up to ${backup}` : 'created (no previous file)'}`)
@@ -251,7 +320,7 @@ console.log(`  master: ${masterPerms.allow?.length ?? 0} allow, ${masterPerms.de
 if (mode === 'write') write(resolve(writeTarget ?? USER_SETTINGS)) // exits
 
 const results = []
-if (mode === 'user' || mode === 'all') results.push(check('user settings   (this machine, every project)', USER_SETTINGS))
+if (mode === 'user' || mode === 'all') results.push(check('user settings   (this machine, every project)', USER_SETTINGS, { style: true }))
 if (mode === 'repo' || mode === 'all') results.push(check('shared project  (committed; travels with the repo)', REPO_SETTINGS))
 
 const bad = results.filter((r) => r !== 'current').length

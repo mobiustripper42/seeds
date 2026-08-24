@@ -89,5 +89,6 @@
       "Read(**/id_rsa*)",
       "Edit(**/id_rsa*)"
     ]
-  }
+  },
+  "outputStyle": "Concise"
 }

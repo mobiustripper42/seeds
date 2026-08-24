@@ -14,12 +14,32 @@ topic: "Tooling & safety"
   are sitting at, which is the only one you can fix
 - Extends DEC-S040 — same shape as `drift.mjs` at session start: read-only, reports, never acts
 
-**Decision:** A new seeds script, `dev/claude/scripts/settings-policy.mjs`, compares the
-**`permissions` key only** against the master at `dev/claude/settings.json`, in the two files that
-govern a session: `~/.claude/settings.json` (**user settings**) and `<repo>/.claude/settings.json`
-(**shared project**). `/its-alive` runs it at Step 8.6 beside the drift check and reports only when
-something is not current. `--write` repairs one target by **merging** the policy in, preserving every
-other key.
+**Decision:** A new seeds script, `dev/claude/scripts/settings-policy.mjs`, reports what a machine is
+missing, checked against the master at `dev/claude/settings.json`. `/its-alive` runs it at Step 8.6
+beside the drift check and reports only when something is not current. `--write` repairs one target
+by **merging**, preserving every other key.
+
+| checked | where | repairable by `--write` |
+|---|---|---|
+| `permissions` | user settings + shared project | yes |
+| `outputStyle` | user settings only | yes |
+| `SessionEnd` capture hook + its script (DEC-S045) | user settings only | **no** |
+| `~/.claude/devname` | the machine | **no** |
+
+**Why those four and not the rest of the file.** `theme`, `effortLevel`, `tui` and `enabledPlugins`
+are taste — there is no fleet-wide right answer, so comparing them would manufacture drift. The four
+above each have exactly one correct state per machine. `outputStyle` is a **machine** preference
+rather than a repo one (one edit covers every checkout on the box, and a new clone inherits it), so
+it is read at the user level only — which also means a deliberate per-repo override in
+`.claude/settings.local.json` is correctly invisible to the check rather than reported as drift.
+
+**The hook is the one that cannot be a copied value.** Its `command` is an absolute path and the home
+directory differs per machine (`/home/eric/…` on mill-dev, `/home/estoffer/…` on bee-grace), so the
+expected value is *derived* — `<home>/.claude/tape-capture.sh` — and the script it points at is
+compared byte-for-byte against the template. It is reported and never repaired: installing it copies
+a script, marks it executable, and only then wires the entry, which is a session on that machine.
+`--write` is deliberately not offered under a hook-only failure, because a repair command printed
+beneath a problem it does not repair gets run, reports success, and leaves the problem there.
 
 **The state this was built against, measured 2026-08-22.** Seventeen checkouts, four live generations
 of the policy: three repos current at 78 deny, one at 87 carrying rules the harness ignores, three at

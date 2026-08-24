@@ -20,7 +20,9 @@ topic: "Docs, decisions & context discipline"
 three surviving rules, the rest a note explaining where register now lives and why nobody should put
 it back here. Everything about register — reply length, shape, preamble, when to expand, the four
 reply kinds and the tag that announced them — is deleted and handed to Claude Code's built-in **`Concise`** output style, set via
-`"outputStyle": "Concise"` in `.claude/settings.local.json`. What stays in `CLAUDE.md` is the three
+`"outputStyle": "Concise"` in **user settings** (`~/.claude/settings.json`) — a machine preference, so
+one edit covers every repo on the box, and a per-repo override goes in that repo's
+`.claude/settings.local.json`, which takes precedence (DEC-S051). What stays in `CLAUDE.md` is the three
 rules `Concise` says nothing about: **never lead with a false premise**, **ask in prose, never
 `AskUserQuestion`**, and **cite facts; label proposals**.
 

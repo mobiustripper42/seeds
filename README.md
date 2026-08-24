@@ -52,6 +52,30 @@ Non-dev domain templates. Nothing here yet — populated as domains get scaffold
 
 After setup, run `/its-alive` in the new project to start your first session.
 
+## Setup (new machine)
+
+Per box, once. Everything below lives outside any repo, so none of it arrives by `git pull`.
+
+```
+git clone git@github.com:mobiustripper42/seeds.git          # 1. nothing reports until seeds is here
+cd seeds
+node dev/claude/scripts/settings-policy.mjs                 # 2. names everything that's missing
+```
+
+Step 2 is the checklist — it reports each item below as absent and prints the fix. Work through what it says:
+
+| # | What | How |
+|---|---|---|
+| 1 | **Permissions + `outputStyle`** | `node dev/claude/scripts/settings-policy.mjs --write ~/.claude/settings.json` — merges the master's `permissions` and `outputStyle` into `~/.claude/settings.json`, preserving every other key. **Never `cp` the master over that file.** |
+| 2 | **Dev handle** | `echo <yourhandle> > ~/.claude/devname` — one line, used in session filenames so two machines never collide |
+| 3 | **Capture hook** | Copy `dev/claude/scripts/tape-capture.sh` to `~/.claude/`, `chmod +x`, then wire a `SessionEnd` hook in `~/.claude/settings.json` pointing at it. Full steps in § Learning loop below. Not repaired by `--write` |
+
+Re-run step 2 until it prints `Current.` **Permissions and `outputStyle` are read once at launch**, so start a new session before trusting the result.
+
+After that, `/its-alive` Step 8.6 runs the same check every session in any repo carrying the current skill — the machine reports on itself from then on.
+
+**Windows:** `~/.claude` is `%USERPROFILE%\.claude`. Node runs natively, no WSL needed.
+
 ## Permission settings (DEC-S023)
 
 **Posture: default-allow.** `dev/claude/settings.json` is the **master** — `allow` carries `Bash(*)`, and the **deny list is the only seatbelt** (`deny` beats `allow`, so dangerous/secret commands are blocked and everything else runs without prompting). Use `defaultMode: default`, never `bypassPermissions` (that turns the deny list off too).
