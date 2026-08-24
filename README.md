@@ -71,7 +71,7 @@ Step 3 is the checklist — it reports each item below as absent and prints the 
 | 2 | **Dev handle** | `echo <yourhandle> > ~/.claude/devname` — one line, used in session filenames so two machines never collide |
 | 3 | **Capture hook** | Copy `dev/claude/scripts/tape-capture.sh` to `~/.claude/`, `chmod +x`, then wire a `SessionEnd` hook in `~/.claude/settings.json` pointing at it. Full steps in § Learning loop below. Not repaired by `--write` |
 
-Re-run step 3 until it prints `Current.` **Permissions and `outputStyle` are read once at launch**, so start a new session before trusting the result.
+Re-run step 3 until it prints `Current.` **Permissions and the machine keys are read once at launch**, so start a new session before trusting the result.
 
 After that, `/its-alive` Step 8.6 runs the same check every session in any repo carrying the current skill — the machine reports on itself from then on.
 
