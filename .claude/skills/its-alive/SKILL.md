@@ -258,11 +258,11 @@ It compares against `dev/claude/settings.json` — the master (DEC-S023) — in 
 | checked | where | repairable by `--write` |
 |---|---|---|
 | `permissions` | both levels | yes |
-| `outputStyle` | user settings only — it's a machine preference (DEC-S050) | yes |
+| `outputStyle`, `theme`, `effortLevel`, `tui`, `agentPushNotifEnabled`, `enabledPlugins` | user settings only — machine preferences | yes |
 | `SessionEnd` capture hook + its script | user settings only (DEC-S045) | **no** — install by hand |
 | `~/.claude/devname` | the machine | **no** |
 
-A deliberate per-repo `outputStyle` override in `.claude/settings.local.json` is **not** reported: the check reads that key at the user level only.
+A deliberate per-repo override in `.claude/settings.local.json` — `Explanatory` while designing, say — is **not** reported: those keys are read at the user level only.
 
 **Report only when something is not current.** Silence on `Current.`, same reason as Step 8.5.
 

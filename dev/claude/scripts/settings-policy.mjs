@@ -160,26 +160,35 @@ function describe(theirs) {
 }
 
 /**
- * `outputStyle` is checked at the USER level only, and nowhere else.
+ * Keys the master owns at the USER level, and nowhere else.
  *
- * It is the one non-permission key with a single fleet-wide right answer: it sets register
- * (DEC-S050) and that is a workflow decision, not a per-machine taste. `theme`, `effortLevel`,
- * `tui` and `enabledPlugins` are taste and have no fleet value. `hooks` would be one — except the
- * capture hook's command is an absolute path that differs per machine (`/home/eric/…` here,
- * `/home/estoffer/…` on bee-grace), so it cannot be a single shared value and is not attempted.
+ * These are machine preferences, not repo ones: one edit covers every checkout on the box and a
+ * new clone inherits it. They are checked at the user level only, which also means a deliberate
+ * per-repo override in `.claude/settings.local.json` is correctly invisible rather than reported
+ * as drift.
  *
- * User level only because a machine preference belongs on the machine: one edit covers every repo
- * on the box and a new checkout inherits it. Putting it per-repo was the mistake this check exists
- * to stop repeating.
+ * **Why all of them and not just `outputStyle`.** The first version managed `outputStyle` alone and
+ * called the rest taste, on the argument that two machines *could* legitimately differ. The
+ * operator's answer: they could, and they don't — and the cost of letting them is not theoretical.
+ * `tui: "fullscreen"` was set here and unset on bee-grace, which changes how the terminal hands off
+ * mouse events, which is why text selection behaved differently on one machine and cost most of an
+ * afternoon to chase. A difference nobody chose is not a preference, it is drift wearing a
+ * preference's clothes.
+ *
+ * `hooks` is the one key that stays out, and not by taste: the capture hook's `command` is an
+ * absolute path and the home directory differs per machine (`/home/eric/…` here,
+ * `/home/estoffer/…` on bee-grace — both confirmed on disk). It cannot be one shared value, so it
+ * is derived instead. See `hookProblems`.
  */
-function outputStyleProblem(doc) {
-  const want = master.value.outputStyle
-  if (!want) return null
-  const got = doc.outputStyle
-  if (got === want) return null
-  return got === undefined
-    ? `      outputStyle: not set — master expects ${JSON.stringify(want)}`
-    : `      outputStyle: ${JSON.stringify(got)} — master expects ${JSON.stringify(want)}`
+const MACHINE_KEYS = ['outputStyle', 'theme', 'effortLevel', 'tui', 'agentPushNotifEnabled', 'enabledPlugins']
+function machineKeyProblems(doc) {
+  return MACHINE_KEYS.filter((k) => master.value[k] !== undefined)
+    .filter((k) => !same(doc[k], master.value[k]))
+    .map((k) =>
+      doc[k] === undefined
+        ? `      ${k}: not set — master expects ${JSON.stringify(master.value[k])}`
+        : `      ${k}: ${JSON.stringify(doc[k])} — master expects ${JSON.stringify(master.value[k])}`
+    )
 }
 
 /**
@@ -251,21 +260,21 @@ function check(label, path, { style = false } = {}) {
     console.log(`           Fix: node ${rel(import.meta.url)} --write ${path}`)
     return 'stale'
   }
-  const styleIssue = style ? outputStyleProblem(got.value) : null
+  const keyIssues = style ? machineKeyProblems(got.value) : []
   const hookIssues = style ? hookProblems(got.value) : []
-  if (same(perms, masterPerms) && !styleIssue && !hookIssues.length) {
+  if (same(perms, masterPerms) && !keyIssues.length && !hookIssues.length) {
     console.log(`  current  ${label}`)
     return 'current'
   }
   console.log(`  STALE    ${label}`)
   console.log(`           ${path}`)
   for (const l of describe(perms)) console.log(l)
-  if (styleIssue) console.log(styleIssue)
+  for (const l of keyIssues) console.log(l)
   for (const l of hookIssues) console.log(l)
   // Only offer --write when --write can actually fix what was reported. The hook is not one of
   // those things, and a repair command printed under a problem it does not repair is worse than
   // no command: it gets run, it reports success, and the problem is still there.
-  if (!same(perms, masterPerms) || styleIssue) console.log(`           Fix: node ${rel(import.meta.url)} --write ${path}`)
+  if (!same(perms, masterPerms) || keyIssues.length) console.log(`           Fix: node ${rel(import.meta.url)} --write ${path}`)
   return 'stale'
 }
 
@@ -301,14 +310,15 @@ function write(path) {
     if (!existsSync(dir)) die(`refusing to write: ${dir} does not exist. Create it first.`)
   }
   doc.permissions = JSON.parse(JSON.stringify(masterPerms))
-  // `outputStyle` rides along ONLY when repairing the user settings file — it is a machine
-  // preference (DEC-S050 as amended), and writing it into a repo's committed file would put a
-  // per-repo override where none is wanted.
-  const styleWritten = resolve(path) === resolve(USER_SETTINGS) && master.value.outputStyle
-  if (styleWritten) doc.outputStyle = master.value.outputStyle
+  // The machine keys ride along ONLY when repairing the user settings file — they are machine
+  // preferences, and writing them into a repo's committed file would put per-repo overrides
+  // where none are wanted.
+  const isUser = resolve(path) === resolve(USER_SETTINGS)
+  const keysWritten = isUser ? MACHINE_KEYS.filter((k) => master.value[k] !== undefined) : []
+  for (const k of keysWritten) doc[k] = JSON.parse(JSON.stringify(master.value[k]))
   // Computed AFTER the writes, so a key this run overwrote is never listed as "untouched" —
   // it read as reassurance about the exact key that had just changed.
-  const written = ['permissions', ...(styleWritten ? ['outputStyle'] : [])]
+  const written = ['permissions', ...keysWritten]
   const preserved = Object.keys(doc).filter((k) => !written.includes(k))
   writeFileSync(path, `${JSON.stringify(doc, null, 2)}\n`)
   console.log(`settings-policy: wrote ${written.join(' + ')} into ${path}`)
@@ -321,8 +331,8 @@ function write(path) {
   // Re-read rather than assume the write took. Same reason check-mirrors re-runs after --write:
   // "I wrote it" and "the file matches" are different claims.
   const after = readJson(path)
-  const styleOk = !styleWritten || after.ok === true && after.value.outputStyle === master.value.outputStyle
-  if (!after.ok || !same(after.value.permissions, masterPerms) || !styleOk) {
+  const keysOk = after.ok === true && keysWritten.every((k) => same(after.value[k], master.value[k]))
+  if (!after.ok || !same(after.value.permissions, masterPerms) || !keysOk) {
     console.error(`settings-policy: the file does not match the master after writing. Check ${path}.`)
     process.exit(1)
   }

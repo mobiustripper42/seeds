@@ -22,16 +22,30 @@ by **merging**, preserving every other key.
 | checked | where | repairable by `--write` |
 |---|---|---|
 | `permissions` | user settings + shared project | yes |
-| `outputStyle` | user settings only | yes |
+| `outputStyle`, `theme`, `effortLevel`, `tui`, `agentPushNotifEnabled`, `enabledPlugins` | user settings only | yes |
 | `SessionEnd` capture hook + its script (DEC-S045) | user settings only | **no** |
 | `~/.claude/devname` | the machine | **no** |
 
-**Why those four and not the rest of the file.** `theme`, `effortLevel`, `tui` and `enabledPlugins`
-are taste — there is no fleet-wide right answer, so comparing them would manufacture drift. The four
-above each have exactly one correct state per machine. `outputStyle` is a **machine** preference
-rather than a repo one (one edit covers every checkout on the box, and a new clone inherits it), so
-it is read at the user level only — which also means a deliberate per-repo override in
-`.claude/settings.local.json` is correctly invisible to the check rather than reported as drift.
+**The machine keys are read at the user level only**, which means a deliberate per-repo override in
+`.claude/settings.local.json` — `Explanatory` while designing, say — is correctly invisible to the
+check rather than reported as drift.
+
+**"They could differ" is not "they do differ", and the first version got that wrong.** This decision
+originally managed `outputStyle` alone and dismissed `theme`, `effortLevel`, `tui`,
+`agentPushNotifEnabled` and `enabledPlugins` as taste, on the argument that two machines could
+legitimately want different values. The operator's answer settled it: they could, and they don't —
+there was no case, ever, where a difference had been chosen.
+
+**And the cost of allowing an unchosen difference turned out to be measured, the same afternoon.**
+mill-dev had `tui: "fullscreen"`; bee-grace's user settings file contained **only** `permissions` and
+`hooks` — none of the five keys existed there at all. Different TUI mode means the terminal hands off
+mouse events differently, which is why text selection behaved differently on one machine, and why
+most of an afternoon went into chasing it through tmux configuration where the cause was not. **A
+difference nobody chose is not a preference; it is drift wearing a preference's clothes.**
+
+`enabledPlugins` was the one I held back longest, on the theory that it names plugins which must be
+installed on the box. Its actual content is three official-marketplace names, all `false` — no local
+paths, nothing machine-specific. The theory had no instance behind it either.
 
 **The hook is the one that cannot be a copied value.** Its `command` is an absolute path and the home
 directory differs per machine (`/home/eric/…` on mill-dev, `/home/estoffer/…` on bee-grace), so the

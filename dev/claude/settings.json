@@ -90,5 +90,14 @@
       "Edit(**/id_rsa*)"
     ]
   },
-  "outputStyle": "Concise"
+  "outputStyle": "Concise",
+  "theme": "dark",
+  "effortLevel": "high",
+  "tui": "fullscreen",
+  "agentPushNotifEnabled": true,
+  "enabledPlugins": {
+    "frontend-design@claude-plugins-official": false,
+    "stripe@claude-plugins-official": false,
+    "vercel@claude-plugins-official": false
+  }
 }
