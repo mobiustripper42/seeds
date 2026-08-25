@@ -209,29 +209,8 @@ For each candidate (newest first), check for `status: closed`. The first match i
 
 Extract:
 - **Task blocks** (`## Task <N>` sections in the body) — what was shipped
-- **Next Steps** — see the resolve-before-repeat rule below
+- **Next Steps** — verbatim
 - **Context** — gotchas
-
-### Step 7.1 — Resolve a Next Step before you repeat it
-
-**A Next Steps line that names a state must be checked against current state before it reaches the briefing.** A commit hash, a branch, a PR, an issue, an unmerged file revision — run the one command that says whether it still resolves:
-
-| what the line names | the check | drop it when |
-|---|---|---|
-| a commit or `git checkout <ref> -- <path>` | `git cat-file -e <ref>` and `git diff --quiet <ref> -- <path>` | the ref is gone, or the path no longer differs |
-| a branch | `git rev-parse --verify origin/<branch>` | absent, or already merged into `main` |
-| an issue or PR | `gh issue view <N> --json state` / `gh pr view <N> --json state` | closed or merged |
-| a file being in some state | read the file | it isn't in that state any more |
-
-**Drop it silently. Do not report that you dropped it** — a briefing line explaining why a line was removed is the same interruption as the line itself.
-
-**Why this is a step and not a note.** The old instruction was to carry Next Steps forward *verbatim*, which is correct for gotchas and wrong for anything that names a state: a sentence that was true when it was written becomes false the moment its referent merges, and nothing marks the transition. One observed line — *"a newer `kill-this/SKILL.md` revision sits at `git checkout adfbf38 -- …` if you still want it"* — survived its own PR merging and reappeared at every session open across two repos. The operator asked what to do about it five times, was told nothing, and finally wrote *"if there isn't anything to do stop fucking telling me about it."* The model knew in the moment that repeating dead advice was wrong and repeated it anyway, because the skill said verbatim. One `git diff --quiet` answers it.
-
-### Step 7.2 — A carried-forward plan is not a carried-forward approval
-
-**Anything in Next Steps or Context that proposes an action arrives as a proposal, and the fact that it was written down last session is not consent to do it this session.** Say what it proposes; do not start it.
-
-This is the rule at the moment it applies, because the ordinary Approval Before Action rule reads as being about *this* conversation and a plan crossing a session boundary does not feel like one. One observed session ended mid-turn on *"Fix all four, add the one-line reason, and rewrite issue #145 … Go?"* — the window closed before the operator answered. The next session restated the same plan and began editing files, and the operator's *"what are you doing?"* was the only thing that stopped it. **A question mark that never got an answer looks exactly like settled context on the other side of a session boundary**; silence across a boundary is not silence within one.
 
 **Pre-DEC-S013 schema tolerance:** legacy session files use a single `Task:` block instead of `## Task <N>` headers. Read either shape.
 
