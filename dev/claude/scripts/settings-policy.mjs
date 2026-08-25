@@ -88,6 +88,28 @@ for (let i = 0; i < argv.length; i++) {
 }
 
 /**
+ * A bare path with no mode flag is a usage error, not a default.
+ *
+ * Without this, `settings-policy.mjs /some/repo/.claude/settings.json` left `mode` at `user`,
+ * silently ignored the path, and checked `~/.claude/settings.json` instead — printing a
+ * perfectly normal `current`/`STALE`/`ABSENT` line for the wrong target. An observed session
+ * swept eleven sibling repos that way, twice, and got eleven plausible answers about a file it
+ * never looked at. Nothing in the output could have said so: the script's only failure signal is
+ * the verdict itself, and the verdict was real, just about `~/.claude/settings.json`.
+ *
+ * The second check catches the shape that actually happened — a path to the settings *file* where
+ * a repo *root* was expected. `resolve()` accepts it happily and `join(x, '.claude/settings.json')`
+ * then points at a path that cannot exist, which reads as ABSENT rather than as a mistake.
+ */
+if (positional.length && !modeFlag) {
+  die(`a path argument needs a mode flag — did you mean "--repo ${positional[0]}" or "--all ${positional[0]}"?`)
+}
+if (positional.length > 1) die(`expected at most one path, got ${positional.length}`)
+if (positional.length && (!existsSync(positional[0]) || !statSync(positional[0]).isDirectory())) {
+  die(`${positional[0]} is not a directory. This argument is a repo ROOT; the script appends .claude/settings.json itself`)
+}
+
+/**
  * The master is found relative to THIS FILE, not the working directory. The script is run from
  * whatever repo you happen to be in — that is the point — so cwd says nothing about where seeds
  * is. `--seeds` and the sibling/env fallbacks exist for the case where the script has been copied

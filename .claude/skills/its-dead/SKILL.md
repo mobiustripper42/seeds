@@ -34,16 +34,26 @@ Do **not** write `wall_clock`, `active`, `breaks`, `duration`, or any time-deriv
 
 ## Step 2 — Tally total points
 
-Scan the body for per-task blocks (one per `/kill-this`):
+Scan the body for the per-task `**Points:**` field (`/kill-this` writes one per task):
 
 ```
-grep -A 5 "^## Task " "$SESSION_FILE" | grep "Points:" | grep -oE "[0-9]+"
+grep -oE "^\*\*Points:\*\* *[0-9]+" "$SESSION_FILE" | grep -oE "[0-9]+"
 ```
 
 Sum and write the total into the frontmatter:
 - `points: <SUM>`
 
-If no `## Task <N>` blocks exist (a session that ran `/its-alive` and `/its-dead` with no `/kill-this` in between), `points: 0`. No warning — sometimes the work is exploration that didn't ship.
+**No `-A <N>` window, and that is the fix, not a simplification.** This step used to read `grep -A 5 "^## Task " | grep "Points:"`, which assumes `**Points:**` sits within five lines of its `## Task` heading. It does not: `/kill-this`'s own block template puts the open-ended `**Completed:**` bullet list first (`kill-this/SKILL.md` § Step 5), so in one observed session the four real gaps were 61, 55, 52 and 53 lines. The windowed command matched nothing and returned `points: 0`. `^\*\*Points:\*\*` is anchored and unique to that template, so it needs no window to avoid a false match.
+
+**Cross-check the count before you write.** The number of matches must equal the number of `## Task <N>` blocks:
+
+```
+grep -c "^## Task " "$SESSION_FILE"
+```
+
+If the two disagree, stop and say so rather than writing a sum. This is here because a wrong number cannot be corrected later: `/its-dead` writes `points:` into a file that is atomic the moment it closes, and `/retro` reads it as the phase's real cost.
+
+If no `## Task <N>` blocks exist (a session that ran `/its-alive` and `/its-dead` with no `/kill-this` in between), `points: 0`. No warning — sometimes the work is exploration that didn't ship. **Zero task blocks and zero points is a fact; task blocks with zero points is a bug** — the two used to produce identical output, which is why the undercount was silent.
 
 ## Step 3 — Append session-wide Context (optional)
 
