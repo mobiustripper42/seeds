@@ -241,6 +241,26 @@ Next: keep working in this session (cut another branch + `/kill-this` again), or
 
 If `EXISTING_PR_STATE` was `OPEN` and Step 4.2 was skipped, surface the existing PR URL and note that the task block now references the pre-existing PR.
 
+### Step 6.1 — An overridden review finding gets the last question, and gets it alone
+
+**If Step 3 or Step 3.5 raised a finding you decided not to fix, this message ends on that finding and does not print the `Next:` line at all.** One question, and it is that one:
+
+```
+Task <TASK_NUM> shipped, with one review finding I did not fix.
+
+<@code-review / /security-review> said: "<the finding, quoted>"
+I kept it because: <the reasoning, one or two lines>
+To overrule me: <the exact command or hand-check that settles it>
+
+Is that the right call?
+```
+
+Say nothing about the next task until that is answered. Re-offer the `Next:` menu in your following turn.
+
+**Why the placement is the whole fix.** The disclosure was never the problem. In the observed case the override was written down honestly — named in the report, argued in full in the PR body — and it shipped anyway, because the same message closed with *"#141 next, or `/its-dead`?"* and that is the question the operator answered, six hours later, with the single word *"141."* The finding the reviewer had called *"worth fixing before this lands"* went into a gate that then shipped to every project and produced real defects in two of them within the week. The same session was checked for this shape twice and **both times the operator answered the message's last question**. A flagged defect competing with "what's next" for attention loses; it is not competing with anything if it is the only thing asked.
+
+**This is not a licence to override.** Halting `/kill-this` before the PR is opened remains the right move when the finding means the change is wrong — one observed session did exactly that on a Stripe idempotency bug and it was correct. Step 6.1 is for the case where you ship anyway and the operator has to be the one who agrees.
+
 ## Notes
 
 - **No time math, no version bump, no CHANGELOG.** All deferred to `/retro` per DEC-S013. This skill ships a task and logs it; that's it.

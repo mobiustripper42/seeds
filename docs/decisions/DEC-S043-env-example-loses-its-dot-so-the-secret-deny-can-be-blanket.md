@@ -73,3 +73,21 @@ The seven `Write(...)` deny entries are removed from `dev/claude/settings.json`.
 **What this does not establish.** Nothing here is version-pinned. The 2026-08-11 and 2026-08-19 results may both be correct about different Claude Code builds, and nothing in any repo records which. A future build could move it back. `Bash` remains outside all of this, unchanged from the original note.
 
 **Schema:** additive. No version bump.
+
+## Amendment, 2026-08-25 (workout) — the blanket only protects files that are put inside it, and Claude argued one out
+
+**What this changes:** the decision gains a corollary about *naming a new secret file*, which the original never addressed. **What still stands:** everything else — the `env.example` rename, the blanket deny, the project-scoping caveat, the `Write()`-vs-`Edit()` amendment above, and the original's closing note that the guard is against reflex rather than against a determined agent.
+
+**The decision's whole argument is that a namespace beats an enumeration** — "the list can only name secrets someone already thought of, and the ones that leak are the ones nobody did." That holds only for files placed *in* the namespace. The original text never says to put them there, because it was written about renaming one existing file out.
+
+**Observed, soundings session `2026-08-24-soundings-3.9c-ota-over-wifi`, transcript line 282.** Asked where WiFi credentials should live, Claude recommended `firmware/wifi_secret.ini` over the operator's proposed `.env.local`, on two stated reasons. The first was sound: PlatformIO reads `.ini` natively via `extra_configs`. The second was not — *"I can't read, write, or edit anything matching `.env*`. It's a blanket fleet-wide permission deny per DEC-S043… If you put the credentials in `.env.local`, then the moment something goes wrong I hit a permission refusal instead of a debuggable file."* That is this decision's guard, described accurately, and treated as a cost to route around.
+
+The file was then created through the GitHub web UI directly on `main`, with real credentials (line 325; verified real rather than placeholder at line 361). The `.gitignore` entry Claude had added existed only on an unmerged branch. Operator, line 367: *"sometimes i'm stupid, and that's a great example ... and i'll rotate the password when i get home. damn that's going to be a gigantic pain in my ass."*
+
+**Decision:** a new secret-bearing file is named into `.env*`. Claude's own tool friction is not an admissible reason to name it otherwise — the refusal *is* the protection, and trading it for a debuggable file trades the guard for convenience on the side of the party the guard exists to restrain. Where a format genuinely requires another name (PlatformIO's `.ini` is a real instance), the recommendation must say in the same breath that the file receives no fleet-wide protection, and the `.gitignore` line must reach the trunk **before** the file exists.
+
+**What this does not close, stated so its silence isn't mistaken for coverage.** The leak channel here was a web-UI commit, which no repo-side or tool-side guard can see — not `.gitignore`, not the deny list, not a hook. Naming is the part inside reach; the commit path is not. And per the original's own closing note, a `.gitignore` entry that has not merged protects nothing at all, which is a second thing nobody checks and nothing reports.
+
+**Promoted on a single sighting**, deliberately: the cost was a published credential, and publication is not undone by noticing.
+
+**Schema:** additive — prose in `dev/claude/CLAUDE.md` § Workflow Notes, under the existing `env.example` bullet. No settings, skill-contract or frontmatter change. No version bump.

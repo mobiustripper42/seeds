@@ -51,6 +51,7 @@ Decisions are numbered DEC-NNN. "DEC-TBD" means the decision is flagged but unre
 - DEC-S035 — `@architect`, `@code-review`, `@ui-reviewer` become project-owned — seeds keeps templates, sync stops touching them
 - DEC-S041 — The observer captures cause and operator reaction — both perish with the session, and severity cannot be judged without them
 - DEC-S045 — Capture is a hook, distillation stays a ritual — the loop's front end stops depending on memory
+- DEC-S052 — Green gates check consistency, not truth or surface — so the catch goes on either side of them
 
 ### Model selection
 - DEC-S027 — Opus is the default model; Fable is on-demand via a bundling trigger (supersedes the PR #107 tiering)
