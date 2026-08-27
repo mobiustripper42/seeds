@@ -74,6 +74,7 @@
       "Bash(docker run *)",
       "Bash(gh extension install *)",
       "Bash(sed -n *)",
+      "Bash(sed -i *)",
       "Bash(sh)",
       "Bash(bash)",
       "Bash(sudo *)",
